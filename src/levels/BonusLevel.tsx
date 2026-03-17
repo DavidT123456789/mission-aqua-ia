@@ -140,9 +140,9 @@ export default function BonusLevel({ onComplete, onScoreUpdate, nickname, onFina
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
-      className="bg-slate-900 border border-emerald-500/30 p-6 md:p-8 rounded-xl shadow-2xl max-w-4xl mx-auto font-mono relative"
+      className="bg-slate-900 border border-emerald-500/30 p-4 md:p-6 rounded-xl shadow-2xl max-w-4xl mx-auto font-mono relative"
     >
-      <div className="flex items-center gap-3 mb-6 border-b border-emerald-900/50 pb-4">
+      <div className="flex items-center gap-3 mb-4 border-b border-emerald-900/50 pb-3">
         <Sparkles className="w-8 h-8 text-yellow-400" />
         <h2 className="text-xl md:text-2xl font-bold text-white uppercase tracking-widest">
           NIVEAU BONUS : L'INNOVATION LAB
@@ -150,7 +150,7 @@ export default function BonusLevel({ onComplete, onScoreUpdate, nickname, onFina
       </div>
 
       {status === 'input' && !isAnalyzing && (
-        <div className="space-y-6">
+        <div className="space-y-4">
           <NaiaDialogue 
             message="Agent, HYDRA est sous contrôle. Il est temps de passer à l'offensive. Développez votre propre concept d'innovation pour sauver l'eau. Plus votre description sera précise et technique, plus votre score sera élevé. Si vous atteignez 50% d'innovation, je matérialiserai votre prototype !"
             emotion="happy"
@@ -188,7 +188,7 @@ export default function BonusLevel({ onComplete, onScoreUpdate, nickname, onFina
       )}
 
       {(isAnalyzing || isFinalizing) && (
-        <div className="flex flex-col items-center justify-center py-20 space-y-8">
+        <div className="flex flex-col items-center justify-center py-20 space-y-5">
           <div className="relative">
             <Loader2 className="w-20 h-20 text-emerald-500 animate-spin" />
             <Sparkles className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 text-yellow-400 animate-pulse" />
@@ -204,7 +204,7 @@ export default function BonusLevel({ onComplete, onScoreUpdate, nickname, onFina
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="space-y-8"
+          className="space-y-5"
         >
           <NaiaDialogue 
             message={`Analyse préliminaire terminée. Votre concept "${evaluation.title}" a un potentiel de ${evaluation.score}%. ${evaluation.score >= 80 ? "C'est une innovation de classe mondiale !" : evaluation.score >= 50 ? "C'est un excellent début, le prototype est débloqué." : "Il manque encore un peu de précision pour matérialiser ce projet."}`}
@@ -311,10 +311,10 @@ export default function BonusLevel({ onComplete, onScoreUpdate, nickname, onFina
         <motion.div 
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="space-y-8"
+          className="space-y-5"
         >
           <div ref={dossierRef} className="p-4 rounded-3xl bg-slate-950 border border-emerald-500/20">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               {/* Patent Card */}
               <div className="bg-slate-950 border-2 border-emerald-500/30 rounded-2xl p-6 relative overflow-hidden">
                 <div className="absolute top-0 right-0 bg-emerald-500 text-slate-950 px-4 py-1 font-bold text-[10px] rounded-bl-lg tracking-tighter">

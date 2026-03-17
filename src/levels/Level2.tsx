@@ -49,21 +49,21 @@ export default function Level2({ isDevMode, onComplete, onScoreUpdate, onMistake
       initial={{ opacity: 0, x: 50 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -50 }}
-      className="bg-slate-900 border border-emerald-500/30 p-6 md:p-8 rounded-xl shadow-2xl max-w-4xl mx-auto font-mono relative"
+      className="bg-slate-900 border border-emerald-500/30 p-4 md:p-6 rounded-xl shadow-2xl max-w-4xl mx-auto font-mono relative"
     >
       {isDevMode && (
         <div className="absolute top-2 right-2 bg-purple-900/80 text-purple-300 text-xs px-2 py-1 rounded border border-purple-500/50 z-50">
           Dev Answer: 50 + 75 + 25 (1, 2, 4)
         </div>
       )}
-      <div className="flex items-center gap-3 mb-6 border-b border-emerald-900/50 pb-4">
+      <div className="flex items-center gap-3 mb-4 border-b border-emerald-900/50 pb-3">
         <Settings className="w-8 h-8 text-emerald-400" />
         <h2 className="text-xl md:text-2xl font-bold text-white uppercase tracking-widest">
           Niveau 2 : Refroidissement
         </h2>
       </div>
 
-      <div className="mb-8">
+      <div className="mb-5">
         <NaiaDialogue 
           message={
             <>
@@ -74,7 +74,7 @@ export default function Level2({ isDevMode, onComplete, onScoreUpdate, onMistake
         />
       </div>
 
-      <div className="space-y-6 text-slate-300">
+      <div className="space-y-4 text-slate-300">
         <div className="bg-red-950/30 border border-red-500/50 p-4 rounded-lg flex items-start gap-4">
           <AlertTriangle className="w-6 h-6 text-red-500 shrink-0 mt-1" />
           <div>
@@ -85,7 +85,7 @@ export default function Level2({ isDevMode, onComplete, onScoreUpdate, onMistake
           </div>
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-8 mt-8">
+        <div className="flex flex-col lg:flex-row gap-5 mt-5">
           {/* Valve Controls */}
           <div className="w-full lg:w-3/5 relative p-6 bg-slate-950 rounded-xl border border-slate-800 overflow-hidden">
             {/* Decorative pipes background */}
@@ -157,7 +157,7 @@ export default function Level2({ isDevMode, onComplete, onScoreUpdate, onMistake
                 <p className="text-sm text-slate-400 uppercase tracking-widest font-bold">Débit Total Actuel</p>
               </div>
               
-              <div className="flex flex-col items-center gap-1 mb-8">
+              <div className="flex flex-col items-center gap-1 mb-5">
                 <span className={`text-7xl font-bold transition-colors duration-300 ${
                   currentFlow > targetFlow ? 'text-red-500' : currentFlow === targetFlow ? 'text-emerald-400 drop-shadow-[0_0_15px_rgba(16,185,129,0.8)]' : 'text-blue-400'
                 }`}>
@@ -204,7 +204,7 @@ export default function Level2({ isDevMode, onComplete, onScoreUpdate, onMistake
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="flex flex-col items-center mt-8 p-6 bg-emerald-950/30 border border-emerald-500/50 rounded-lg"
+              className="flex flex-col items-center mt-5 p-6 bg-emerald-950/30 border border-emerald-500/50 rounded-lg"
             >
               <div className="flex items-center gap-2 text-emerald-400 font-bold text-xl mb-4">
                 <CheckCircle2 className="w-6 h-6" />

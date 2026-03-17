@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Info } from 'lucide-react';
 
@@ -48,7 +48,36 @@ interface TechTermProps {
 
 export default function TechTerm({ term, children }: TechTermProps) {
   const [isHovered, setIsHovered] = useState(false);
+  const [positionClass, setPositionClass] = useState('left-1/2 -translate-x-1/2');
+  const [arrowClass, setArrowClass] = useState('left-1/2 -translate-x-1/2');
+  const spanRef = useRef<HTMLSpanElement>(null);
   const info = TERMS_DICTIONARY[term] || { title: term, definition: 'Terme technique lié à l\'IA ou à l\'écologie.' };
+
+  useEffect(() => {
+    if (isHovered && spanRef.current) {
+      const rect = spanRef.current.getBoundingClientRect();
+      const tooltipWidth = 256; // w-64 = 16rem = 256px
+      const halfTooltip = tooltipWidth / 2;
+      
+      let newPosClass = 'left-1/2 -translate-x-1/2';
+      let newArrowClass = 'left-1/2 -translate-x-1/2';
+
+      // Vérifier le débordement à droite
+      if (rect.left + rect.width / 2 + halfTooltip > window.innerWidth - 20) {
+        newPosClass = 'right-0';
+        // Placer la flèche en fonction de la taille du mot, mais gardée à droite
+        newArrowClass = 'right-[10%]';
+      } 
+      // Vérifier le débordement à gauche
+      else if (rect.left + rect.width / 2 - halfTooltip < 20) {
+        newPosClass = 'left-0';
+        newArrowClass = 'left-[10%]';
+      }
+
+      setPositionClass(newPosClass);
+      setArrowClass(newArrowClass);
+    }
+  }, [isHovered]);
 
   const handleMouseEnter = () => {
     setIsHovered(true);
@@ -58,6 +87,7 @@ export default function TechTerm({ term, children }: TechTermProps) {
   return (
     <span 
       className="relative inline-block"
+      ref={spanRef}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={() => setIsHovered(false)}
     >
@@ -72,7 +102,7 @@ export default function TechTerm({ term, children }: TechTermProps) {
             initial={{ opacity: 0, y: 10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 5, scale: 0.95 }}
-            className="absolute z-[100] bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-3 bg-slate-900 border border-emerald-500/50 rounded-lg shadow-xl pointer-events-none block"
+            className={`absolute z-[100] bottom-full ${positionClass} mb-2 w-64 p-3 bg-slate-900 border border-emerald-500/50 rounded-lg shadow-xl pointer-events-none block`}
           >
             <span className="text-emerald-400 font-bold text-xs uppercase tracking-wider mb-1 flex items-center gap-2">
               <Info className="w-3 h-3" />
@@ -81,7 +111,7 @@ export default function TechTerm({ term, children }: TechTermProps) {
             <span className="text-slate-200 text-xs leading-relaxed font-sans block">
               {info.definition}
             </span>
-            <span className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-slate-900"></span>
+            <span className={`absolute top-full ${arrowClass} border-8 border-transparent border-t-slate-900`}></span>
           </motion.span>
         )}
       </AnimatePresence>

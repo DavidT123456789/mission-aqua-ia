@@ -119,7 +119,7 @@ export default function Outro({ timeLeft, score, onRestart, nickname, evaluation
         </div>
       </div>
 
-      <div className="bg-gradient-to-r from-cyan-900/20 to-purple-900/20 border-2 border-cyan-500/30 rounded-xl p-6 mb-8 max-w-xl mx-auto">
+      <div className="bg-gradient-to-r from-cyan-900/20 to-purple-900/20 border-2 border-cyan-500/30 rounded-xl p-6 mb-5 max-w-xl mx-auto">
         <h3 className="text-cyan-400 font-mono font-bold mb-2">CERTIFICAT HYDROSAVE</h3>
         <p className="text-slate-300 text-sm mb-1">Cette équipe a sauvé les réserves d'eau mondiales !</p>
         <div className="text-white font-bold mb-4 uppercase tracking-widest border-b border-cyan-500/20 pb-2">
@@ -131,7 +131,7 @@ export default function Outro({ timeLeft, score, onRestart, nickname, evaluation
       </div>
 
       {leaderboard && leaderboard.length > 0 && (
-        <div className="max-w-xl mx-auto mb-8 bg-slate-950/50 border border-slate-800 rounded-xl p-4">
+        <div className="max-w-xl mx-auto mb-5 bg-slate-950/50 border border-slate-800 rounded-xl p-4">
           <h3 className="text-yellow-500 font-bold uppercase tracking-widest text-sm mb-4 flex items-center justify-center gap-2">
             <Trophy className="w-4 h-4" /> MEILLEURS AGENTS
           </h3>
@@ -149,7 +149,7 @@ export default function Outro({ timeLeft, score, onRestart, nickname, evaluation
         </div>
       )}
 
-      <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
+      <div className="flex flex-col sm:flex-row gap-4 justify-center mb-5">
         <button
           onClick={downloadFullCertificate}
           className="flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-4 rounded-xl font-bold transition-all shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:scale-105"
@@ -166,7 +166,7 @@ export default function Outro({ timeLeft, score, onRestart, nickname, evaluation
         </button>
       </div>
 
-      <div className="space-y-6 text-left bg-slate-950 p-6 rounded-lg border border-slate-800 font-sans text-slate-300">
+      <div className="space-y-4 text-left bg-slate-950 p-6 rounded-lg border border-slate-800 font-sans text-slate-300">
         <p className="text-lg font-bold text-white border-b border-slate-800 pb-2">
           Ce qu'il faut retenir :
         </p>
@@ -227,7 +227,7 @@ export default function Outro({ timeLeft, score, onRestart, nickname, evaluation
           </div>
 
           {/* Agent Info */}
-          <div className="grid grid-cols-2 gap-8 mb-12">
+          <div className="grid grid-cols-2 gap-5 mb-12">
             <div className="bg-slate-900/50 p-6 rounded-2xl border border-emerald-500/20">
               <h2 className="text-xs font-bold text-emerald-500 uppercase tracking-widest mb-4">IDENTITÉ DE L'AGENT</h2>
               <div className="text-3xl font-bold mb-2">{nickname}</div>
@@ -254,8 +254,8 @@ export default function Outro({ timeLeft, score, onRestart, nickname, evaluation
               <h2 className="text-xs font-bold text-cyan-500 uppercase tracking-widest mb-6 flex items-center gap-2">
                 <Zap className="w-4 h-4" /> DOSSIER D'INNOVATION TECHNOLOGIQUE
               </h2>
-              <div className="grid grid-cols-3 gap-8">
-                <div className="col-span-2 space-y-6">
+              <div className="grid grid-cols-3 gap-5">
+                <div className="col-span-2 space-y-4">
                   <div className="bg-slate-900/80 p-6 rounded-2xl border border-cyan-500/30">
                     <h3 className="text-2xl font-bold text-white mb-2">{evaluation.title}</h3>
                     <p className="text-slate-300 leading-relaxed mb-6 italic">"{evaluation.description}"</p>

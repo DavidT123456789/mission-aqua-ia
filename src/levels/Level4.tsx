@@ -5,65 +5,106 @@ import Hint from '../components/Hint';
 import NaiaDialogue from '../components/NaiaDialogue';
 import TechTerm from '../components/TechTerm';
 
+// --- Constantes et utilitaires extraits hors du composant pour éviter de recréer les références à chaque rendu ---
+const THE_BLANKS = [
+  { id: 1, ans: 'capteur', val: '' },
+  { id: 2, ans: 'previsions', val: '' },
+  { id: 3, ans: 'seuil', val: '' },
+  { id: 4, ans: 'or', val: '' },
+  { id: 5, ans: 'False', val: '' },
+  { id: 6, ans: 'eau', val: '' },
+  { id: 7, ans: 'True', val: '' },
+  { id: 8, ans: 'aube', val: '' },
+];
+
+const shuffleArray = <T,>(array: T[]): T[] => {
+  const newArray = [...array];
+  for (let i = newArray.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+  }
+  return newArray;
+};
+
+const getInitialWords = () => shuffleArray([
+  'capteur', 'previsions', 'seuil', 'or', 'False', 'eau', 'True', 'aube'
+]).map((word, index) => ({ id: index, word, used: false }));
+
+const wordDescriptions: Record<string, string> = {
+  'capteur': "Mesure l'humidité du sol",
+  'previsions': "Météo à venir",
+  'seuil': "Besoin spécifique en eau",
+  'or': "Opérateur logique 'OU'",
+  'False': "Faux (Inactif)",
+  'eau': "Ressource à calculer",
+  'True': "Vrai (Actif)",
+  'aube': "Matinée (évite maladies)",
+};
+
 export default function Level4({ isDevMode, onComplete, onScoreUpdate, onMistake }: { isDevMode?: boolean; onComplete: () => void; onScoreUpdate: (points: number, water: number) => void; onMistake?: () => void; key?: string }) {
+  const [activeWord, setActiveWord] = useState<{ id: number, word: string } | null>(null);
   const [activeBlank, setActiveBlank] = useState<number | null>(null);
   const [showError, setShowError] = useState(false);
   const [success, setSuccess] = useState(false);
 
-  const initialBlanks = [
-    { id: 1, ans: 'capteur', val: '' },
-    { id: 2, ans: 'prévisions', val: '' },
-    { id: 3, ans: 'STOP', val: '' },
-    { id: 4, ans: 'pluie', val: '' },
-    { id: 5, ans: 'STOP', val: '' },
-    { id: 6, ans: 'eau', val: '' },
-    { id: 7, ans: 'ACTIVER', val: '' },
-    { id: 8, ans: 'nuit', val: '' },
-  ];
-
-  // Shuffle function
-  const shuffleArray = <T,>(array: T[]): T[] => {
-    const newArray = [...array];
-    for (let i = newArray.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
-    }
-    return newArray;
-  };
-
-  const initialWords = shuffleArray([
-    'capteur', 'prévisions', 'STOP', 'pluie', 'STOP', 'eau', 'ACTIVER', 'nuit'
-  ]).map((word, index) => ({ id: index, word, used: false }));
-
-  const [blanks, setBlanks] = useState(initialBlanks);
-  const [words, setWords] = useState(initialWords);
+  // Initialisation paresseuse pour éviter de mélanger l'array à chaque re-render
+  const [blanks, setBlanks] = useState(THE_BLANKS);
+  const [words, setWords] = useState(getInitialWords);
 
   const handleBlankClick = (id: number) => {
-    setActiveBlank(id);
-  };
+    const blank = blanks.find(b => b.id === id);
+    if (!blank) return;
 
-  const handleWordClick = (wordObj: { id: number, word: string, used: boolean }) => {
-    if (!activeBlank || wordObj.used) return;
-
-    setBlanks(prev => prev.map(b => {
-      if (b.id === activeBlank) {
-        // If blank already had a value, free up that word
-        if (b.val !== '') {
-          setWords(wPrev => wPrev.map(w => w.word === b.val && w.used ? { ...w, used: false } : w));
-        }
-        return { ...b, val: wordObj.word };
+    if (activeWord) {
+      // Un mot est "en main", on le place ici
+      if (blank.val !== '') {
+        // Si la case était déjà pleine, on libère l'ancien mot
+        setWords(prev => prev.map(w => w.word === blank.val ? { ...w, used: false } : w));
       }
-      return b;
-    }));
-
-    setWords(prev => prev.map(w => w.id === wordObj.id ? { ...w, used: true } : w));
-    setActiveBlank(null);
+      setBlanks(prev => prev.map(b => b.id === id ? { ...b, val: activeWord.word } : b));
+      setWords(prev => prev.map(w => w.id === activeWord.id ? { ...w, used: true } : w));
+      setActiveWord(null);
+    } else {
+      if (blank.val !== '') {
+        // Si on clique sur un mot déjà placé sans rien avoir en main, on le retire
+        setWords(prev => prev.map(w => w.word === blank.val ? { ...w, used: false } : w));
+        setBlanks(prev => prev.map(b => b.id === id ? { ...b, val: '' } : b));
+        setActiveBlank(null);
+      } else {
+        // On cible un espace vide
+        setActiveBlank(activeBlank === id ? null : id);
+      }
+    }
+    
     setShowError(false);
   };
 
+  const handleWordClick = (wordObj: { id: number, word: string, used: boolean }) => {
+    if (wordObj.used) return;
+    
+    if (activeBlank) {
+      // Un espace est ciblé, on insère le mot dedans
+      const targetBlank = blanks.find(b => b.id === activeBlank);
+      if (targetBlank && targetBlank.val !== '') {
+        setWords(prev => prev.map(w => w.word === targetBlank.val ? { ...w, used: false } : w));
+      }
+      setBlanks(prev => prev.map(b => b.id === activeBlank ? { ...b, val: wordObj.word } : b));
+      setWords(prev => prev.map(w => w.id === wordObj.id ? { ...w, used: true } : w));
+      setActiveBlank(null);
+    } else {
+      // Basculer la sélection : si on clique sur le mot déjà pris, on le repose
+      if (activeWord?.id === wordObj.id) {
+        setActiveWord(null);
+      } else {
+        setActiveWord({ id: wordObj.id, word: wordObj.word });
+      }
+    }
+  };
+
   const resetCode = () => {
-    setBlanks(initialBlanks);
-    setWords(initialWords);
+    setBlanks(THE_BLANKS);
+    setWords(getInitialWords());
+    setActiveWord(null);
     setActiveBlank(null);
     setShowError(false);
   };
@@ -91,26 +132,66 @@ export default function Level4({ isDevMode, onComplete, onScoreUpdate, onMistake
 
   const allFilled = blanks.every(b => b.val !== '');
 
+  const renderBlankSlot = (id: number) => {
+    const blank = blanks.find(b => b.id === id);
+    const isFilled = blank?.val !== '';
+    const isTargeted = activeBlank === id;
+    const isReadyToReceive = (activeWord !== null && !isFilled) || isTargeted;
+
+    return (
+      <motion.button
+        layout
+        key={`slot-${id}`}
+        onClick={() => handleBlankClick(id)}
+        className={`inline-flex items-center justify-center min-w-[80px] h-7 px-2 mx-1 rounded transition-colors focus:outline-none ${
+          isTargeted
+            ? 'bg-emerald-900/50 border-2 border-emerald-400 shadow-[0_0_15px_rgba(52,211,153,0.5)] z-10'
+            : isFilled
+            ? 'bg-cyan-900/30 border border-cyan-500/50 text-cyan-300 cursor-pointer hover:bg-cyan-900/50'
+            : isReadyToReceive
+            ? 'bg-emerald-900/20 border-2 border-dashed border-emerald-500/50 shadow-[0_0_10px_rgba(52,211,153,0.2)] animate-pulse'
+            : 'bg-slate-800/50 border border-dashed border-slate-500 hover:border-emerald-500/50 hover:bg-slate-800 cursor-pointer'
+        } ${showError && !isFilled ? 'border-red-500 bg-red-900/20' : ''}`}
+      >
+        <AnimatePresence mode="popLayout">
+          {isFilled ? (
+            <motion.span
+              key={blank.val}
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.5, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 400, damping: 25 }}
+            >
+              {blank.val}
+            </motion.span>
+          ) : (
+            <span key={`empty-${id}`} className="opacity-0">...</span>
+          )}
+        </AnimatePresence>
+      </motion.button>
+    );
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, x: 50 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -50 }}
-      className="bg-slate-900 border border-emerald-500/30 p-6 md:p-8 rounded-xl shadow-2xl max-w-4xl mx-auto font-mono relative"
+      className="bg-slate-900 border border-emerald-500/30 p-4 md:p-6 rounded-xl shadow-2xl max-w-4xl mx-auto font-mono relative"
     >
       {isDevMode && (
         <div className="absolute top-2 right-2 bg-purple-900/80 text-purple-300 text-xs px-2 py-1 rounded border border-purple-500/50 z-50">
-          Dev Answer: 1:capteur, 2:prévisions, 3:STOP, 4:pluie, 5:STOP, 6:eau, 7:ACTIVER, 8:nuit
+          Dev Answer: 1:capteur, 2:previsions, 3:seuil, 4:or, 5:False, 6:eau, 7:True, 8:aube
         </div>
       )}
-      <div className="flex items-center gap-3 mb-6 border-b border-emerald-900/50 pb-4">
+      <div className="flex items-center gap-3 mb-4 border-b border-emerald-900/50 pb-3">
         <Cpu className="w-8 h-8 text-emerald-400" />
         <h2 className="text-xl md:text-2xl font-bold text-white uppercase tracking-widest">
           Niveau 4 : L'Algorithme d'Arrosage
         </h2>
       </div>
 
-      <div className="space-y-6 text-slate-300">
+      <div className="space-y-4 text-slate-300">
         <NaiaDialogue message={
           <>
             L'agriculture consomme <strong>70% de l'eau douce mondiale</strong>. Je peux réduire ça de moitié grâce à un arrosage intelligent... mais mon algorithme est <strong>incomplet</strong> ! Aidez-moi à le réparer.
@@ -124,21 +205,21 @@ export default function Level4({ isDevMode, onComplete, onScoreUpdate, onMistake
           <ul className="space-y-3 text-sm">
             <li className="flex gap-3">
               <span className="w-6 h-6 rounded-full bg-cyan-900/50 flex items-center justify-center text-cyan-400 shrink-0">1</span>
-              <span>L'<TechTerm term="IA" /> reçoit des informations grâce à des <strong>capteurs</strong> dans le sol et aux <strong>prévisions</strong> météo.</span>
+              <span>L'<TechTerm term="IA" /> reçoit des informations grâce à des <strong>capteurs</strong> dans le sol et aux <strong>previsions</strong> météo.</span>
             </li>
             <li className="flex gap-3">
               <span className="w-6 h-6 rounded-full bg-cyan-900/50 flex items-center justify-center text-cyan-400 shrink-0">2</span>
-              <span>Elle analyse : <em>« SI le sol est humide → pas besoin d'arroser. SI il va pleuvoir → la nature s'en charge. »</em></span>
+              <span>Elle analyse : <em>« SI l'humidité dépasse le <strong>seuil</strong> de la plante <strong>OU</strong> (opérateur <strong>'or'</strong>) s'il va pleuvoir → on n'arrose pas (<strong>False</strong>). »</em></span>
             </li>
             <li className="flex gap-3">
               <span className="w-6 h-6 rounded-full bg-cyan-900/50 flex items-center justify-center text-cyan-400 shrink-0">3</span>
-              <span>Seulement quand c'est nécessaire, l'<TechTerm term="IA" /> active l'arrosage, de préférence la <strong>nuit</strong> (moins d'évaporation).</span>
+              <span>Seulement quand c'est nécessaire, l'<TechTerm term="IA" /> calcule le besoin en <strong>eau</strong> et active l'arrosage (<strong>True</strong>), de préférence à l'<strong>aube</strong> (moins d'évaporation, empêche les maladies).</span>
             </li>
           </ul>
         </div>
 
         <div className="text-center mb-4 p-3 bg-emerald-950/30 border border-emerald-500/20 rounded-lg text-sm">
-          👆 <strong>Mission :</strong> Complétez le code ci-dessous. Cliquez sur un espace vide <span className="inline-block w-8 h-4 border border-dashed border-emerald-500 mx-1"></span> puis choisissez le bon mot.
+          👆 <strong>Mission :</strong> Complétez le code ci-dessous. Vous pouvez soit <strong>prendre une étiquette</strong> puis cliquer sur un espace, soit <strong>sélectionner un espace</strong> <span className="inline-block w-8 h-4 border border-dashed border-emerald-500 mx-1"></span> puis choisir une étiquette.
         </div>
 
         {/* Code Editor */}
@@ -150,49 +231,53 @@ export default function Level4({ isDevMode, onComplete, onScoreUpdate, onMistake
             <span className="ml-2 text-slate-500 text-xs">aqua_farm.py</span>
           </div>
           
-          <div className="p-4 md:p-6 overflow-x-auto">
+          <div className="p-4 md:p-6 overflow-x-auto pt-10">
             <div className="min-w-[500px]">
               <div className="text-slate-500 italic mb-2"># 🌱 Programme AQUA-FARM</div>
-              <div className="mb-2"><span className="text-pink-500 font-bold">def</span> <span className="text-emerald-400">decider_arrosage</span>():</div>
+              <div className="mb-2"><span className="text-pink-500 font-bold">def</span> <span className="text-emerald-400">decider_arrosage</span>(<span className="text-orange-300">plante</span>):</div>
               
               <div className="pl-6 mb-2 text-slate-500 italic"># Étape 1 : Lire les données</div>
               <div className="pl-6 mb-1 flex items-center flex-wrap gap-y-2">
                 <span className="text-blue-300 mr-2">humidite</span> = lire_
-                <BlankSlot id={1} />
+                {renderBlankSlot(1)}
                 (<span className="text-yellow-300">"humidité"</span>)
               </div>
               <div className="pl-6 mb-4 flex items-center flex-wrap gap-y-2">
                 <span className="text-blue-300 mr-2">meteo</span> = lire_
-                <BlankSlot id={2} />
+                {renderBlankSlot(2)}
                 (<span className="text-yellow-300">"pluie_demain"</span>)
               </div>
 
               <div className="pl-6 mb-2 text-slate-500 italic"># Étape 2 : Décider</div>
-              <div className="pl-6 mb-1">
-                <span className="text-pink-500 font-bold">if</span> <span className="text-blue-300">humidite</span> {'>'} <span className="text-purple-400">60%</span>: <span className="text-slate-500 italic"># Sol encore mouillé ?</span>
-              </div>
-              <div className="pl-12 mb-2 flex items-center flex-wrap gap-y-2">
-                <span className="mr-2">arrosage =</span> <BlankSlot id={3} />
-              </div>
-
               <div className="pl-6 mb-1 flex items-center flex-wrap gap-y-2">
-                <span className="text-pink-500 font-bold mr-2">elif</span> <span className="text-blue-300 mr-2">meteo</span> == <span className="text-yellow-300">"</span><BlankSlot id={4} /><span className="text-yellow-300">"</span>: <span className="text-slate-500 italic ml-2"># Pluie prévue ?</span>
+                <span className="text-pink-500 font-bold mr-2">if</span> <span className="text-blue-300 mr-2">humidite</span> {'>'} <span className="text-orange-300">plante</span>.
+                {renderBlankSlot(3)} {renderBlankSlot(4)} <span className="text-blue-300 mx-2">meteo</span> == <span className="text-yellow-300">"pluie"</span>: <span className="text-slate-500 italic ml-2"># Pas besoin d'eau</span>
+              </div>
+              <div className="pl-12 mb-1 flex items-center flex-wrap gap-y-2">
+                <span className="mr-2">arrosage =</span> {renderBlankSlot(5)}
+              </div>
+              <div className="pl-12 mb-1 flex items-center flex-wrap gap-y-2">
+                <span className="mr-2">besoin = 0</span>
               </div>
               <div className="pl-12 mb-2 flex items-center flex-wrap gap-y-2">
-                <span className="mr-2">arrosage =</span> <BlankSlot id={5} />
+                <span className="mr-2">heure =</span> <span className="text-yellow-300">None</span>
               </div>
 
               <div className="pl-6 mb-1">
                 <span className="text-pink-500 font-bold">else</span>: <span className="text-slate-500 italic"># Sol sec + pas de pluie</span>
               </div>
               <div className="pl-12 mb-1 flex items-center flex-wrap gap-y-2">
-                <span className="mr-2">besoin = calcul_</span><BlankSlot id={6} />(plante)
+                <span className="mr-2">besoin = calcul_</span>{renderBlankSlot(6)}(<span className="text-orange-300">plante</span>)
               </div>
               <div className="pl-12 mb-1 flex items-center flex-wrap gap-y-2">
-                <span className="mr-2">arrosage =</span> <BlankSlot id={7} />
+                <span className="mr-2">arrosage =</span> {renderBlankSlot(7)}
               </div>
-              <div className="pl-12 mb-2 flex items-center flex-wrap gap-y-2">
-                <span className="mr-2">heure =</span> <span className="text-yellow-300">"</span><BlankSlot id={8} /><span className="text-yellow-300">"</span> <span className="text-slate-500 italic ml-2"># Moins d'évaporation !</span>
+              <div className="pl-12 mb-4 flex items-center flex-wrap gap-y-2">
+                <span className="mr-2">heure =</span> <span className="text-yellow-300">"</span>{renderBlankSlot(8)}<span className="text-yellow-300">"</span> <span className="text-slate-500 italic ml-2"># Évite les maladies !</span>
+              </div>
+              
+              <div className="pl-6 mb-2 flex items-center flex-wrap gap-y-2">
+                <span className="text-pink-500 font-bold mr-2">return</span> {'{'} <span className="text-yellow-300">"arrosage"</span>: arrosage, <span className="text-yellow-300">"besoin"</span>: besoin, <span className="text-yellow-300">"heure"</span>: heure {'}'}
               </div>
             </div>
           </div>
@@ -200,20 +285,46 @@ export default function Level4({ isDevMode, onComplete, onScoreUpdate, onMistake
 
         {/* Word Bank */}
         <div className="flex flex-wrap justify-center gap-3 p-4 bg-slate-950/50 border border-slate-800 rounded-xl">
-          {words.map((w, i) => (
-            <button
-              key={`${w.word}-${i}`}
-              onClick={() => handleWordClick(w)}
-              disabled={w.used}
-              className={`px-4 py-2 rounded-full font-mono text-sm transition-all ${
-                w.used 
-                  ? 'bg-slate-900 text-slate-700 border border-slate-800 cursor-not-allowed' 
-                  : 'bg-cyan-900/30 text-cyan-400 border border-cyan-500/50 hover:bg-cyan-800/50 hover:scale-105 shadow-[0_0_10px_rgba(6,182,212,0.1)]'
-              }`}
-            >
-              {w.word}
-            </button>
-          ))}
+          <AnimatePresence>
+            {words.map((w, i) => (
+              <motion.div 
+                layout
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                key={`${w.word}-${i}`} 
+                className="group/word relative flex items-center justify-center"
+              >
+                <motion.button
+                  whileHover={w.used ? {} : { scale: 1.05 }}
+                  whileTap={w.used ? {} : { scale: 0.95 }}
+                  animate={{ 
+                    scale: w.used ? 0.9 : activeWord?.id === w.id ? 1.1 : 1, 
+                    opacity: w.used ? 0.35 : 1 
+                  }}
+                  transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                  onClick={() => handleWordClick(w)}
+                  disabled={w.used}
+                  className={`px-4 py-2 rounded-full font-mono text-sm transition-colors focus:outline-none ${
+                    w.used 
+                      ? 'bg-slate-900 text-slate-700 border border-slate-800 cursor-not-allowed' 
+                      : activeWord?.id === w.id
+                      ? 'bg-emerald-900/50 text-emerald-400 border border-emerald-400 shadow-[0_0_15px_rgba(52,211,153,0.4)] z-10'
+                      : activeBlank
+                      ? 'bg-emerald-900/20 text-emerald-400 border border-emerald-500/50 shadow-[0_0_10px_rgba(52,211,153,0.2)] animate-pulse cursor-pointer'
+                      : 'bg-cyan-900/30 text-cyan-400 border border-cyan-500/50 shadow-[0_0_10px_rgba(6,182,212,0.1)]'
+                  }`}
+                >
+                  {w.word}
+                </motion.button>
+                {!w.used && (
+                  <div className="absolute bottom-full mb-2 w-36 px-2 py-1.5 bg-slate-800 text-slate-300 text-[10px] leading-snug rounded shadow-xl border border-slate-700 opacity-0 group-hover/word:opacity-100 transition-opacity pointer-events-none z-50 text-center font-sans tracking-wide">
+                    {wordDescriptions[w.word]}
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-x-4 border-x-transparent border-t-4 border-t-slate-800"></div>
+                  </div>
+                )}
+              </motion.div>
+            ))}
+          </AnimatePresence>
         </div>
 
         <div className="flex justify-center gap-4 mt-6">
@@ -250,7 +361,7 @@ export default function Level4({ isDevMode, onComplete, onScoreUpdate, onMistake
                 <h3 className="text-2xl font-bold text-white mb-2">ALGORITHME DÉPLOYÉ</h3>
                 <p className="text-emerald-200 mb-4">L'irrigation intelligente est active. Économie estimée : 30 à 50% d'eau !</p>
                 <div className="bg-emerald-900/40 p-3 rounded text-sm text-left text-emerald-100 mb-4">
-                  <strong>📚 À retenir :</strong> Un <TechTerm term="Algorithme" /> est une suite d'instructions logiques (SI... SINON...). Arroser la nuit réduit l'évaporation de 30%.
+                  <strong>📚 À retenir :</strong> L'opérateur <strong>OR</strong> permet de combiner plusieurs conditions. Arroser à l'<strong>aube</strong> empêche la stagnation d'eau sur les feuilles !
                 </div>
                 <p className="text-sm text-slate-400 mt-4 animate-pulse">Passage au niveau suivant...</p>
               </div>
@@ -263,24 +374,4 @@ export default function Level4({ isDevMode, onComplete, onScoreUpdate, onMistake
     </motion.div>
   );
 
-  function BlankSlot({ id }: { id: number }) {
-    const blank = blanks.find(b => b.id === id);
-    const isActive = activeBlank === id;
-    const isFilled = blank?.val !== '';
-
-    return (
-      <button
-        onClick={() => handleBlankClick(id)}
-        className={`inline-flex items-center justify-center min-w-[80px] h-7 px-2 mx-1 rounded transition-all ${
-          isActive 
-            ? 'bg-emerald-900/50 border-2 border-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.5)]' 
-            : isFilled
-            ? 'bg-cyan-900/30 border border-cyan-500/50 text-cyan-300'
-            : 'bg-slate-800/50 border border-dashed border-slate-500 hover:border-emerald-500/50 hover:bg-slate-800'
-        } ${showError && !isFilled ? 'border-red-500 bg-red-900/20' : ''}`}
-      >
-        {blank?.val || <span className="opacity-0">...</span>}
-      </button>
-    );
-  }
 }

@@ -19,7 +19,7 @@ export default function Intro({ onStart, hasSavedGame, onLoadGame, onClearSave }
       exit={{ opacity: 0, y: -20 }}
       className="bg-slate-900/80 border border-emerald-500/30 p-8 rounded-xl shadow-2xl shadow-emerald-900/20 max-w-2xl mx-auto"
     >
-      <div className="flex flex-col items-center text-center space-y-6">
+      <div className="flex flex-col items-center text-center space-y-4">
         <div className="p-4 bg-emerald-950/50 rounded-full border border-emerald-500/50">
           <ShieldAlert className="w-16 h-16 text-emerald-400" />
         </div>
@@ -39,7 +39,7 @@ export default function Intro({ onStart, hasSavedGame, onLoadGame, onClearSave }
             Votre mission : infiltrer le système en 7 étapes, stopper l'hémorragie, et reprogrammer HYDRA pour qu'elle nous aide à économiser l'eau et l'énergie au lieu de les gaspiller.
           </p>
           
-          <div className="mt-8 p-6 bg-slate-950/50 rounded-xl border border-emerald-500/20 space-y-4">
+          <div className="mt-5 p-6 bg-slate-950/50 rounded-xl border border-emerald-500/20 space-y-4">
             <label className="block text-emerald-400 font-mono text-sm uppercase tracking-widest text-center">
               IDENTIFICATION DE L'AGENT
             </label>

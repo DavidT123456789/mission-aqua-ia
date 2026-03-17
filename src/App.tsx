@@ -536,8 +536,8 @@ export default function App() {
       </AnimatePresence>
 
       {/* Main Content Area */}
-      <main className="w-full max-w-4xl mt-24 relative z-10">
-        <AnimatePresence mode="wait">
+      <main className="w-full max-w-4xl mt-16 md:mt-20 pb-16 relative z-10">
+        <AnimatePresence mode="wait" onExitComplete={() => window.scrollTo(0, 0)}>
           {(timeLeft === 0 || lives === 0) && level !== 14 ? (
             <GameOver key="gameover" reason={lives === 0 ? 'lives' : 'time'} onRetry={startGame} nickname={nickname} />
           ) : level === 0 ? (
@@ -616,6 +616,10 @@ export default function App() {
             transition={{ repeat: Infinity, duration: 25, ease: "linear" }}
           />
         </svg>
+      </div>
+
+      <div className="fixed bottom-2 left-4 z-50 text-[10px] sm:text-xs font-sans text-emerald-500/40 hover:text-emerald-400 transition-colors opacity-80 pointer-events-none">
+        Développé par David Trafial
       </div>
     </div>
   );
