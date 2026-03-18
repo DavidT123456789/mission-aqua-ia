@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Cpu, CheckCircle2, RotateCcw } from 'lucide-react';
-import Hint from '../components/Hint';
 import NaiaDialogue from '../components/NaiaDialogue';
 import TechTerm from '../components/TechTerm';
+import { soundManager } from '../utils/soundManager';
 
 // --- Constantes et utilitaires extraits hors du composant pour éviter de recréer les références à chaque rendu ---
 const THE_BLANKS = [
@@ -33,7 +33,7 @@ const getInitialWords = () => shuffleArray([
 const wordDescriptions: Record<string, string> = {
   'capteur': "Mesure l'humidité du sol",
   'previsions': "Météo à venir",
-  'seuil': "Besoin spécifique en eau",
+  'seuil': "Fixe la limite d'humidité",
   'or': "Opérateur logique 'OU'",
   'False': "Faux (Inactif)",
   'eau': "Ressource à calculer",
@@ -46,15 +46,27 @@ export default function Level4({ isDevMode, onComplete, onScoreUpdate, onMistake
   const [activeBlank, setActiveBlank] = useState<number | null>(null);
   const [showError, setShowError] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [moisture, setMoisture] = useState(20);
 
   // Initialisation paresseuse pour éviter de mélanger l'array à chaque re-render
   const [blanks, setBlanks] = useState(THE_BLANKS);
   const [words, setWords] = useState(getInitialWords);
 
+  useEffect(() => {
+    // Simulate moisture changes based on code state
+    if (blanks.every(b => b.val !== '')) {
+      const isCorrect = blanks.every(b => b.val === b.ans);
+      setMoisture(isCorrect ? 65 : 10);
+    } else {
+      setMoisture(20);
+    }
+  }, [blanks]);
+
   const handleBlankClick = (id: number) => {
     const blank = blanks.find(b => b.id === id);
     if (!blank) return;
-
+    
+    soundManager.playClick();
     if (activeWord) {
       // Un mot est "en main", on le place ici
       if (blank.val !== '') {
@@ -82,6 +94,7 @@ export default function Level4({ isDevMode, onComplete, onScoreUpdate, onMistake
   const handleWordClick = (wordObj: { id: number, word: string, used: boolean }) => {
     if (wordObj.used) return;
     
+    soundManager.playClick();
     if (activeBlank) {
       // Un espace est ciblé, on insère le mot dedans
       const targetBlank = blanks.find(b => b.id === activeBlank);
@@ -145,11 +158,11 @@ export default function Level4({ isDevMode, onComplete, onScoreUpdate, onMistake
         onClick={() => handleBlankClick(id)}
         className={`inline-flex items-center justify-center min-w-[80px] h-7 px-2 mx-1 rounded transition-colors focus:outline-none ${
           isTargeted
-            ? 'bg-emerald-900/50 border-2 border-emerald-400 shadow-[0_0_15px_rgba(52,211,153,0.5)] z-10'
+            ? 'bg-emerald-900/50 border-2 border-emerald-400 z-10'
             : isFilled
             ? 'bg-cyan-900/30 border border-cyan-500/50 text-cyan-300 cursor-pointer hover:bg-cyan-900/50'
             : isReadyToReceive
-            ? 'bg-emerald-900/20 border-2 border-dashed border-emerald-500/50 shadow-[0_0_10px_rgba(52,211,153,0.2)] animate-pulse'
+            ? 'bg-emerald-900/20 border-2 border-dashed border-emerald-500/50'
             : 'bg-slate-800/50 border border-dashed border-slate-500 hover:border-emerald-500/50 hover:bg-slate-800 cursor-pointer'
         } ${showError && !isFilled ? 'border-red-500 bg-red-900/20' : ''}`}
       >
@@ -194,28 +207,41 @@ export default function Level4({ isDevMode, onComplete, onScoreUpdate, onMistake
       <div className="space-y-4 text-slate-300">
         <NaiaDialogue message={
           <>
-            L'agriculture consomme <strong>70% de l'eau douce mondiale</strong>. Je peux réduire ça de moitié grâce à un arrosage intelligent... mais mon algorithme est <strong>incomplet</strong> ! Aidez-moi à le réparer.
+            L'agriculture consomme <strong>70% de l'eau douce mondiale</strong>. Je peux réduire ça de moitié grâce à un arrosage intelligent mais mon algorithme est <strong>incomplet</strong> ! Aidez-moi à le réparer.
           </>
         } />
 
-        <div className="bg-slate-950/50 border border-cyan-500/20 p-5 rounded-xl mb-6">
-          <h3 className="text-cyan-400 font-bold uppercase mb-3 flex items-center gap-2">
-            <span className="bg-cyan-900/50 p-1 rounded">🧠</span> Comment fonctionne l'algorithme ?
-          </h3>
-          <ul className="space-y-3 text-sm">
-            <li className="flex gap-3">
-              <span className="w-6 h-6 rounded-full bg-cyan-900/50 flex items-center justify-center text-cyan-400 shrink-0">1</span>
-              <span>L'<TechTerm term="IA" /> reçoit des informations grâce à des <strong>capteurs</strong> dans le sol et aux <strong>previsions</strong> météo.</span>
-            </li>
-            <li className="flex gap-3">
-              <span className="w-6 h-6 rounded-full bg-cyan-900/50 flex items-center justify-center text-cyan-400 shrink-0">2</span>
-              <span>Elle analyse : <em>« SI l'humidité dépasse le <strong>seuil</strong> de la plante <strong>OU</strong> (opérateur <strong>'or'</strong>) s'il va pleuvoir → on n'arrose pas (<strong>False</strong>). »</em></span>
-            </li>
-            <li className="flex gap-3">
-              <span className="w-6 h-6 rounded-full bg-cyan-900/50 flex items-center justify-center text-cyan-400 shrink-0">3</span>
-              <span>Seulement quand c'est nécessaire, l'<TechTerm term="IA" /> calcule le besoin en <strong>eau</strong> et active l'arrosage (<strong>True</strong>), de préférence à l'<strong>aube</strong> (moins d'évaporation, empêche les maladies).</span>
-            </li>
-          </ul>
+        <div className="bg-slate-950/50 border border-cyan-500/20 p-5 rounded-xl mb-6 shadow-[0_0_15px_rgba(6,182,212,0.1)] flex flex-col md:flex-row gap-6">
+          <div className="flex-1">
+            <h3 className="text-cyan-400 font-bold uppercase mb-3 flex items-center gap-2">
+              <span className="bg-cyan-900/50 p-1 rounded">🧠</span> Comment fonctionne l'algorithme ?
+            </h3>
+            <ul className="space-y-3 text-sm">
+              <li className="flex gap-3">
+                <span className="w-6 h-6 rounded-full bg-cyan-900/50 flex items-center justify-center text-cyan-400 shrink-0">1</span>
+                <span>L'<TechTerm term="IA" /> reçoit des informations grâce à des <strong>capteurs</strong> dans le sol et aux <strong>previsions</strong> météo.</span>
+              </li>
+              <li className="flex gap-3">
+                <span className="w-6 h-6 rounded-full bg-cyan-900/50 flex items-center justify-center text-cyan-400 shrink-0">2</span>
+                <span>Elle analyse : <em>« SI l'humidité dépasse le <strong>seuil</strong> de la plante (ex: 30%) <strong>OU</strong> (opérateur <strong>'or'</strong>) s'il va pleuvoir → on n'arrose pas (<strong>False</strong>). »</em></span>
+              </li>
+              <li className="flex gap-3">
+                <span className="w-6 h-6 rounded-full bg-cyan-900/50 flex items-center justify-center text-cyan-400 shrink-0">3</span>
+                <span>Seulement quand c'est nécessaire, l'<TechTerm term="IA" /> calcule le besoin en <strong>eau</strong> et active l'arrosage (<strong>True</strong>), de préférence à l'<strong>aube</strong> (moins d'évaporation, empêche les maladies).</span>
+              </li>
+            </ul>
+          </div>
+          
+          <div className="w-full md:w-48 flex flex-col items-center justify-center bg-slate-900/50 rounded-lg p-4 border border-slate-800">
+            <span className="text-xs text-slate-400 uppercase mb-2">Humidité du sol</span>
+            <div className="w-full h-4 bg-slate-800 rounded-full overflow-hidden mb-2">
+              <motion.div 
+                className={`h-full ${moisture < 30 ? 'bg-red-500' : 'bg-emerald-500'}`}
+                animate={{ width: `${moisture}%` }}
+              />
+            </div>
+            <span className="font-bold text-xl text-white">{moisture}%</span>
+          </div>
         </div>
 
         <div className="text-center mb-4 p-3 bg-emerald-950/30 border border-emerald-500/20 rounded-lg text-sm">
@@ -223,7 +249,7 @@ export default function Level4({ isDevMode, onComplete, onScoreUpdate, onMistake
         </div>
 
         {/* Code Editor */}
-        <div className="bg-[#080c14] border border-slate-800 rounded-xl shadow-inner font-mono text-sm md:text-base">
+        <div className="bg-[#080c14] border border-slate-800 rounded-xl font-mono text-sm md:text-base">
           <div className="flex items-center gap-2 px-4 py-2 bg-[#0a1020] border-b border-slate-800">
             <div className="w-3 h-3 rounded-full bg-red-500"></div>
             <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
@@ -308,18 +334,19 @@ export default function Level4({ isDevMode, onComplete, onScoreUpdate, onMistake
                     w.used 
                       ? 'bg-slate-900 text-slate-700 border border-slate-800 cursor-not-allowed' 
                       : activeWord?.id === w.id
-                      ? 'bg-emerald-900/50 text-emerald-400 border border-emerald-400 shadow-[0_0_15px_rgba(52,211,153,0.4)] z-10'
+                      ? 'bg-emerald-900/50 text-emerald-400 border border-emerald-400 z-10'
                       : activeBlank
-                      ? 'bg-emerald-900/20 text-emerald-400 border border-emerald-500/50 shadow-[0_0_10px_rgba(52,211,153,0.2)] animate-pulse cursor-pointer'
-                      : 'bg-cyan-900/30 text-cyan-400 border border-cyan-500/50 shadow-[0_0_10px_rgba(6,182,212,0.1)]'
+                      ? 'bg-emerald-900/20 text-emerald-400 border border-emerald-500/50 cursor-pointer'
+                      : 'bg-cyan-900/30 text-cyan-400 border border-cyan-500/50'
                   }`}
                 >
                   {w.word}
                 </motion.button>
                 {!w.used && (
-                  <div className="absolute bottom-full mb-2 w-36 px-2 py-1.5 bg-slate-800 text-slate-300 text-[10px] leading-snug rounded shadow-xl border border-slate-700 opacity-0 group-hover/word:opacity-100 transition-opacity pointer-events-none z-50 text-center font-sans tracking-wide">
+                  <div className="absolute bottom-full mb-2 w-48 px-3 py-2 bg-slate-900 text-slate-200 text-xs leading-relaxed rounded-lg border border-slate-700 opacity-0 group-hover/word:opacity-100 transition-opacity pointer-events-none z-50 text-center font-sans shadow-xl not-italic font-normal tracking-normal">
                     {wordDescriptions[w.word]}
-                    <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-x-4 border-x-transparent border-t-4 border-t-slate-800"></div>
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-slate-700"></div>
+                    <div className="absolute top-[calc(100%-1px)] left-1/2 -translate-x-1/2 border-8 border-transparent border-t-slate-900"></div>
                   </div>
                 )}
               </motion.div>
@@ -342,7 +369,7 @@ export default function Level4({ isDevMode, onComplete, onScoreUpdate, onMistake
                 ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
                 : showError
                 ? 'bg-red-600 text-white animate-shake'
-                : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-[0_0_20px_rgba(16,185,129,0.4)]'
+                : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-[0_0_20px_rgba(16,185,129,0.3)]'
             }`}
           >
             {showError ? 'ERREUR DE SYNTAXE' : 'COMPILER LE CODE'}
@@ -354,23 +381,22 @@ export default function Level4({ isDevMode, onComplete, onScoreUpdate, onMistake
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="absolute inset-0 z-50 flex items-center justify-center bg-slate-900/90 backdrop-blur-sm rounded-xl"
+              className="absolute inset-0 z-50 flex items-center justify-center bg-slate-900/95 rounded-xl"
             >
-              <div className="text-center p-8 bg-emerald-950/80 border border-emerald-500 rounded-2xl shadow-[0_0_50px_rgba(16,185,129,0.3)] max-w-md">
+              <div className="text-center p-8 bg-emerald-950/90 border border-emerald-500 rounded-2xl max-w-md">
                 <CheckCircle2 className="w-20 h-20 text-emerald-400 mx-auto mb-4" />
                 <h3 className="text-2xl font-bold text-white mb-2">ALGORITHME DÉPLOYÉ</h3>
                 <p className="text-emerald-200 mb-4">L'irrigation intelligente est active. Économie estimée : 30 à 50% d'eau !</p>
                 <div className="bg-emerald-900/40 p-3 rounded text-sm text-left text-emerald-100 mb-4">
                   <strong>📚 À retenir :</strong> L'opérateur <strong>OR</strong> permet de combiner plusieurs conditions. Arroser à l'<strong>aube</strong> empêche la stagnation d'eau sur les feuilles !
                 </div>
-                <p className="text-sm text-slate-400 mt-4 animate-pulse">Passage au niveau suivant...</p>
+                <p className="text-sm text-slate-400 mt-4">Passage au niveau suivant</p>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
 
-        <Hint hintText="Un seul datacenter peut consommer autant d'eau qu'une ville de 10 000 habitants en une seule journée pour ses besoins de refroidissement." delaySeconds={30} />
-      </div>
+              </div>
     </motion.div>
   );
 

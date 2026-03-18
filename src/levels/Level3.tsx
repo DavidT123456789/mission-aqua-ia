@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Activity, Search, AlertCircle, CheckCircle2, Waves, Map as MapIcon } from 'lucide-react';
-import Hint from '../components/Hint';
 import NaiaDialogue from '../components/NaiaDialogue';
 import TechTerm from '../components/TechTerm';
 
@@ -26,16 +25,21 @@ export default function Level3({ isDevMode, onComplete, onScoreUpdate, onMistake
     { id: 'E', pressure: 4.4, status: 'Normal', location: 'Banlieue Est', pos: { top: '30%', left: '80%' } },
   ];
 
+  const [isRepairing, setIsRepairing] = useState(false);
   const [hasScored, setHasScored] = useState(false);
 
   const handleSelect = (id: string) => {
     setSelectedSensor(id);
     if (id === 'C') {
       setError(false);
-      if (!hasScored) {
-        setHasScored(true);
-        onScoreUpdate(150, 40);
-      }
+      setIsRepairing(true);
+      setTimeout(() => {
+        setIsRepairing(false);
+        if (!hasScored) {
+          setHasScored(true);
+          onScoreUpdate(150, 40);
+        }
+      }, 1500);
     } else {
       setError(true);
       onMistake?.();
@@ -43,7 +47,7 @@ export default function Level3({ isDevMode, onComplete, onScoreUpdate, onMistake
     }
   };
 
-  const isSuccess = selectedSensor === 'C';
+  const isSuccess = selectedSensor === 'C' && !isRepairing;
 
   return (
     <motion.div
@@ -82,6 +86,7 @@ export default function Level3({ isDevMode, onComplete, onScoreUpdate, onMistake
             <h3 className="text-blue-400 font-bold uppercase mb-2">Analyse du réseau municipal</h3>
             <p className="text-sm font-sans mt-2 font-bold text-emerald-300">
               Entraînez l'<TechTerm term="IA" /> à détecter les anomalies. Une fuite se traduit par une chute anormale de pression dans les canalisations.
+              <span className="block mt-2 text-blue-300">Cliquez sur le capteur présentant une anomalie pour l'isoler.</span>
             </p>
           </div>
         </div>
@@ -101,13 +106,23 @@ export default function Level3({ isDevMode, onComplete, onScoreUpdate, onMistake
               </svg>
             </div>
             
-            <MapIcon className="absolute inset-0 w-full h-full text-slate-800 opacity-30 p-8" />
-
-            {/* Radar Scan Line */}
+            {/* Radar Sweep Line */}
             <div 
-              className="absolute left-0 right-0 h-1 bg-blue-500/50 shadow-[0_0_15px_rgba(59,130,246,0.8)] z-10 pointer-events-none"
+              className="absolute left-0 right-0 h-0.5 bg-emerald-500/40 shadow-[0_0_10px_rgba(16,185,129,0.5)] z-10 pointer-events-none"
               style={{ top: `${scanLine}%` }}
             />
+            <div 
+              className="absolute left-0 right-0 bg-gradient-to-b from-transparent to-emerald-500/10 z-10 pointer-events-none"
+              style={{ top: `${Math.max(0, scanLine - 20)}%`, height: `${Math.min(20, scanLine)}%` }}
+            />
+
+            {/* Network Lines */}
+            <svg className="absolute inset-0 w-full h-full pointer-events-none z-10">
+              <line x1="30%" y1="20%" x2="50%" y2="40%" className="stroke-slate-700" strokeWidth="2" strokeDasharray="4 4" />
+              <line x1="50%" y1="40%" x2="30%" y2="80%" className="stroke-slate-700" strokeWidth="2" strokeDasharray="4 4" />
+              <line x1="50%" y1="40%" x2="80%" y2="30%" className="stroke-slate-700" strokeWidth="2" strokeDasharray="4 4" />
+              <line x1="50%" y1="40%" x2="70%" y2="70%" className={isSuccess ? "stroke-emerald-500" : "stroke-slate-700"} strokeWidth={isSuccess ? "3" : "2"} strokeDasharray={isSuccess ? "none" : "4 4"} />
+            </svg>
 
             {/* Sensors on Map */}
             {sensors.map((sensor) => {
@@ -115,34 +130,35 @@ export default function Level3({ isDevMode, onComplete, onScoreUpdate, onMistake
               const isAnomaly = sensor.id === 'C';
               
               return (
-                <button
+                <div
                   key={`map-${sensor.id}`}
-                  onClick={() => handleSelect(sensor.id)}
-                  disabled={isSuccess}
-                  className="absolute transform -translate-x-1/2 -translate-y-1/2 z-20 group"
+                  className="absolute transform -translate-x-1/2 -translate-y-1/2 z-20"
                   style={{ top: sensor.pos.top, left: sensor.pos.left }}
                 >
-                  <div className={`relative flex items-center justify-center w-10 h-10 rounded-full border-2 transition-all duration-300 ${
-                    isSelected
-                      ? isAnomaly
-                        ? 'bg-emerald-900 border-emerald-400 scale-125 shadow-[0_0_15px_rgba(16,185,129,0.5)]'
-                        : 'bg-red-900 border-red-500 animate-shake'
-                      : isAnomaly && isSuccess
-                        ? 'bg-emerald-900 border-emerald-400 scale-125 shadow-[0_0_15px_rgba(16,185,129,0.5)]'
-                        : 'bg-slate-800 border-blue-500/50 hover:border-blue-400 hover:scale-110'
-                  }`}>
-                    <span className={`font-bold text-sm ${isSelected && isAnomaly ? 'text-emerald-400' : isSelected ? 'text-red-400' : 'text-blue-400'}`}>
-                      {sensor.id}
-                    </span>
-                    
-                    {/* Ping effect */}
-                    {!isSuccess && (
-                      <span className={`absolute inline-flex h-full w-full rounded-full opacity-30 animate-ping ${
-                        isAnomaly ? 'bg-red-500' : 'bg-blue-400'
-                      }`}></span>
-                    )}
-                  </div>
-                </button>
+                  {/* Pulse effect for anomaly when selected */}
+                  {isSelected && isAnomaly && (
+                    <div className="absolute inset-0 bg-emerald-500 rounded-full animate-ping opacity-20"></div>
+                  )}
+                  <button
+                    onClick={() => handleSelect(sensor.id)}
+                    disabled={isSuccess}
+                    className="relative group"
+                  >
+                    <div className={`relative flex items-center justify-center w-10 h-10 rounded-full border-2 transition-all duration-300 ${
+                      isSelected
+                        ? isAnomaly
+                          ? 'bg-emerald-900 border-emerald-400 scale-125 shadow-[0_0_15px_rgba(16,185,129,0.5)]'
+                          : 'bg-red-900 border-red-500 animate-shake'
+                        : isAnomaly && isSuccess
+                          ? 'bg-emerald-900 border-emerald-400 scale-125 shadow-[0_0_15px_rgba(16,185,129,0.5)]'
+                          : 'bg-slate-800 border-blue-500/50 hover:border-blue-400 hover:scale-110'
+                    }`}>
+                      <span className={`font-bold text-sm ${isSelected && isAnomaly ? 'text-emerald-400' : isSelected ? 'text-red-400' : 'text-blue-400'}`}>
+                        {sensor.id}
+                      </span>
+                    </div>
+                  </button>
+                </div>
               );
             })}
           </div>
@@ -166,7 +182,7 @@ export default function Level3({ isDevMode, onComplete, onScoreUpdate, onMistake
                     className={`relative p-3 rounded-lg border-2 flex flex-col items-start transition-all duration-300 ${
                       isSelected
                         ? isAnomaly
-                          ? 'bg-emerald-900/40 border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)] scale-[1.02]'
+                          ? 'bg-emerald-900/40 border-emerald-500 scale-[1.02]'
                           : 'bg-red-900/40 border-red-500 animate-shake'
                         : 'bg-slate-900 border-slate-700 hover:border-slate-500'
                     }`}
@@ -188,8 +204,8 @@ export default function Level3({ isDevMode, onComplete, onScoreUpdate, onMistake
                       <div className="flex justify-between text-xs mb-1">
                         <span className="text-slate-500 uppercase">Pression</span>
                         <span className={`font-bold ${
-                          isSelected && !isAnomaly ? 'text-red-400' : 
-                          isSelected && isAnomaly ? 'text-emerald-400' : 'text-slate-300'
+                          isSelected && !isAnomaly ? 'text-white' : 
+                          isSelected && isAnomaly ? 'text-white drop-shadow-md' : 'text-slate-300'
                         }`}>{sensor.pressure} bar</span>
                       </div>
                       <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
@@ -213,7 +229,7 @@ export default function Level3({ isDevMode, onComplete, onScoreUpdate, onMistake
                         animate={{ opacity: 1 }}
                         className="absolute right-4 top-1/2 -translate-y-1/2 text-blue-400/30"
                       >
-                        <Waves className="w-12 h-12 animate-pulse" />
+                        <Waves className="w-12 h-12" />
                       </motion.div>
                     )}
                   </button>
@@ -234,6 +250,20 @@ export default function Level3({ isDevMode, onComplete, onScoreUpdate, onMistake
         )}
 
         <AnimatePresence>
+          {isRepairing && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm"
+            >
+              <div className="text-center p-8 bg-slate-900 border border-emerald-500 rounded-2xl">
+                <div className="w-16 h-16 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                <h3 className="text-xl font-bold text-white">Réparation en cours...</h3>
+                <p className="text-slate-400">Isolément de la fuite et colmatage du réseau.</p>
+              </div>
+            </motion.div>
+          )}
           {isSuccess && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -257,8 +287,7 @@ export default function Level3({ isDevMode, onComplete, onScoreUpdate, onMistake
           )}
         </AnimatePresence>
 
-        <Hint hintText="Les GPU sont les moteurs de l'IA, mais ils chauffent énormément. Le refroidissement liquide est bien plus efficace que l'air pour ces composants." delaySeconds={30} />
-      </div>
+              </div>
     </motion.div>
   );
 }

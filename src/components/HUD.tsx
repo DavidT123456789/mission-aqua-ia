@@ -1,0 +1,418 @@
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { Terminal, Droplets, Clock, Star, Activity, Heart, Bug, FastForward, HelpCircle, Volume2, VolumeX, Menu, X } from 'lucide-react';
+
+interface HUDProps {
+  level: number;
+  timeLeft: number;
+  lives: number;
+  waterSaved: number;
+  score: number;
+  isDevMode: boolean;
+  isMuted: boolean;
+  unlockedFreeHints: number[];
+  unlockedPaidHints: number[];
+  setShowDevModal: (show: boolean) => void;
+  setIsMuted: (muted: boolean) => void;
+  setShowGlossary: (show: boolean) => void;
+  useHint: (type: 'free' | 'paid') => void;
+  setLevel: (level: number) => void;
+  prevLevelDev: () => void;
+  skipLevelDev: () => void;
+  buyHeart: () => void;
+}
+
+export default function HUD({
+  level, timeLeft, lives, waterSaved, score, isDevMode, isMuted, unlockedFreeHints, unlockedPaidHints,
+  setShowDevModal, setIsMuted, setShowGlossary, useHint, setLevel, prevLevelDev, skipLevelDev, buyHeart
+}: HUDProps) {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [glossaryPlusOnes, setGlossaryPlusOnes] = useState<number[]>([]);
+
+  useEffect(() => {
+    const handleGlossaryPlusOne = () => {
+      const id = Date.now();
+      setGlossaryPlusOnes(prev => [...prev, id]);
+      setTimeout(() => {
+        setGlossaryPlusOnes(prev => prev.filter(p => p !== id));
+      }, 2000);
+    };
+    window.addEventListener('glossaryPlusOne', handleGlossaryPlusOne);
+    return () => window.removeEventListener('glossaryPlusOne', handleGlossaryPlusOne);
+  }, []);
+
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
+
+  // Cost logic: First hint is 0, subsequent are 50
+  const hintCost = 50;
+
+  return (
+    <header className="fixed top-0 left-0 right-0 p-3 md:p-4 bg-slate-950 z-50">
+      {/* Progress Bar as Bottom Border */}
+      {level > 0 && level < 14 ? (
+        <div className="absolute bottom-0 left-0 right-0 h-1 bg-slate-900">
+          <motion.div 
+            className="h-full bg-gradient-to-r from-cyan-500 via-emerald-500 to-purple-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"
+            initial={{ width: 0 }}
+            animate={{ width: `${(level / 13) * 100}%` }}
+            transition={{ duration: 1 }}
+          />
+        </div>
+      ) : (
+        <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-white/10" />
+      )}
+
+      <div className="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-2 md:gap-4 relative z-10">
+        
+        {/* Left: Branding & Dev/Sound */}
+        <div className="flex items-center gap-2">
+          <div className="relative group flex items-center">
+            <button onClick={() => { setShowDevModal(true); }} className="focus:outline-none" aria-label="Mode Développeur">
+              <Terminal className={`w-5 h-5 md:w-6 md:h-6 ${isDevMode ? 'text-purple-500' : 'text-emerald-400 group-hover:text-emerald-300'}`} />
+            </button>
+            <div className="absolute top-full left-0 mt-2 hidden group-hover:block w-max bg-slate-900 text-xs text-slate-200 px-2 py-1.5 rounded border border-slate-700 shadow-xl z-[100] pointer-events-none font-sans not-italic font-normal tracking-normal">
+              Mode Développeur
+              <div className="absolute bottom-full left-2 border-4 border-transparent border-b-slate-700"></div>
+              <div className="absolute bottom-[calc(100%-1px)] left-2 border-4 border-transparent border-b-slate-900"></div>
+            </div>
+          </div>
+          <div className="relative group flex items-center">
+            <button onClick={() => setIsMuted(!isMuted)} className="focus:outline-none text-emerald-400 hover:text-emerald-300 transition-colors" aria-label={isMuted ? "Activer le son" : "Désactiver le son"}>
+              {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+            </button>
+            <div className="absolute top-full left-0 mt-2 hidden group-hover:block w-max bg-slate-900 text-xs text-slate-200 px-2 py-1.5 rounded border border-slate-700 shadow-xl z-[100] pointer-events-none font-sans not-italic font-normal tracking-normal">
+              {isMuted ? "Activer le son" : "Désactiver le son"}
+              <div className="absolute bottom-full left-2 border-4 border-transparent border-b-slate-700"></div>
+              <div className="absolute bottom-[calc(100%-1px)] left-2 border-4 border-transparent border-b-slate-900"></div>
+            </div>
+          </div>
+          <span className="font-bold tracking-widest uppercase text-sm md:text-base bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent hidden sm:inline">
+            AQUA-IA {isDevMode && <span className="text-purple-500 text-xs ml-1">[DEV]</span>}
+          </span>
+        </div>
+        
+        {/* Center: Main Stats (Always visible) */}
+        {level > 0 && level < 14 && (timeLeft > 0 && lives > 0) && (
+          <div className="flex items-center gap-3 md:gap-8">
+            {/* Lives */}
+            <div className="flex items-center gap-1" aria-label={`${lives} vies restantes`}>
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="relative w-4 h-4 md:w-5 md:h-5 flex items-center justify-center">
+                  <motion.div
+                    initial={{ scale: 1 }}
+                    animate={lives === 1 && i < lives ? {
+                      scale: [1, 1.2, 1],
+                      opacity: 1
+                    } : {
+                      scale: i < lives ? 1 : 0.5,
+                      opacity: i < lives ? 1 : 0.3,
+                    }}
+                    transition={lives === 1 && i < lives ? {
+                      duration: 0.8,
+                      repeat: Infinity,
+                      ease: "easeInOut"
+                    } : { 
+                      duration: 0.3,
+                      repeat: 0,
+                      ease: "easeInOut"
+                    }}
+                  >
+                    <Heart className={`w-full h-full ${i < lives ? 'text-red-500 fill-red-500' : 'text-slate-600'}`} />
+                  </motion.div>
+                </div>
+              ))}
+              {lives < 3 && (
+                <div className="relative group ml-1 flex items-center">
+                  <button 
+                    onClick={buyHeart}
+                    disabled={score < 200}
+                    className={`text-xs rounded px-1.5 py-0.5 font-bold transition-colors ${
+                      score >= 200 
+                        ? 'bg-red-900/50 text-red-400 border border-red-500/50 hover:bg-red-800/50 cursor-pointer' 
+                        : 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed'
+                    }`}
+                    aria-label="Acheter un cœur"
+                  >
+                    +
+                  </button>
+                  {/* Tooltip */}
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 hidden group-hover:block w-max bg-slate-900 text-xs text-slate-200 px-2 py-1.5 rounded border border-slate-700 shadow-xl z-[100] pointer-events-none font-sans not-italic font-normal tracking-normal">
+                    <div className="flex items-center gap-1.5">
+                      <span>Acheter une vie :</span>
+                      <span className={score >= 200 ? "text-yellow-400 font-bold" : "text-red-400 font-bold"}>200 pts</span>
+                    </div>
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 border-4 border-transparent border-b-slate-700"></div>
+                    <div className="absolute bottom-[calc(100%-1px)] left-1/2 -translate-x-1/2 border-4 border-transparent border-b-slate-900"></div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Timer */}
+            <div className={`flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1 rounded-full border transition-all duration-500 ${timeLeft < 300 ? 'border-red-500 text-red-500 bg-red-950/20' : 'border-emerald-500/30 text-emerald-400 bg-emerald-950/10'}`} aria-label={`Temps restant : ${formatTime(timeLeft)}`}>
+              <Clock className={`w-3 h-3 md:w-4 md:h-4 ${timeLeft < 300 ? 'text-red-400' : 'text-emerald-400'}`} />
+              <span className="font-bold font-mono text-xs md:text-lg">{formatTime(timeLeft)}</span>
+            </div>
+
+            {/* Score */}
+            <motion.div 
+              key={score}
+              initial={{ scale: 1.2, color: '#fff' }}
+              animate={{ scale: 1, color: '#facc15' }}
+              className="flex items-center gap-1 bg-slate-900/40 px-2 md:px-3 py-1 rounded-full border border-yellow-500/30" 
+              aria-label={`Score : ${score}`}
+            >
+              <Star className="w-3 h-3 md:w-4 md:h-4 text-yellow-400" />
+              <span className="font-bold font-mono text-yellow-400 text-xs md:text-base">{score}</span>
+            </motion.div>
+
+            {/* Mobile Menu Toggle */}
+            <button 
+              className="md:hidden text-emerald-400 p-1"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              aria-label="Menu"
+            >
+              {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
+          </div>
+        )}
+
+        {/* Right: Actions & Extra Stats (Desktop) */}
+        <div className="hidden md:flex items-center gap-2">
+          {level > 0 && level < 14 && (
+            <>
+              {/* Water Gauge */}
+              <motion.div 
+                key={waterSaved}
+                initial={{ scale: 1.05 }}
+                animate={{ scale: 1 }}
+                className="flex items-center gap-2 bg-slate-900/40 px-3 py-1 rounded-full border border-cyan-500/30" 
+                aria-label={`Eau sauvée : ${waterSaved}%`}
+              >
+                <Droplets className="w-4 h-4 text-cyan-400" />
+                <div className="w-24 lg:w-32 h-3 bg-slate-800/50 rounded-full overflow-hidden relative border border-cyan-900/50">
+                  <motion.div 
+                    className="absolute top-0 left-0 h-full bg-gradient-to-r from-red-500 via-yellow-500 to-emerald-500"
+                    initial={{ width: '15%' }}
+                    animate={{ width: `${waterSaved}%` }}
+                    transition={{ duration: 1.5, ease: "easeInOut" }}
+                  />
+                  {/* Liquid shine effect */}
+                  <motion.div 
+                    className="absolute top-0 left-0 h-full w-8 bg-white/20 skew-x-12 blur-sm"
+                    animate={{ left: ['-40%', '140%'] }}
+                    transition={{ duration: 2.5, repeat: Infinity, ease: "linear" }}
+                  />
+                </div>
+                <span className="font-bold font-mono text-xs text-white drop-shadow-md">{waterSaved}%</span>
+              </motion.div>
+
+              <div className="flex items-center gap-1">
+                <div className="relative group">
+                  <button 
+                    onClick={() => useHint('free')}
+                    disabled={!unlockedFreeHints.includes(level)}
+                    className={`flex items-center gap-1 px-2 py-1 rounded-l-full border-y border-l text-xs font-bold transition-all ${
+                      !unlockedFreeHints.includes(level) 
+                        ? 'bg-slate-800 border-slate-700 text-slate-500 cursor-not-allowed opacity-50' 
+                        : 'bg-emerald-900/30 border-emerald-500/30 text-emerald-400 hover:bg-emerald-800/50'
+                    }`}
+                    aria-label="Indice gratuit"
+                  >
+                    <HelpCircle className="w-3 h-3" />
+                    <span>GRATUIT</span>
+                  </button>
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 hidden group-hover:block w-max bg-slate-900 text-xs text-slate-200 px-2 py-1.5 rounded border border-slate-700 shadow-xl z-[100] pointer-events-none font-sans not-italic font-normal tracking-normal">
+                    {!unlockedFreeHints.includes(level) ? "Débloqué après une erreur" : "Voir l'indice gratuit"}
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 border-4 border-transparent border-b-slate-700"></div>
+                    <div className="absolute bottom-[calc(100%-1px)] left-1/2 -translate-x-1/2 border-4 border-transparent border-b-slate-900"></div>
+                  </div>
+                </div>
+                <div className="relative group">
+                  <button 
+                    onClick={() => useHint('paid')}
+                    disabled={!unlockedPaidHints.includes(level) && score < hintCost}
+                    className={`flex items-center gap-1 px-2 py-1 rounded-r-full border-y border-r text-xs font-bold transition-all ${
+                      !unlockedPaidHints.includes(level) && score < hintCost
+                        ? 'bg-slate-800 border-slate-700 text-slate-500 cursor-not-allowed' 
+                        : unlockedPaidHints.includes(level)
+                        ? 'bg-yellow-900/30 border-yellow-500/30 text-yellow-500 hover:bg-yellow-800/50'
+                        : 'bg-yellow-900/30 border-yellow-500/30 text-yellow-500 hover:bg-yellow-800/50'
+                    }`}
+                    aria-label="Indice avancé"
+                  >
+                    <span>{unlockedPaidHints.includes(level) ? 'VOIR' : `-${hintCost}`}</span>
+                    <Star className="w-3 h-3" />
+                  </button>
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 hidden group-hover:block w-max bg-slate-900 text-xs text-slate-200 px-2 py-1.5 rounded border border-slate-700 shadow-xl z-[100] pointer-events-none font-sans not-italic font-normal tracking-normal">
+                    {unlockedPaidHints.includes(level) ? "Voir l'indice avancé" : "Acheter un indice avancé"}
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 border-4 border-transparent border-b-slate-700"></div>
+                    <div className="absolute bottom-[calc(100%-1px)] left-1/2 -translate-x-1/2 border-4 border-transparent border-b-slate-900"></div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="relative group">
+                <button 
+                  onClick={() => { setShowGlossary(true); }}
+                  className="relative flex items-center gap-2 bg-emerald-900/30 hover:bg-emerald-800/50 text-emerald-400 px-3 py-1 rounded-full border border-emerald-500/30 text-xs font-bold transition-all hover:scale-105"
+                  aria-label="Ouvrir le glossaire"
+                >
+                  <Bug className="w-4 h-4" />
+                  <span>GLOSSAIRE</span>
+
+                  <AnimatePresence>
+                    {glossaryPlusOnes.map(id => (
+                      <motion.div
+                        key={id}
+                        initial={{ opacity: 0, y: 0, scale: 0.5 }}
+                        animate={{ opacity: 1, y: -25, scale: 1.2 }}
+                        exit={{ opacity: 0, y: -35, scale: 0.8 }}
+                        transition={{ duration: 0.8, ease: "easeOut" }}
+                        className="absolute top-0 left-1/2 -translate-x-1/2 text-emerald-400 font-black text-lg drop-shadow-[0_0_10px_rgba(16,185,129,0.8)] pointer-events-none z-50"
+                      >
+                        +1
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                </button>
+                <div className="absolute top-full right-0 mt-2 hidden group-hover:block w-max bg-slate-900 text-xs text-slate-200 px-2 py-1.5 rounded border border-slate-700 shadow-xl z-[100] pointer-events-none font-sans not-italic font-normal tracking-normal">
+                  Ouvrir le glossaire
+                  <div className="absolute bottom-full right-6 border-4 border-transparent border-b-slate-700"></div>
+                  <div className="absolute bottom-[calc(100%-1px)] right-6 border-4 border-transparent border-b-slate-900"></div>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-2 text-xs lg:text-sm font-bold opacity-80 bg-slate-900/50 px-3 py-1 rounded-full border border-emerald-500/30" aria-label={`Niveau ${level} sur 13`}>
+                <Activity className="w-4 h-4 text-emerald-400" />
+                <span>NIVEAU</span> {level}/13
+              </div>
+            </>
+          )}
+
+          {/* Dev Controls */}
+          {isDevMode && level > 0 && level < 14 && (
+            <div className="flex items-center gap-1 ml-2">
+              <select 
+                value={level}
+                onChange={(e) => setLevel(parseInt(e.target.value))}
+                className="bg-purple-900/50 text-purple-400 text-xs font-bold px-2 h-8 rounded-lg border border-purple-500/50 focus:outline-none focus:ring-1 focus:ring-purple-500 transition-colors cursor-pointer"
+                title="Sauter vers un niveau (Dev Mode)"
+                aria-label="Sélectionner un niveau"
+              >
+                {[...Array(15)].map((_, i) => (
+                  <option key={i} value={i} className="bg-slate-900">
+                    {i === 0 ? 'Intro' : i === 13 ? 'Bonus' : i === 14 ? 'Fin' : `Niveau ${i}`}
+                  </option>
+                ))}
+              </select>
+              <button 
+                onClick={prevLevelDev}
+                className="flex items-center justify-center bg-purple-900/50 hover:bg-purple-800/50 text-purple-400 w-8 h-8 rounded-full border border-purple-500/50 transition-colors"
+                title="Niveau précédent (Dev Mode)"
+                aria-label="Niveau précédent"
+              >
+                <span className="text-lg leading-none transform -translate-y-[1px]">«</span>
+              </button>
+              <button 
+                onClick={skipLevelDev}
+                className="flex items-center gap-1 bg-purple-900/50 hover:bg-purple-800/50 text-purple-400 px-3 h-8 rounded-full border border-purple-500/50 text-xs font-bold transition-colors"
+                title="Passer le niveau (Dev Mode)"
+                aria-label="Passer le niveau"
+              >
+                <FastForward className="w-4 h-4" />
+                <span>SKIP</span>
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Mobile Expanded Menu */}
+      <AnimatePresence>
+        {isMobileMenuOpen && level > 0 && level < 14 && (
+          <motion.div 
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="md:hidden overflow-hidden mt-3 pt-3 border-t border-emerald-900/50 flex flex-col gap-3"
+          >
+            {/* Water Gauge Mobile */}
+            <div className="flex items-center gap-2 bg-slate-900/50 px-3 py-2 rounded-lg border border-cyan-500/30 w-full">
+              <Droplets className="w-4 h-4 text-cyan-400" />
+              <div className="flex-1 h-3 bg-slate-800 rounded-full overflow-hidden relative border border-cyan-900/50">
+                <motion.div 
+                  className="absolute top-0 left-0 h-full bg-gradient-to-r from-red-500 via-yellow-500 to-emerald-500"
+                  initial={{ width: '15%' }}
+                  animate={{ width: `${waterSaved}%` }}
+                />
+              </div>
+              <span className="font-bold font-mono text-xs text-white drop-shadow-md">{waterSaved}%</span>
+            </div>
+
+            <div className="flex gap-2">
+              <div className="flex-1 flex items-center">
+                <button 
+                  onClick={() => { useHint('free'); setIsMobileMenuOpen(false); }}
+                  disabled={!unlockedFreeHints.includes(level)}
+                  className={`flex-1 flex items-center justify-center gap-1 px-2 py-2 rounded-l-lg border-y border-l text-xs font-bold transition-all ${
+                    !unlockedFreeHints.includes(level) 
+                      ? 'bg-slate-800 border-slate-700 text-slate-500 opacity-50' 
+                      : 'bg-emerald-900/30 border-emerald-500/30 text-emerald-400'
+                  }`}
+                >
+                  <HelpCircle className="w-4 h-4" />
+                  <span>GRATUIT</span>
+                </button>
+                <button 
+                  onClick={() => { useHint('paid'); setIsMobileMenuOpen(false); }}
+                  disabled={!unlockedPaidHints.includes(level) && score < hintCost}
+                  className={`flex-1 flex items-center justify-center gap-1 px-2 py-2 rounded-r-lg border-y border-r text-xs font-bold transition-all ${
+                    !unlockedPaidHints.includes(level) && score < hintCost
+                      ? 'bg-slate-800 border-slate-700 text-slate-500' 
+                      : 'bg-yellow-900/30 border-yellow-500/30 text-yellow-500'
+                  }`}
+                >
+                  <span>{unlockedPaidHints.includes(level) ? 'VOIR' : `-${hintCost}`}</span>
+                  <Star className="w-4 h-4" />
+                </button>
+              </div>
+              
+              <button 
+                onClick={() => { setShowGlossary(true); setIsMobileMenuOpen(false); }}
+                className="relative flex-1 flex items-center justify-center gap-2 bg-emerald-900/30 text-emerald-400 px-3 py-2 rounded-lg border border-emerald-500/30 text-xs font-bold transition-all"
+              >
+                <Bug className="w-4 h-4" />
+                <span>GLOSSAIRE</span>
+                
+                <AnimatePresence>
+                  {glossaryPlusOnes.map(id => (
+                    <motion.div
+                      key={id}
+                      initial={{ opacity: 0, y: 0, scale: 0.5 }}
+                      animate={{ opacity: 1, y: -25, scale: 1.2 }}
+                      exit={{ opacity: 0, y: -35, scale: 0.8 }}
+                      transition={{ duration: 0.8, ease: "easeOut" }}
+                      className="absolute top-0 left-1/2 -translate-x-1/2 text-emerald-400 font-black text-lg drop-shadow-[0_0_10px_rgba(16,185,129,0.8)] pointer-events-none z-50"
+                    >
+                      +1
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </button>
+            </div>
+
+            <div className="flex items-center justify-center gap-2 text-xs font-bold opacity-80 bg-slate-900/50 px-3 py-2 rounded-lg border border-emerald-500/30">
+              <Activity className="w-4 h-4 text-emerald-400" />
+              <span>NIVEAU {level}/13</span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </header>
+  );
+}

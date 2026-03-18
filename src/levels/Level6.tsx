@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Clock, ArrowRight, Leaf, CheckCircle2, AlertTriangle, Activity } from 'lucide-react';
-import Hint from '../components/Hint';
 import NaiaDialogue from '../components/NaiaDialogue';
 import TechTerm from '../components/TechTerm';
 
@@ -98,7 +97,7 @@ export default function Level6({ isDevMode, onComplete, onScoreUpdate, onMistake
       initial={{ opacity: 0, x: 50 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -50 }}
-      className="bg-slate-900 border border-emerald-500/30 p-4 md:p-6 rounded-xl shadow-2xl max-w-4xl mx-auto font-mono relative"
+      className="bg-slate-900 border border-emerald-500/30 p-4 md:p-6 rounded-xl shadow-2xl shadow-emerald-900/20 max-w-4xl mx-auto font-mono relative"
     >
       {isDevMode && (
         <div className="absolute top-2 right-2 bg-purple-900/80 text-purple-300 text-xs px-2 py-1 rounded border border-purple-500/50 z-50">
@@ -172,7 +171,7 @@ export default function Level6({ isDevMode, onComplete, onScoreUpdate, onMistake
               animate={{ left: `${(currentTime / 24) * 100}%` }}
               transition={{ type: 'tween', ease: 'linear', duration: 1 }}
             >
-              <div className="absolute -top-2 -translate-x-1/2 w-2 h-2 rounded-full bg-blue-400 shadow-[0_0_8px_rgba(96,165,250,0.8)]"></div>
+              <div className="absolute -top-2 -translate-x-1/2 w-2 h-2 rounded-full bg-blue-400"></div>
             </motion.div>
 
             {/* Selected Block Highlight on Graph */}
@@ -283,20 +282,16 @@ export default function Level6({ isDevMode, onComplete, onScoreUpdate, onMistake
                 En déplaçant les charges de calcul non urgentes (comme l'entraînement d'un modèle) vers les heures où l'énergie est la plus décarbonée (souvent la nuit avec l'éolien), on peut réduire l'empreinte carbone de l'<TechTerm term="IA" /> de manière significative sans changer le matériel. C'est ce qu'on appelle le "Carbon-Aware Computing".
               </p>
               <button
-                onClick={onComplete}
-                className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-3 rounded-lg font-bold transition-colors shadow-[0_0_20px_rgba(16,185,129,0.4)]"
-              >
+              onClick={onComplete}
+              className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-3 rounded-lg font-bold transition-colors shadow-[0_0_20px_rgba(16,185,129,0.4)]"
+            >
                 TERMINER LA MISSION
               </button>
             </motion.div>
           )}
         </AnimatePresence>
 
-        <Hint 
-          hintText="La 'chaleur fatale' est l'énergie thermique perdue par les serveurs. Certains datacenters l'utilisent pour chauffer des piscines ou des quartiers entiers !" 
-          delaySeconds={30} 
-        />
-      </div>
+              </div>
     </motion.div>
   );
 }

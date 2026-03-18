@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Settings, AlertTriangle, CheckCircle2, Droplets } from 'lucide-react';
-import Hint from '../components/Hint';
 import NaiaDialogue from '../components/NaiaDialogue';
 import TechTerm from '../components/TechTerm';
+import { soundManager } from '../utils/soundManager';
 
 export default function Level2({ isDevMode, onComplete, onScoreUpdate, onMistake }: { isDevMode?: boolean; onComplete: () => void; onScoreUpdate: (points: number, water: number) => void; onMistake?: () => void; key?: string }) {
   const [activeValves, setActiveValves] = useState<number[]>([]);
@@ -27,20 +27,22 @@ export default function Level2({ isDevMode, onComplete, onScoreUpdate, onMistake
   const toggleValve = (id: number) => {
     setActiveValves(prev => {
       const next = prev.includes(id) ? prev.filter(v => v !== id) : [...prev, id];
-      const nextFlow = next.reduce((acc, currId) => {
-        const valve = valves.find(v => v.id === currId);
-        return acc + (valve ? valve.flow : 0);
-      }, 0);
-      
-      if (nextFlow === targetFlow && !hasScored) {
-        setHasScored(true);
-        onScoreUpdate(100, 30);
-      } else if (nextFlow > targetFlow && currentFlow <= targetFlow) {
-        onMistake?.();
-      }
       return next;
     });
   };
+
+  const prevFlowRef = useRef(currentFlow);
+
+  useEffect(() => {
+    if (currentFlow === targetFlow && !hasScored) {
+      setHasScored(true);
+      soundManager.playSuccess();
+      onScoreUpdate(100, 30);
+    } else if (currentFlow > targetFlow && prevFlowRef.current <= targetFlow) {
+      onMistake?.();
+    }
+    prevFlowRef.current = currentFlow;
+  }, [currentFlow, targetFlow, hasScored, onScoreUpdate, onMistake]);
 
   const isSuccess = currentFlow === targetFlow;
 
@@ -87,7 +89,7 @@ export default function Level2({ isDevMode, onComplete, onScoreUpdate, onMistake
 
         <div className="flex flex-col lg:flex-row gap-5 mt-5">
           {/* Valve Controls */}
-          <div className="w-full lg:w-3/5 relative p-6 bg-slate-950 rounded-xl border border-slate-800 overflow-hidden">
+          <div className="w-full lg:w-3/5 relative p-6 bg-slate-950 rounded-xl border border-slate-800">
             {/* Decorative pipes background */}
             <div className="absolute inset-0 opacity-20 pointer-events-none flex flex-col justify-between py-8">
               <div className="w-full h-4 bg-slate-700 rounded-full"></div>
@@ -104,34 +106,57 @@ export default function Level2({ isDevMode, onComplete, onScoreUpdate, onMistake
                 const isActive = activeValves.includes(valve.id);
                 return (
                   <div key={valve.id} className="flex flex-col items-center gap-2">
-                    <button
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
                       onClick={() => toggleValve(valve.id)}
-                      className={`relative w-24 h-24 rounded-full border-4 flex flex-col items-center justify-center gap-1 transition-all duration-300 ${
+                      aria-label={`Vanne ${valve.id}, débit ${valve.flow} litres par seconde. ${isActive ? 'Actuellement ouverte' : 'Actuellement fermée'}`}
+                      className={`relative w-24 h-24 rounded-full border-4 flex flex-col items-center justify-center gap-1 transition-all duration-300 overflow-hidden group ${
                         isActive 
-                          ? 'bg-emerald-950 border-emerald-400 text-emerald-300 shadow-[0_0_20px_rgba(16,185,129,0.4),inset_0_0_15px_rgba(16,185,129,0.5)] scale-105' 
-                          : 'bg-slate-900 border-slate-700 text-slate-500 hover:border-slate-500'
+                          ? 'bg-emerald-950/50 border-emerald-400 text-emerald-300' 
+                          : 'bg-slate-900/50 border-slate-700 text-slate-500 hover:border-slate-500'
                       }`}
                     >
-                      <span className={`font-bold text-2xl ${isActive ? 'text-emerald-400' : 'text-slate-400'}`}>{valve.flow}</span>
-                      <span className="text-xs uppercase tracking-wider font-bold">L/s</span>
+                      {/* Flow animation inside button when open */}
+                      {isActive && (
+                        <motion.div 
+                          className="absolute inset-0 opacity-10"
+                          initial={{ y: '-100%' }}
+                          animate={{ y: '100%' }}
+                          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                          style={{ 
+                            background: 'linear-gradient(180deg, transparent, #10b981, transparent)' 
+                          }}
+                        />
+                      )}
+
+                      <span className={`font-black text-3xl relative z-10 ${isActive ? 'text-emerald-400 text-glow-emerald' : 'text-slate-400'}`}>{valve.flow}</span>
+                      <span className="text-[10px] uppercase tracking-widest font-black relative z-10">L/s</span>
                       
                       {/* Valve handle indicator */}
-                      <div className={`absolute w-full h-1 top-1/2 -translate-y-1/2 transition-transform duration-500 ${isActive ? 'rotate-90 bg-emerald-500/50' : 'rotate-0 bg-slate-600/50'}`}></div>
-                    </button>
+                      <motion.div 
+                        animate={{ rotate: isActive ? 90 : 0 }}
+                        transition={{ type: "spring", stiffness: 200 }}
+                        className={`absolute w-full h-1.5 top-1/2 -translate-y-1/2 transition-colors duration-500 ${isActive ? 'bg-emerald-500/40' : 'bg-slate-600/30'}`}
+                      ></motion.div>
+                    </motion.button>
                     
                     {/* Water flow animation below valve */}
-                    <div className="h-16 w-6 bg-slate-800/50 rounded-b-lg relative overflow-hidden border-x border-b border-slate-700/50">
-                      {isActive && (
-                        <motion.div
-                          className="absolute inset-0 bg-blue-500/60"
-                          initial={{ y: '-100%' }}
-                          animate={{ y: '0%' }}
-                          transition={{ duration: 0.5, ease: "linear" }}
-                        >
-                          {/* Flow lines */}
-                          <div className="absolute inset-0 opacity-50 bg-[repeating-linear-gradient(0deg,transparent,transparent_4px,rgba(255,255,255,0.8)_4px,rgba(255,255,255,0.8)_8px)] animate-[slide-down_0.5s_linear_infinite]"></div>
-                        </motion.div>
-                      )}
+                    <div className="h-20 w-8 bg-slate-900/80 rounded-b-2xl relative overflow-hidden border-x border-b border-slate-700/50 shadow-inner">
+                      <AnimatePresence>
+                        {isActive && (
+                          <motion.div
+                            className="absolute inset-0 bg-gradient-to-b from-blue-600/60 to-blue-400/40"
+                            initial={{ height: 0 }}
+                            animate={{ height: '100%' }}
+                            exit={{ height: 0 }}
+                            transition={{ duration: 0.3 }}
+                          >
+                            {/* Flow lines */}
+                            <div className="absolute inset-0 opacity-40 bg-[repeating-linear-gradient(0deg,transparent,transparent_8px,rgba(255,255,255,0.5)_8px,rgba(255,255,255,0.5)_16px)]"></div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
                   </div>
                 );
@@ -140,10 +165,10 @@ export default function Level2({ isDevMode, onComplete, onScoreUpdate, onMistake
           </div>
 
           {/* Flow Meter */}
-          <div className="w-full lg:w-2/5 p-6 bg-slate-950 rounded-xl border border-slate-800 flex flex-col items-center justify-center relative overflow-hidden">
+          <div className="w-full lg:w-2/5 p-8 glass rounded-2xl flex flex-col items-center justify-center relative overflow-hidden">
             {/* Water level background */}
             <motion.div 
-              className={`absolute bottom-0 left-0 right-0 opacity-20 ${
+              className={`absolute bottom-0 left-0 right-0 opacity-10 transition-colors duration-500 ${
                 currentFlow > targetFlow ? 'bg-red-500' : currentFlow === targetFlow ? 'bg-emerald-500' : 'bg-blue-500'
               }`}
               initial={{ height: '0%' }}
@@ -151,41 +176,49 @@ export default function Level2({ isDevMode, onComplete, onScoreUpdate, onMistake
               transition={{ type: 'spring', stiffness: 50 }}
             />
 
-            <div className="relative z-10 flex flex-col items-center w-full">
-              <div className="flex items-center gap-2 mb-4">
-                <Droplets className={`w-8 h-8 ${currentFlow > targetFlow ? 'text-red-500' : currentFlow === targetFlow ? 'text-emerald-400' : 'text-blue-400'}`} />
-                <p className="text-sm text-slate-400 uppercase tracking-widest font-bold">Débit Total Actuel</p>
+            <div className="relative z-10">
+              <div className="flex items-center gap-3 mb-6">
+                <div className={`p-3 rounded-full ${currentFlow > targetFlow ? 'bg-red-500/20' : currentFlow === targetFlow ? 'bg-emerald-500/20' : 'bg-blue-500/20'}`}>
+                  <Droplets className={`w-8 h-8 ${currentFlow > targetFlow ? 'text-red-500' : currentFlow === targetFlow ? 'text-emerald-400' : 'text-blue-400'}`} />
+                </div>
+                <p className="text-xs text-slate-400 uppercase tracking-[0.3em] font-black">Débit Total Actuel</p>
               </div>
               
-              <div className="flex flex-col items-center gap-1 mb-5">
-                <span className={`text-7xl font-bold transition-colors duration-300 ${
-                  currentFlow > targetFlow ? 'text-red-500' : currentFlow === targetFlow ? 'text-emerald-400 drop-shadow-[0_0_15px_rgba(16,185,129,0.8)]' : 'text-blue-400'
-                }`}>
+              <div className="flex flex-col items-center gap-1 mb-8">
+                <motion.span 
+                  key={currentFlow}
+                  initial={{ scale: 1.2 }}
+                  animate={{ scale: 1 }}
+                  className={`text-8xl font-black font-mono tracking-tighter transition-colors duration-300 ${
+                    currentFlow > targetFlow ? 'text-red-500' : currentFlow === targetFlow ? 'text-emerald-400 text-glow-emerald' : 'text-blue-400'
+                  }`}
+                >
                   {currentFlow}
-                </span>
-                <span className="text-2xl text-slate-500 font-bold">/ {targetFlow} L/s</span>
+                </motion.span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xl text-slate-500 font-black uppercase tracking-widest">L/s</span>
+                  <span className="text-slate-700 font-bold">/</span>
+                  <span className="text-xl text-slate-400 font-black uppercase tracking-widest">{targetFlow}</span>
+                </div>
               </div>
               
-              <div className="w-full h-6 bg-slate-800 rounded-full overflow-hidden border border-slate-700 relative">
+              <div className="w-full h-8 bg-slate-900/80 rounded-full overflow-hidden border border-slate-700/50 relative p-1 shadow-inner">
                 {/* Target marker */}
                 <div className="absolute top-0 bottom-0 w-1 bg-emerald-400 z-20" style={{ left: '100%' }}></div>
                 
                 <motion.div 
-                  className={`h-full relative z-10 ${
+                   className={`h-full relative z-10 rounded-full ${
                     currentFlow > targetFlow ? 'bg-red-500' : currentFlow === targetFlow ? 'bg-emerald-500' : 'bg-blue-500'
                   }`}
                   initial={{ width: 0 }}
                   animate={{ width: `${Math.min((currentFlow / targetFlow) * 100, 100)}%` }}
                   transition={{ type: 'spring', stiffness: 100 }}
-                >
-                  {/* Flow stripes */}
-                  <div className="absolute inset-0 opacity-30 bg-[repeating-linear-gradient(45deg,transparent,transparent_10px,rgba(255,255,255,0.5)_10px,rgba(255,255,255,0.5)_20px)] animate-[slide_1s_linear_infinite]"></div>
-                </motion.div>
+                />
               </div>
               
               <div className="h-12 mt-6 flex items-center justify-center">
                 {currentFlow > targetFlow && (
-                  <p className="text-red-400 text-sm font-bold text-center animate-pulse">
+                  <p className="text-red-400 text-sm font-bold text-center">
                     DANGER : Gaspillage d'eau détecté.<br/>Réduisez le débit.
                   </p>
                 )}
@@ -223,8 +256,7 @@ export default function Level2({ isDevMode, onComplete, onScoreUpdate, onMistake
           )}
         </AnimatePresence>
 
-        <Hint hintText="Le 'Free Cooling' est une technique qui utilise l'air extérieur froid pour refroidir les serveurs, économisant ainsi des millions de litres d'eau." delaySeconds={30} />
-      </div>
+              </div>
     </motion.div>
   );
 }

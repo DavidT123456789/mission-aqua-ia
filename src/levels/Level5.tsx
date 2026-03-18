@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Map, MapPin, CheckCircle2, Snowflake, Sun, Building2, Trees, Globe2 } from 'lucide-react';
-import Hint from '../components/Hint';
 import NaiaDialogue from '../components/NaiaDialogue';
 import TechTerm from '../components/TechTerm';
 
@@ -134,20 +133,22 @@ export default function Level5({ isDevMode, onComplete, onScoreUpdate, onMistake
                   style={{ top: loc.coordinates.top, left: loc.coordinates.left }}
                 >
                   <div className={`relative flex items-center justify-center w-14 h-14 rounded-full transition-all duration-300 ${
-                    isSelected ? `${loc.bg} ${loc.border} border-2 scale-125 z-20 shadow-[0_0_20px_rgba(255,255,255,0.3)]` : 'bg-slate-900 border border-slate-700 hover:scale-110 z-10'
+                    isSelected ? `${loc.bg} ${loc.border} border-2 scale-125 z-20 shadow-[0_0_20px_rgba(16,185,129,0.4)]` : 'bg-slate-900 border border-slate-700 hover:scale-110 z-10'
                   }`}>
                     <Icon className={`w-7 h-7 ${isSelected ? loc.color : 'text-slate-500 group-hover:text-slate-300'}`} />
                     
                     {/* Radar ping effect for selected */}
                     {isSelected && (
-                      <span className="absolute inline-flex h-full w-full rounded-full bg-slate-400 opacity-20 animate-ping"></span>
+                      <span className="absolute inline-flex h-full w-full rounded-full bg-slate-400 opacity-20"></span>
                     )}
                   </div>
                   
                   {/* Tooltip on hover */}
                   {!isSelected && (
-                    <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-30">
+                    <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 bg-slate-900 text-slate-200 text-xs px-3 py-2 rounded-lg border border-slate-700 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-30 shadow-xl font-sans not-italic font-normal tracking-normal">
                       {loc.name}
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 border-8 border-transparent border-b-slate-700"></div>
+                      <div className="absolute bottom-[calc(100%-1px)] left-1/2 -translate-x-1/2 border-8 border-transparent border-b-slate-900"></div>
                     </div>
                   )}
                 </button>
@@ -166,7 +167,7 @@ export default function Level5({ isDevMode, onComplete, onScoreUpdate, onMistake
                   onClick={() => handleSelect(loc.id)}
                   className={`relative p-5 rounded-xl border-2 text-left transition-all duration-300 flex items-center gap-4 ${
                     isSelected 
-                      ? `${loc.bg} ${loc.border} shadow-[0_0_15px_rgba(255,255,255,0.1)] scale-[1.02]` 
+                      ? `${loc.bg} ${loc.border} scale-[1.02]` 
                       : 'bg-slate-950 border-slate-800 hover:border-slate-600'
                   }`}
                 >
@@ -176,7 +177,7 @@ export default function Level5({ isDevMode, onComplete, onScoreUpdate, onMistake
                   <div className="flex-1">
                     <div className="flex items-center justify-between mb-1">
                       <span className={`font-bold text-lg ${isSelected ? 'text-white' : 'text-slate-300'}`}>{loc.name}</span>
-                      {isSelected && <MapPin className="w-5 h-5 text-white animate-bounce" />}
+                      {isSelected && <MapPin className="w-5 h-5 text-white" />}
                     </div>
                     <p className="text-sm text-slate-400 leading-tight">{loc.desc}</p>
                   </div>
@@ -196,7 +197,7 @@ export default function Level5({ isDevMode, onComplete, onScoreUpdate, onMistake
                   ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
                   : showError
                   ? 'bg-red-600 text-white animate-shake'
-                  : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:scale-105'
+                  : 'bg-emerald-600 hover:bg-emerald-500 text-white hover:scale-105'
               }`}
             >
               {showError ? 'MAUVAIS EMPLACEMENT' : 'VALIDER L\'EMPLACEMENT'}
@@ -228,11 +229,7 @@ export default function Level5({ isDevMode, onComplete, onScoreUpdate, onMistake
           )}
         </AnimatePresence>
 
-        <Hint 
-          hintText="L'entraînement d'un seul modèle de langage géant (LLM) peut consommer des millions de litres d'eau avant même d'être utilisé par le public." 
-          delaySeconds={30} 
-        />
-      </div>
+              </div>
     </motion.div>
   );
 }

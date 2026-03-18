@@ -152,7 +152,7 @@ export default function Outro({ timeLeft, score, onRestart, nickname, evaluation
       <div className="flex flex-col sm:flex-row gap-4 justify-center mb-5">
         <button
           onClick={downloadFullCertificate}
-          className="flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-4 rounded-xl font-bold transition-all shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:scale-105"
+          className="flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-4 rounded-xl font-bold transition-all hover:scale-105 shadow-[0_0_20px_rgba(16,185,129,0.3)]"
         >
           <Download className="w-5 h-5" />
           TÉLÉCHARGER MON DOSSIER COMPLET (A4)

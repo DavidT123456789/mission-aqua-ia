@@ -48,15 +48,36 @@ interface TechTermProps {
 
 export default function TechTerm({ term, children }: TechTermProps) {
   const [isHovered, setIsHovered] = useState(false);
+  const [isDiscovered, setIsDiscovered] = useState(false);
   const [positionClass, setPositionClass] = useState('left-1/2 -translate-x-1/2');
   const [arrowClass, setArrowClass] = useState('left-1/2 -translate-x-1/2');
   const spanRef = useRef<HTMLSpanElement>(null);
   const info = TERMS_DICTIONARY[term] || { title: term, definition: 'Terme technique lié à l\'IA ou à l\'écologie.' };
 
   useEffect(() => {
+    const saved = localStorage.getItem('hydrosave_progress');
+    if (saved) {
+      const state = JSON.parse(saved);
+      const discovered = state.discoveredTerms || [];
+      setIsDiscovered(discovered.includes(term));
+    }
+  }, [term]);
+
+  // Listen for global discovery events to update all instances of the same term
+  useEffect(() => {
+    const handleDiscovery = (e: any) => {
+      if (e.detail === term) {
+        setIsDiscovered(true);
+      }
+    };
+    window.addEventListener('discoverTerm', handleDiscovery);
+    return () => window.removeEventListener('discoverTerm', handleDiscovery);
+  }, [term]);
+
+  useEffect(() => {
     if (isHovered && spanRef.current) {
       const rect = spanRef.current.getBoundingClientRect();
-      const tooltipWidth = 256; // w-64 = 16rem = 256px
+      const tooltipWidth = 288; // w-72 = 18rem = 288px
       const halfTooltip = tooltipWidth / 2;
       
       let newPosClass = 'left-1/2 -translate-x-1/2';
@@ -81,7 +102,10 @@ export default function TechTerm({ term, children }: TechTermProps) {
 
   const handleMouseEnter = () => {
     setIsHovered(true);
-    window.dispatchEvent(new CustomEvent('discoverTerm', { detail: term }));
+    if (!isDiscovered) {
+      window.dispatchEvent(new CustomEvent('discoverTerm', { detail: term }));
+      setIsDiscovered(true);
+    }
   };
 
   return (
@@ -90,10 +114,14 @@ export default function TechTerm({ term, children }: TechTermProps) {
       ref={spanRef}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={() => setIsHovered(false)}
+      onFocus={handleMouseEnter}
+      onBlur={() => setIsHovered(false)}
     >
-      <span className="cursor-help border-b border-dotted border-emerald-400 text-emerald-300 hover:text-emerald-200 transition-colors inline-flex items-center gap-1">
+      <span 
+        tabIndex={0}
+        className={`cursor-help border-b border-dotted ${isDiscovered ? 'border-emerald-400 text-emerald-300' : 'border-amber-400 text-amber-300'} hover:text-emerald-200 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:rounded transition-colors inline-flex items-center`}
+      >
         {children || term}
-        <Info className="w-3 h-3 opacity-50" />
       </span>
 
       <AnimatePresence>
@@ -102,16 +130,16 @@ export default function TechTerm({ term, children }: TechTermProps) {
             initial={{ opacity: 0, y: 10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 5, scale: 0.95 }}
-            className={`absolute z-[100] bottom-full ${positionClass} mb-2 w-64 p-3 bg-slate-900 border border-emerald-500/50 rounded-lg shadow-xl pointer-events-none block`}
+            className={`absolute z-[9999] bottom-full ${positionClass} mb-2 w-72 p-4 bg-slate-900 border border-slate-700 rounded-lg pointer-events-none block shadow-2xl not-italic text-left font-normal tracking-normal`}
           >
-            <span className="text-emerald-400 font-bold text-xs uppercase tracking-wider mb-1 flex items-center gap-2">
-              <Info className="w-3 h-3" />
+            <span className="text-emerald-400 font-bold text-sm mb-1.5 flex items-center gap-2 normal-case font-sans not-italic tracking-normal">
               {info.title}
             </span>
-            <span className="text-slate-200 text-xs leading-relaxed font-sans block">
+            <span className="text-slate-200 text-sm leading-relaxed font-sans font-normal block normal-case not-italic tracking-normal">
               {info.definition}
             </span>
-            <span className={`absolute top-full ${arrowClass} border-8 border-transparent border-t-slate-900`}></span>
+            <span className={`absolute top-full ${arrowClass} border-8 border-transparent border-t-slate-700`}></span>
+            <span className={`absolute top-[calc(100%-1px)] ${arrowClass} border-8 border-transparent border-t-slate-900`}></span>
           </motion.span>
         )}
       </AnimatePresence>

@@ -17,7 +17,7 @@ export default function Intro({ onStart, hasSavedGame, onLoadGame, onClearSave }
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, y: -20 }}
-      className="bg-slate-900/80 border border-emerald-500/30 p-8 rounded-xl shadow-2xl shadow-emerald-900/20 max-w-2xl mx-auto"
+      className="bg-slate-900/90 border border-emerald-500/20 p-8 rounded-xl shadow-2xl max-w-2xl mx-auto backdrop-blur-xl"
     >
       <div className="flex flex-col items-center text-center space-y-4">
         <div className="p-4 bg-emerald-950/50 rounded-full border border-emerald-500/50">
@@ -47,7 +47,7 @@ export default function Intro({ onStart, hasSavedGame, onLoadGame, onClearSave }
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Entrez votre pseudo..."
+              placeholder="Entrez votre pseudo"
               className="w-full bg-slate-900 border border-emerald-500/30 rounded-lg px-4 py-3 text-white text-center focus:outline-none focus:border-emerald-500 transition-colors"
               maxLength={20}
             />
@@ -80,10 +80,10 @@ export default function Intro({ onStart, hasSavedGame, onLoadGame, onClearSave }
           
           <button
             onClick={() => onStart(name || 'Agent Anonyme')}
-            className={`flex items-center justify-center gap-2 px-8 py-4 rounded-lg font-bold text-xl transition-all hover:scale-105 active:scale-95 shadow-[0_0_20px_rgba(16,185,129,0.4)] ${
+            className={`flex items-center justify-center gap-2 px-8 py-4 rounded-lg font-bold text-xl transition-all hover:scale-105 active:scale-95 ${
               hasSavedGame 
                 ? 'bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-emerald-500/30' 
-                : 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-[0_0_20px_rgba(16,185,129,0.4)]'
             }`}
           >
             <Play className="w-6 h-6 fill-current" />

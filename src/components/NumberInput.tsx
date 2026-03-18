@@ -1,5 +1,6 @@
 import { Plus, Minus } from 'lucide-react';
 import { motion } from 'motion/react';
+import { soundManager } from '../utils/soundManager';
 
 interface NumberInputProps {
   value: number;
@@ -13,12 +14,14 @@ interface NumberInputProps {
 export default function NumberInput({ value, onChange, min = 0, max = 9999, step = 1, unit }: NumberInputProps) {
   const increment = () => {
     if (value + step <= max) {
+      soundManager.playClick();
       onChange(value + step);
     }
   };
 
   const decrement = () => {
     if (value - step >= min) {
+      soundManager.playClick();
       onChange(value - step);
     }
   };

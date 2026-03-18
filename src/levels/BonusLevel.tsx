@@ -31,9 +31,9 @@ export default function BonusLevel({ onComplete, onScoreUpdate, nickname, onFina
   const dossierRef = useRef<HTMLDivElement>(null);
 
   const getScoreColor = (score: number) => {
-    if (score < 50) return { text: 'text-amber-500', border: 'border-amber-500/30', bg: 'bg-amber-500/10', glow: 'shadow-[0_0_15px_rgba(245,158,11,0.3)]', label: 'BRONZE' };
-    if (score < 80) return { text: 'text-emerald-400', border: 'border-emerald-500/30', bg: 'bg-emerald-500/10', glow: 'shadow-[0_0_20px_rgba(16,185,129,0.4)]', label: 'ARGENT' };
-    return { text: 'text-yellow-400', border: 'border-yellow-500/50', bg: 'bg-yellow-500/10', glow: 'shadow-[0_0_30px_rgba(250,204,21,0.6)]', label: 'LÉGENDAIRE' };
+    if (score < 50) return { text: 'text-amber-500', border: 'border-amber-500/30', bg: 'bg-amber-500/10', label: 'BRONZE' };
+    if (score < 80) return { text: 'text-emerald-400', border: 'border-emerald-500/30', bg: 'bg-emerald-500/10', label: 'ARGENT' };
+    return { text: 'text-yellow-400', border: 'border-yellow-500/50', bg: 'bg-yellow-500/10', label: 'LÉGENDAIRE' };
   };
 
   const scoreStyle = evaluation ? getScoreColor(evaluation.score) : null;
@@ -43,7 +43,7 @@ export default function BonusLevel({ onComplete, onScoreUpdate, nickname, onFina
 
     setIsAnalyzing(true);
     setError(null);
-    setLoadingStep('Analyse préliminaire de votre concept...');
+    setLoadingStep('Analyse préliminaire de votre concept');
     setGeneratedImageUrl(null);
 
     try {
@@ -74,12 +74,12 @@ export default function BonusLevel({ onComplete, onScoreUpdate, nickname, onFina
     if (!evaluation) return;
 
     setIsFinalizing(true);
-    setLoadingStep('Génération du brevet officiel et du prototype...');
+    setLoadingStep('Génération du brevet officiel et du prototype');
     setPatentNumber(`FR-${Math.floor(100000 + Math.random() * 900000)}`);
 
     try {
       if (evaluation.score >= 50) {
-        setLoadingStep('Score > 50% : Matérialisation du prototype en cours...');
+        setLoadingStep('Score > 50% : Matérialisation du prototype en cours');
         
         const resp = await fetch('/api/generate', {
           method: 'POST',
@@ -160,7 +160,7 @@ export default function BonusLevel({ onComplete, onScoreUpdate, nickname, onFina
             <textarea
               value={idea}
               onChange={(e) => setIdea(e.target.value)}
-              placeholder="Décrivez votre invention en détails : fonctionnement, capteurs utilisés, impact attendu... (min. 20 caractères)"
+              placeholder="Décrivez votre invention en détails : fonctionnement, capteurs utilisés, impact attendu (min. 20 caractères)"
               className="w-full h-48 bg-slate-950 border border-emerald-900/50 rounded-xl p-4 text-emerald-100 focus:outline-none focus:border-emerald-500 transition-colors resize-none font-sans"
             />
             <div className={`absolute bottom-4 right-4 text-xs ${idea.length < 20 ? 'text-red-400' : 'text-slate-500'}`}>
@@ -172,10 +172,10 @@ export default function BonusLevel({ onComplete, onScoreUpdate, nickname, onFina
             <button
               onClick={analyzeDraft}
               disabled={!idea.trim() || idea.length < 20}
-              className={`flex items-center gap-2 px-8 py-4 rounded-xl font-bold text-lg transition-all ${
+              className={`flex items-center gap-2 px-8 py-4 rounded-xl font-bold text-lg transition-all shadow-[0_0_20px_rgba(16,185,129,0.3)] ${
                 !idea.trim() || idea.length < 20
-                  ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                  : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:scale-105 active:scale-95'
+                  ? 'bg-slate-800 text-slate-500 cursor-not-allowed shadow-none'
+                  : 'bg-emerald-600 hover:bg-emerald-500 text-white hover:scale-105 active:scale-95'
               }`}
             >
               <Send className="w-5 h-5" />
@@ -190,12 +190,12 @@ export default function BonusLevel({ onComplete, onScoreUpdate, nickname, onFina
       {(isAnalyzing || isFinalizing) && (
         <div className="flex flex-col items-center justify-center py-20 space-y-5">
           <div className="relative">
-            <Loader2 className="w-20 h-20 text-emerald-500 animate-spin" />
-            <Sparkles className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 text-yellow-400 animate-pulse" />
+            <Loader2 className="w-20 h-20 text-emerald-500" />
+            <Sparkles className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 text-yellow-400" />
           </div>
           <div className="text-center space-y-2">
-            <p className="text-xl font-bold text-emerald-400 animate-pulse">{loadingStep}</p>
-            <p className="text-slate-500 text-sm">L'IA de NAÏA traite vos données...</p>
+            <p className="text-xl font-bold text-emerald-400">{loadingStep}</p>
+            <p className="text-slate-500 text-sm">L'IA de NAÏA traite vos données</p>
           </div>
         </div>
       )}
@@ -212,7 +212,7 @@ export default function BonusLevel({ onComplete, onScoreUpdate, nickname, onFina
           />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className={`bg-slate-950 border-2 ${scoreStyle.border} ${scoreStyle.glow} rounded-2xl p-6 transition-all duration-500 relative overflow-hidden`}>
+            <div className={`bg-slate-950 border-2 ${scoreStyle.border} rounded-2xl p-6 transition-all duration-500 relative`}>
               <div className={`absolute -top-1 -right-1 px-3 py-1 ${scoreStyle.bg} ${scoreStyle.text} text-[10px] font-black tracking-widest rounded-bl-lg border-b border-l ${scoreStyle.border}`}>
                 RANG : {scoreStyle.label}
               </div>
@@ -234,7 +234,7 @@ export default function BonusLevel({ onComplete, onScoreUpdate, nickname, onFina
                     />
                   </svg>
                   <div className="absolute flex flex-col items-center">
-                    <span className={`text-4xl font-black ${scoreStyle.text} drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]`}>{evaluation.score}%</span>
+                    <span className={`text-4xl font-black ${scoreStyle.text}`}>{evaluation.score}%</span>
                     <span className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">Estimation</span>
                   </div>
                 </div>
@@ -264,11 +264,11 @@ export default function BonusLevel({ onComplete, onScoreUpdate, nickname, onFina
                   <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Objectifs de mission :</div>
                   <div className="space-y-1">
                     <div className={`flex items-center gap-2 text-[10px] ${evaluation.score >= 50 ? 'text-emerald-400' : 'text-slate-600'}`}>
-                      <div className={`w-1.5 h-1.5 rounded-full ${evaluation.score >= 50 ? 'bg-emerald-400 animate-pulse' : 'bg-slate-800'}`} />
+                      <div className={`w-1.5 h-1.5 rounded-full ${evaluation.score >= 50 ? 'bg-emerald-400' : 'bg-slate-800'}`} />
                       DÉBLOQUER LE PROTOTYPE (50%)
                     </div>
                     <div className={`flex items-center gap-2 text-[10px] ${evaluation.score >= 80 ? 'text-yellow-400' : 'text-slate-600'}`}>
-                      <div className={`w-1.5 h-1.5 rounded-full ${evaluation.score >= 80 ? 'bg-yellow-400 animate-pulse' : 'bg-slate-800'}`} />
+                      <div className={`w-1.5 h-1.5 rounded-full ${evaluation.score >= 80 ? 'bg-yellow-400' : 'bg-slate-800'}`} />
                       ATTEINDRE LE RANG LÉGENDAIRE (80%)
                     </div>
                   </div>
@@ -288,12 +288,12 @@ export default function BonusLevel({ onComplete, onScoreUpdate, nickname, onFina
             <div className="flex flex-col gap-2">
               <button
                 onClick={finalizeProject}
-                className={`group flex items-center justify-center gap-2 px-8 py-4 rounded-xl font-black text-lg transition-all ${
+                className={`group flex items-center justify-center gap-2 px-8 py-4 rounded-xl font-black text-lg transition-all shadow-[0_0_20px_rgba(16,185,129,0.4)] ${
                   evaluation.score >= 80 
-                    ? 'bg-yellow-500 hover:bg-yellow-400 text-slate-950 shadow-[0_0_30px_rgba(234,179,8,0.5)]' 
+                    ? 'bg-yellow-500 hover:bg-yellow-400 text-slate-950 shadow-yellow-500/40' 
                     : evaluation.score >= 50
-                    ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-[0_0_20px_rgba(16,185,129,0.4)]'
-                    : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
+                    ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                    : 'bg-slate-700 hover:bg-slate-600 text-slate-300 shadow-none'
                 }`}
               >
                 <CheckCircle2 className="w-6 h-6 group-hover:scale-110 transition-transform" />
@@ -316,7 +316,7 @@ export default function BonusLevel({ onComplete, onScoreUpdate, nickname, onFina
           <div ref={dossierRef} className="p-4 rounded-3xl bg-slate-950 border border-emerald-500/20">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               {/* Patent Card */}
-              <div className="bg-slate-950 border-2 border-emerald-500/30 rounded-2xl p-6 relative overflow-hidden">
+              <div className="bg-slate-950 border-2 border-emerald-500/30 rounded-2xl p-6 relative">
                 <div className="absolute top-0 right-0 bg-emerald-500 text-slate-950 px-4 py-1 font-bold text-[10px] rounded-bl-lg tracking-tighter">
                   BREVET N°{patentNumber}
                 </div>
@@ -376,7 +376,7 @@ export default function BonusLevel({ onComplete, onScoreUpdate, nickname, onFina
               </div>
 
               {/* Image Card (Reward) */}
-              <div className="bg-slate-950 border-2 border-cyan-500/30 rounded-2xl p-2 flex flex-col items-center justify-center min-h-[300px] relative overflow-hidden">
+              <div className="bg-slate-950 border-2 border-cyan-500/30 rounded-2xl p-2 flex flex-col items-center justify-center min-h-[300px] relative">
                 {evaluation.score >= 50 ? (
                   <>
                     {generatedImageUrl ? (
@@ -392,7 +392,7 @@ export default function BonusLevel({ onComplete, onScoreUpdate, nickname, onFina
                     ) : (
                       <div className="flex flex-col items-center text-slate-600">
                         <Loader2 className="w-12 h-12 mb-2 animate-spin" />
-                        <p className="text-xs">Génération du prototype...</p>
+                        <p className="text-xs">Génération du prototype</p>
                       </div>
                     )}
                     <div className="absolute bottom-4 left-4 right-4 bg-slate-900/80 backdrop-blur-sm p-2 rounded border border-cyan-500/30 text-[10px] text-cyan-400 text-center uppercase tracking-tighter">
@@ -417,7 +417,7 @@ export default function BonusLevel({ onComplete, onScoreUpdate, nickname, onFina
           <div className="flex flex-col sm:flex-row justify-center gap-4">
             <button
               onClick={downloadDossier}
-              className="group flex items-center gap-2 bg-cyan-600 hover:bg-cyan-500 text-white px-6 py-4 rounded-xl font-bold transition-all shadow-[0_0_20px_rgba(6,182,212,0.3)]"
+              className="group flex items-center gap-2 bg-cyan-600 hover:bg-cyan-500 text-white px-6 py-4 rounded-xl font-bold transition-all"
             >
               <Download className="w-5 h-5 group-hover:bounce" />
               TÉLÉCHARGER MON DOSSIER
@@ -440,7 +440,7 @@ export default function BonusLevel({ onComplete, onScoreUpdate, nickname, onFina
             </button>
             <button
               onClick={onComplete}
-              className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-4 rounded-xl font-bold text-lg transition-all shadow-[0_0_30px_rgba(16,185,129,0.4)] hover:scale-105"
+              className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-4 rounded-xl font-bold text-lg transition-all hover:scale-105"
             >
               <CheckCircle2 className="w-6 h-6" />
               TERMINER LA MISSION

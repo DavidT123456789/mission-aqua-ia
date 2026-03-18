@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Flame, CheckCircle2, Home, ArrowRight, Droplets } from 'lucide-react';
-import Hint from '../components/Hint';
 import NaiaDialogue from '../components/NaiaDialogue';
 import TechTerm from '../components/TechTerm';
 
@@ -103,7 +102,7 @@ export default function Level9({ isDevMode, onComplete, onScoreUpdate, onMistake
                 onClick={() => handleSelect(path.id)}
                 className={`relative flex flex-col p-6 rounded-xl border-2 text-left transition-all duration-300 ${
                   isSelected 
-                    ? `${path.bg} ${path.border} shadow-[0_0_20px_rgba(255,255,255,0.1)] scale-105 z-10` 
+                    ? `${path.bg} ${path.border} scale-105 z-10` 
                     : 'bg-slate-950 border-slate-800 hover:border-slate-600'
                 }`}
               >
@@ -129,7 +128,7 @@ export default function Level9({ isDevMode, onComplete, onScoreUpdate, onMistake
         <div className="mt-5 p-6 bg-slate-950 rounded-xl border border-slate-800 flex items-center justify-center gap-4 md:gap-5">
           <div className="flex flex-col items-center gap-2">
             <div className="w-16 h-16 bg-slate-800 rounded-lg border border-slate-600 flex items-center justify-center">
-              <Flame className="w-8 h-8 text-orange-500 animate-pulse" />
+              <Flame className="w-8 h-8 text-orange-500" />
             </div>
             <span className="text-xs text-slate-400">Data Center</span>
           </div>
@@ -175,7 +174,7 @@ export default function Level9({ isDevMode, onComplete, onScoreUpdate, onMistake
                   ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
                   : showError
                   ? 'bg-red-600 text-white animate-shake'
-                  : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:scale-105'
+                  : 'bg-emerald-600 hover:bg-emerald-500 text-white hover:scale-105'
               }`}
             >
               {showError ? 'MAUVAIS CHOIX' : 'ROUTER LA CHALEUR'}
@@ -207,11 +206,7 @@ export default function Level9({ isDevMode, onComplete, onScoreUpdate, onMistake
           )}
         </AnimatePresence>
 
-        <Hint 
-          hintText="Un modèle 'Small' est souvent suffisant pour des tâches simples et consomme beaucoup moins d'eau et d'énergie qu'un modèle géant." 
-          delaySeconds={30} 
-        />
-      </div>
+              </div>
     </motion.div>
   );
 }

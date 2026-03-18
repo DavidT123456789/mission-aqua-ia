@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Lock, TerminalSquare, AlertTriangle, Droplets, Image as ImageIcon, ArrowRight, CheckCircle2 } from 'lucide-react';
-import Hint from '../components/Hint';
 import NaiaDialogue from '../components/NaiaDialogue';
 import TechTerm from '../components/TechTerm';
 import NumberInput from '../components/NumberInput';
+import { soundManager } from '../utils/soundManager';
 
 export default function Level1({ isDevMode, onComplete, onScoreUpdate, onMistake }: { isDevMode?: boolean; onComplete: () => void; onScoreUpdate: (points: number, water: number) => void; onMistake?: () => void; key?: string }) {
   const [waterAmount, setWaterAmount] = useState<number>(0);
@@ -17,6 +17,7 @@ export default function Level1({ isDevMode, onComplete, onScoreUpdate, onMistake
     e.preventDefault();
     if (waterAmount === 5) {
       setIsSuccess(true);
+      soundManager.playSuccess();
       if (!hasScored) {
         setHasScored(true);
         onScoreUpdate(100, 20);
@@ -62,49 +63,69 @@ export default function Level1({ isDevMode, onComplete, onScoreUpdate, onMistake
       <div className="space-y-5 text-slate-300">
         <div className="flex flex-col lg:flex-row gap-5">
           {/* Visual Representation */}
-          <div className="w-full lg:w-3/5 bg-slate-950 p-6 rounded-xl border border-slate-800 relative flex flex-col justify-center">
+          <div className="w-full lg:w-3/5 glass p-6 rounded-2xl relative flex flex-col justify-center">
             {/* Decorative background grid */}
-            <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
+            <div className="absolute inset-0 bg-[linear-gradient(to_right,#10b98112_1px,transparent_1px),linear-gradient(to_bottom,#10b98112_1px,transparent_1px)] bg-[size:32px_32px]"></div>
             
             <div className="relative z-10">
-              <div className="flex items-center gap-2 text-amber-400 mb-5 font-mono font-bold justify-center">
-                <AlertTriangle className="w-5 h-5" />
-                <span>RAPPORT D'ANALYSE : GÉNÉRATION D'IMAGES <TechTerm term="IA" /></span>
+              <div className="flex items-center gap-2 text-amber-400 mb-6 font-mono font-bold justify-center bg-amber-950/20 py-2 rounded-lg border border-amber-500/20 relative group">
+                <div className="absolute inset-0 rounded-lg overflow-hidden pointer-events-none">
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-500/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+                </div>
+                <AlertTriangle className="w-4 h-4 relative z-10" />
+                <span className="text-[10px] md:text-xs tracking-widest relative z-10">Rapport d'Analyse : Consommation <TechTerm term="IA" /></span>
               </div>
               
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-5 mb-5">
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-8 mb-8">
+                {/* Input Side */}
                 <motion.div 
                   className="flex flex-col items-center gap-3"
-                  animate={{ y: [0, -5, 0] }}
-                  transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                  whileHover={{ y: -2 }}
                 >
                   <div className="relative">
-                    <div className="absolute inset-0 bg-blue-500/20 blur-xl rounded-full"></div>
-                    <ImageIcon className="w-20 h-20 text-blue-400 relative z-10" />
-                    <div className="absolute -top-3 -right-3 bg-slate-800 text-sm font-bold px-3 py-1 rounded-full border border-blue-500/50 shadow-[0_0_10px_rgba(59,130,246,0.5)] z-20">x100</div>
+                    <div className="relative z-10 p-5 bg-slate-950 border border-blue-500/30 rounded-2xl shadow-inner">
+                      <ImageIcon className="w-12 h-12 text-blue-400" />
+                    </div>
                   </div>
-                  <span className="font-bold text-slate-400 text-center">100 Images<br/>Générées</span>
+                  <div className="text-center space-y-0.5">
+                    <span className="text-[10px] text-blue-400/60 font-bold uppercase tracking-tighter">Volume Production</span>
+                    <span className="font-black text-white text-xl block tracking-tight">100 IMAGES</span>
+                    <span className="text-[9px] text-slate-500 uppercase font-bold">Générées / Session</span>
+                  </div>
                 </motion.div>
 
-                <div className="flex flex-col items-center">
-                  <ArrowRight className="w-10 h-10 text-slate-600 hidden sm:block" />
-                  <div className="text-slate-600 sm:hidden my-4">↓</div>
-                  <span className="text-xs text-slate-500 uppercase tracking-widest mt-2 hidden sm:block">Nécessite</span>
+                <div className="flex flex-col items-center group">
+                  <div className="relative hidden sm:block">
+                    <div className="absolute inset-0 bg-emerald-500 blur-xl opacity-20 group-hover:opacity-40 transition-opacity"></div>
+                    <ArrowRight className="w-8 h-8 text-emerald-400/50 group-hover:text-emerald-400 relative z-10 transition-colors" />
+                  </div>
+                  <div className="text-emerald-500/50 sm:hidden my-2 text-xl font-bold animate-bounce">↓</div>
                 </div>
 
+                {/* Output Side */}
                 <motion.div 
                   className="flex flex-col items-center gap-3"
-                  animate={{ y: [0, 5, 0] }}
-                  transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+                  whileHover={{ y: -2 }}
                 >
                   <div className="relative">
-                    <div className="absolute inset-0 bg-emerald-500/20 blur-xl rounded-full"></div>
-                    <Droplets className="w-20 h-20 text-emerald-500 relative z-10" />
-                    <div className="absolute -top-3 -right-3 bg-slate-800 text-sm font-bold px-3 py-1 rounded-full border border-emerald-500/50 shadow-[0_0_10px_rgba(16,185,129,0.5)] z-20">500ml</div>
+                    <div className="relative z-10 p-5 bg-slate-950 border border-emerald-500/30 rounded-2xl shadow-inner">
+                      <Droplets className="w-12 h-12 text-emerald-400" />
+                    </div>
                   </div>
-                  <span className="font-bold text-slate-400 text-center">Eau Évaporée<br/>(<TechTerm term="Refroidissement" />)</span>
+                  <div className="text-center space-y-0.5">
+                    <span className="text-[10px] text-emerald-400/60 font-bold uppercase tracking-tighter">Consommation Totale</span>
+                    <span className="font-black text-white text-xl block tracking-tight">500mL D'EAU</span>
+                    <span className="text-[10px] text-slate-400 font-bold block italic opacity-80">
+                      (≈ 1 petite bouteille)
+                    </span>
+                    <span className="text-[9px] text-slate-500 font-bold flex items-center justify-center gap-1 mt-1">
+                      <TechTerm term="Refroidissement" />
+                    </span>
+                  </div>
                 </motion.div>
               </div>
+              
+              <div className="mt-4 border-t border-emerald-500/10"></div>
             </div>
           </div>
 
@@ -115,7 +136,7 @@ export default function Level1({ isDevMode, onComplete, onScoreUpdate, onMistake
                 Question de sécurité :
               </p>
               <p className="text-slate-300 mt-2">
-                Combien de millilitres (ml) d'eau sont "bus" par le <TechTerm term="Datacenter" /> pour générer <strong className="text-white">1 seule image</strong> ?
+                Combien de millilitres (mL) d'eau sont "bus" par le <TechTerm term="Datacenter" /> pour générer <strong className="text-white">1 seule image</strong> ?
               </p>
             </div>
 
@@ -141,7 +162,7 @@ export default function Level1({ isDevMode, onComplete, onScoreUpdate, onMistake
                   className={`w-full py-4 rounded-lg font-bold text-lg transition-all flex items-center justify-center gap-2 ${
                     waterAmount === 0
                       ? 'bg-slate-800 text-slate-500 cursor-not-allowed' 
-                      : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:scale-[1.02]'
+                      : 'bg-emerald-600 hover:bg-emerald-500 text-white hover:scale-[1.02] shadow-[0_0_20px_rgba(16,185,129,0.3)]'
                   }`}
                 >
                   <Lock className="w-5 h-5" />
@@ -153,18 +174,18 @@ export default function Level1({ isDevMode, onComplete, onScoreUpdate, onMistake
                 <motion.div
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  className="flex flex-col items-center p-6 bg-emerald-950/50 border border-emerald-500 rounded-xl shadow-[0_0_30px_rgba(16,185,129,0.2)]"
+                  className="flex flex-col items-center p-6 bg-emerald-950/50 border border-emerald-500 rounded-xl"
                 >
                   <div className="flex items-center gap-2 text-emerald-400 font-bold text-xl mb-3">
                     <CheckCircle2 className="w-8 h-8" />
                     ACCÈS AUTORISÉ
                   </div>
                   <p className="text-center text-sm text-emerald-100/80 mb-6">
-                    Exactement. 5 ml par image. Cela semble peu, mais multiplié par des milliards de requêtes, l'impact sur les ressources en eau est colossal.
+                    Exactement. 5 mL par image. Cela semble peu, mais multiplié par des milliards de requêtes, l'impact sur les ressources en eau est colossal.
                   </p>
                   <button
                     onClick={onComplete}
-                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-3 rounded-lg font-bold transition-colors shadow-[0_0_15px_rgba(16,185,129,0.4)]"
+                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-3 rounded-lg font-bold transition-colors"
                   >
                     CONTINUER
                   </button>
@@ -174,8 +195,7 @@ export default function Level1({ isDevMode, onComplete, onScoreUpdate, onMistake
           </div>
         </div>
 
-        <Hint hintText="Saviez-vous que l'IA générative consomme beaucoup plus d'eau que les autres types d'IA pour refroidir ses processeurs ultra-puissants ?" delaySeconds={30} />
-      </div>
+              </div>
     </motion.div>
   );
 }

@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { FileText, CheckCircle2, Scale } from 'lucide-react';
-import Hint from '../components/Hint';
 import NaiaDialogue from '../components/NaiaDialogue';
 import TechTerm from '../components/TechTerm';
 
@@ -84,7 +83,7 @@ export default function Level11({ isDevMode, onComplete, onScoreUpdate, onMistak
                 onClick={() => toggleClause(clause.id)}
                 className={`w-full text-left p-4 rounded-lg border transition-all flex items-start gap-4 ${
                   selectedClauses.includes(clause.id)
-                    ? 'bg-emerald-900/30 border-emerald-500 text-emerald-100 shadow-[0_0_10px_rgba(16,185,129,0.2)]'
+                    ? 'bg-emerald-900/30 border-emerald-500 text-emerald-100'
                     : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-slate-500'
                 }`}
               >
@@ -106,7 +105,7 @@ export default function Level11({ isDevMode, onComplete, onScoreUpdate, onMistak
               className={`px-8 py-4 rounded-lg font-bold text-lg transition-all ${
                 showError
                   ? 'bg-red-600 text-white animate-shake'
-                  : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:scale-105'
+                  : 'bg-emerald-600 hover:bg-emerald-500 text-white hover:scale-105'
               }`}
             >
               {showError ? 'CLAUSES DANGEREUSES DÉTECTÉES' : 'SOUMETTRE LA LOI'}
@@ -130,7 +129,7 @@ export default function Level11({ isDevMode, onComplete, onScoreUpdate, onMistak
               </p>
               <button
                 onClick={onComplete}
-                className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-3 rounded-lg font-bold transition-colors shadow-[0_0_20px_rgba(16,185,129,0.4)]"
+                className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-3 rounded-lg font-bold transition-colors"
               >
                 PASSER À L'ULTIME NIVEAU
               </button>
@@ -138,11 +137,7 @@ export default function Level11({ isDevMode, onComplete, onScoreUpdate, onMistak
           )}
         </AnimatePresence>
 
-        <Hint 
-          hintText="La sobriété numérique, c'est choisir l'outil le plus léger pour chaque besoin : un simple script suffit parfois là où on pense avoir besoin d'IA." 
-          delaySeconds={30} 
-        />
-      </div>
+              </div>
     </motion.div>
   );
 }

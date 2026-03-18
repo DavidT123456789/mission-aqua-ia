@@ -10,9 +10,9 @@ export default function GameOver({ onRetry, nickname, reason = 'time' }: { onRet
     >
       <div className="flex justify-center mb-6">
         {reason === 'lives' ? (
-          <HeartCrack className="w-24 h-24 text-red-500 animate-pulse" />
+          <HeartCrack className="w-24 h-24 text-red-500" />
         ) : (
-          <Skull className="w-24 h-24 text-red-500 animate-pulse" />
+          <Skull className="w-24 h-24 text-red-500" />
         )}
       </div>
 

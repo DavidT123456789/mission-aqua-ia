@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { BrainCircuit, CheckCircle2, AlertTriangle, Zap, Scale, Cpu, Database } from 'lucide-react';
-import Hint from '../components/Hint';
 import NaiaDialogue from '../components/NaiaDialogue';
 import TechTerm from '../components/TechTerm';
 
@@ -122,7 +121,7 @@ export default function Level7({ isDevMode, onComplete, onScoreUpdate, onMistake
                 onClick={() => handleSelect(model.id)}
                 className={`relative p-5 rounded-xl border-2 text-left transition-all duration-300 flex flex-col md:flex-row items-start md:items-center gap-6 ${
                   isSelected 
-                    ? `${model.bg} ${model.border} shadow-[0_0_15px_rgba(255,255,255,0.1)] scale-[1.02] z-10` 
+                    ? `${model.bg} ${model.border} scale-[1.02] z-10` 
                     : 'bg-slate-950 border-slate-800 hover:border-slate-600'
                 }`}
               >
@@ -175,7 +174,7 @@ export default function Level7({ isDevMode, onComplete, onScoreUpdate, onMistake
                   ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
                   : showError
                   ? 'bg-red-600 text-white animate-shake'
-                  : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:scale-105'
+                  : 'bg-emerald-600 hover:bg-emerald-500 text-white hover:scale-105'
               }`}
             >
               {showError ? (
@@ -211,11 +210,7 @@ export default function Level7({ isDevMode, onComplete, onScoreUpdate, onMistake
           )}
         </AnimatePresence>
 
-        <Hint 
-          hintText="L'économie circulaire dans le numérique consiste à réparer, réutiliser et recycler les composants pour limiter l'extraction de nouveaux métaux rares." 
-          delaySeconds={30} 
-        />
-      </div>
+              </div>
     </motion.div>
   );
 }

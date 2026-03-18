@@ -1,6 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Terminal, Droplets, Clock, Star, Activity, Heart, Bug, X, FastForward, HelpCircle, Volume2, VolumeX } from 'lucide-react';
+import { Terminal, Droplets, Clock, Star, Activity, Heart, Bug, X, FastForward, HelpCircle, Volume2, VolumeX, Lock } from 'lucide-react';
+import confetti from 'canvas-confetti';
+import HUD from './components/HUD';
+import TransitionScreen from './components/TransitionScreen';
+import { soundManager } from './utils/soundManager';
+import { HINTS, FACTS } from './constants';
 import Intro from './levels/Intro';
 import Level1 from './levels/Level1';
 import Level2 from './levels/Level2';
@@ -43,36 +48,60 @@ export default function App() {
 
   // Hint State
   const [showHint, setShowHint] = useState(false);
-  const [hintsUsed, setHintsUsed] = useState<number[]>([]);
+  const [unlockedFreeHints, setUnlockedFreeHints] = useState<number[]>([]);
+  const [unlockedPaidHints, setUnlockedPaidHints] = useState<number[]>([]);
 
-  const HINTS: Record<number, string> = {
-    1: "Divise la consommation totale (500 ml) par le nombre d'images (100) pour trouver la consommation d'une seule image.",
-    2: "Cherche une combinaison de 3 vannes qui fait exactement 150 L/s. Par exemple : 50 + 75 + ... ?",
-    3: "Observe les jauges de pression. Une pression normale est de 4.5 bar. La fuite se trouve là où la pression est anormalement basse.",
-    4: "Lisez le code ligne par ligne. Ligne 10: si c'est mouillé, on fait 'STOP'. Ligne 17: sinon on fait 'ACTIVER'.",
-    5: "Le 'Free Cooling' utilise l'air froid extérieur. Cherchez la zone où la température est la plus basse sur la carte.",
-    6: "Regardez les barres d'intensité carbone. Plus la barre est courte, moins l'énergie pollue. Choisissez le créneau le plus 'vert'.",
-    7: "Comparez le ratio Précision / Coût. Un modèle 100x plus gourmand pour seulement 1% de gain n'est pas sobre.",
-    8: "Vérifiez les branchements. Chaque serveur doit être relié à une source d'énergie et à un circuit de refroidissement.",
-    9: "L'IA peut prédire les pics de chaleur. Anticipez en augmentant le refroidissement AVANT que la température ne monte trop.",
-    10: "Le recyclage de l'eau nécessite plusieurs étapes : filtration, décontamination, puis réinjection.",
-    11: "Optimisez le placement des serveurs. Les plus puissants doivent être proches des arrivées d'air frais.",
-    12: "La sécurité est primordiale. Vérifiez les protocoles d'accès et les pare-feu numériques.",
-  };
+  const [isShaking, setIsShaking] = useState(false);
+  const [isSuccessFlash, setIsSuccessFlash] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [pendingLevel, setPendingLevel] = useState<number | null>(null);
+  const [lastPointsGained, setLastPointsGained] = useState(0);
+  const [lastTimeRemaining, setLastTimeRemaining] = useState(0);
 
-  // Sound Utility
-  const playSound = (type: 'success' | 'error' | 'click' | 'start') => {
-    if (isMuted) return;
-    const sounds = {
-      success: 'https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3',
-      error: 'https://assets.mixkit.co/active_storage/sfx/951/951-preview.mp3',
-      click: 'https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3',
-      start: 'https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3'
+  useEffect(() => {
+    soundManager.setMuted(isMuted);
+  }, [isMuted]);
+
+  // Global UI Sounds
+  useEffect(() => {
+    const handleMouseOver = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      const btn = target.closest('button');
+      if (btn && !btn.disabled && !btn.dataset.hovered) {
+        btn.dataset.hovered = 'true';
+        soundManager.playHover();
+        btn.addEventListener('mouseleave', () => { delete btn.dataset.hovered; }, { once: true });
+      }
     };
-    const audio = new Audio(sounds[type]);
-    audio.volume = 0.4;
-    audio.play().catch(() => {}); // Ignore autoplay blocks
-  };
+    
+    const handleClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      const btn = target.closest('button');
+      if (btn && !btn.disabled) {
+        soundManager.playClick();
+      }
+    };
+    
+    const initAudio = () => {
+       soundManager.init();
+       document.removeEventListener('click', initAudio);
+       document.removeEventListener('keydown', initAudio);
+    };
+    
+    document.addEventListener('click', initAudio);
+    document.addEventListener('keydown', initAudio);
+    document.addEventListener('mouseover', handleMouseOver);
+    document.addEventListener('click', handleClick);
+    
+    return () => {
+      document.removeEventListener('mouseover', handleMouseOver);
+      document.removeEventListener('click', handleClick);
+      document.removeEventListener('click', initAudio);
+      document.removeEventListener('keydown', initAudio);
+    };
+  }, []);
+
+  // Sound Utility (Removed, now using soundManager globally)
 
   // Persistence Logic
   useEffect(() => {
@@ -97,11 +126,12 @@ export default function App() {
         timeLeft,
         nickname,
         discoveredTerms,
-        hintsUsed
+        unlockedFreeHints,
+        unlockedPaidHints
       };
       localStorage.setItem('hydrosave_progress', JSON.stringify(state));
     }
-  }, [level, score, waterSaved, lives, timeLeft, nickname, discoveredTerms, hintsUsed]);
+  }, [level, score, waterSaved, lives, timeLeft, nickname, discoveredTerms, unlockedFreeHints, unlockedPaidHints]);
 
   const loadGame = () => {
     const saved = localStorage.getItem('hydrosave_progress');
@@ -114,9 +144,10 @@ export default function App() {
       setTimeLeft(state.timeLeft);
       setNickname(state.nickname);
       setDiscoveredTerms(state.discoveredTerms || []);
-      setHintsUsed(state.hintsUsed || []);
+      setUnlockedFreeHints(state.unlockedFreeHints || []);
+      setUnlockedPaidHints(state.unlockedPaidHints || []);
       setIsActive(true);
-      playSound('start');
+      soundManager.playSuccess();
     }
   };
 
@@ -128,7 +159,12 @@ export default function App() {
   useEffect(() => {
     const handleDiscovery = (e: any) => {
       const term = e.detail;
-      setDiscoveredTerms(prev => prev.includes(term) ? prev : [...prev, term]);
+      setDiscoveredTerms(prev => {
+        if (prev.includes(term)) return prev;
+        return [...prev, term];
+      });
+      // Dispatch after state update to avoid setState during render
+      setTimeout(() => window.dispatchEvent(new CustomEvent('glossaryPlusOne')), 0);
     };
     window.addEventListener('discoverTerm', handleDiscovery);
     return () => window.removeEventListener('discoverTerm', handleDiscovery);
@@ -164,14 +200,26 @@ export default function App() {
     setWaterSaved(15);
     setLives(3);
     setTimeLeft(1800);
-    setHintsUsed([]);
+    setUnlockedFreeHints([]);
+    setUnlockedPaidHints([]);
     setFinalEvaluation(null);
     setFinalImageUrl(null);
-    playSound('start');
+    soundManager.playSuccess();
   };
 
   const nextLevel = () => {
-    playSound('success');
+    soundManager.playSuccess();
+    setIsSuccessFlash(true);
+    setTimeout(() => setIsSuccessFlash(false), 800);
+    
+    // Trigger confetti
+    confetti({
+      particleCount: 100,
+      spread: 70,
+      origin: { y: 0.6 },
+      colors: ['#10b981', '#06b6d4', '#8b5cf6']
+    });
+
     setLevel((l) => {
       const next = l + 1;
       if (next === 14) {
@@ -185,18 +233,42 @@ export default function App() {
         localStorage.setItem('hydrosave_leaderboard', JSON.stringify(updatedLeaderboard));
         localStorage.removeItem('hydrosave_progress');
         setHasSavedGame(false);
+        return next;
       }
-      return next;
+
+      // Life regeneration every 3 levels
+      if (next % 3 === 0) {
+        setLives(prev => Math.min(3, prev + 1));
+      }
+
+      setPendingLevel(next);
+      setLastTimeRemaining(timeLeft);
+      // Delay transition to let confetti be seen
+      setTimeout(() => {
+        setIsTransitioning(true);
+      }, 1500);
+      return l; // Keep current level until transition finishes
     });
+  };
+
+  const handleTransitionComplete = () => {
+    setIsTransitioning(false);
+    if (pendingLevel !== null) {
+      setLevel(pendingLevel);
+      setPendingLevel(null);
+    }
   };
 
   const handleScoreUpdate = (points: number, water: number) => {
     setScore((s) => s + points);
     setWaterSaved(water);
+    setLastPointsGained(points);
   };
 
   const handleMistake = () => {
-    playSound('error');
+    soundManager.playError();
+    setIsShaking(true);
+    setTimeout(() => setIsShaking(false), 500); // Shake for 500ms
     setLives((l) => {
       const newLives = Math.max(0, l - 1);
       if (newLives === 0) {
@@ -204,6 +276,10 @@ export default function App() {
       }
       return newLives;
     });
+    // Unlock free hint when a mistake is made
+    if (!unlockedFreeHints.includes(level)) {
+      setUnlockedFreeHints(prev => [...prev, level]);
+    }
   };
 
   const handleDevSubmit = (e: React.FormEvent) => {
@@ -213,10 +289,10 @@ export default function App() {
       setShowDevModal(false);
       setDevPassword('');
       setDevError(false);
-      playSound('success');
+      soundManager.playSuccess();
     } else {
       setDevError(true);
-      playSound('error');
+      soundManager.playError();
     }
   };
 
@@ -229,12 +305,22 @@ export default function App() {
     nextLevel();
   };
 
-  const useHint = () => {
-    if (hintsUsed.includes(level)) return;
-    setScore(s => Math.max(0, s - 50));
-    setHintsUsed(prev => [...prev, level]);
-    setShowHint(true);
-    playSound('click');
+  const useHint = (type: 'free' | 'paid') => {
+    if (type === 'free') {
+      if (!unlockedFreeHints.includes(level)) return; // Should not happen if button is disabled
+      setShowHint(true);
+    } else {
+      if (!unlockedPaidHints.includes(level)) {
+        const cost = 50;
+        if (score >= cost) {
+          setScore(s => Math.max(0, s - cost));
+          setUnlockedPaidHints(prev => [...prev, level]);
+          setShowHint(true);
+        }
+      } else {
+        setShowHint(true); // Already unlocked, just show it
+      }
+    }
   };
 
   const formatTime = (seconds: number) => {
@@ -244,149 +330,84 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-emerald-400 font-mono flex flex-col items-center justify-center p-4">
-      {/* Header / HUD */}
-      <header className="fixed top-0 left-0 right-0 p-3 md:p-4 border-b border-emerald-900/50 bg-slate-950/90 backdrop-blur-md z-50 flex flex-wrap justify-between items-center gap-2 md:gap-4 shadow-[0_5px_30px_rgba(0,0,0,0.5)]">
-        <div className="flex items-center gap-2">
-          <button onClick={() => { setShowDevModal(true); playSound('click'); }} className="focus:outline-none group">
-            <Terminal className={`w-5 h-5 md:w-6 md:h-6 ${isDevMode ? 'text-purple-500' : 'text-emerald-400 group-hover:text-emerald-300'}`} />
-          </button>
-          <button onClick={() => setIsMuted(!isMuted)} className="focus:outline-none text-emerald-400 hover:text-emerald-300 transition-colors">
-            {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-          </button>
-          <span className="font-bold tracking-widest uppercase text-sm md:text-base bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent hidden sm:inline">
-            AQUA-IA {isDevMode && <span className="text-purple-500 text-xs ml-1">[DEV]</span>}
-          </span>
-        </div>
-        
-        {level > 0 && level < 14 && (timeLeft > 0 && lives > 0) && (
-          <div className="flex items-center gap-4 md:gap-8">
-            {/* Lives */}
-            <div className="flex items-center gap-1">
-              {[...Array(3)].map((_, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ scale: 1 }}
-                  animate={{ scale: i < lives ? 1 : 0.5, opacity: i < lives ? 1 : 0.3 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <Heart className={`w-5 h-5 ${i < lives ? 'text-red-500 fill-red-500' : 'text-slate-600'}`} />
-                </motion.div>
-              ))}
-            </div>
-
-            {/* Timer */}
-            <div className={`flex items-center gap-2 px-3 py-1 rounded-full border ${timeLeft < 300 ? 'border-red-500 text-red-500 animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.5)]' : 'border-emerald-500/30 text-emerald-400'}`}>
-              <Clock className="w-4 h-4" />
-              <span className="font-bold font-mono text-sm md:text-lg">{formatTime(timeLeft)}</span>
-            </div>
-
-            {/* Water Gauge */}
-            <div className="hidden md:flex items-center gap-2 bg-slate-900/50 px-3 py-1 rounded-full border border-cyan-500/30">
-              <Droplets className="w-4 h-4 text-cyan-400" />
-              <div className="w-24 md:w-32 h-3 bg-slate-800 rounded-full overflow-hidden relative border border-cyan-900/50">
-                <motion.div 
-                  className="absolute top-0 left-0 h-full bg-gradient-to-r from-red-500 via-yellow-500 to-emerald-500"
-                  initial={{ width: '15%' }}
-                  animate={{ width: `${waterSaved}%` }}
-                  transition={{ duration: 1.5, ease: "easeInOut" }}
-                />
-              </div>
-              <span className="font-bold font-mono text-xs text-white drop-shadow-md">{waterSaved}%</span>
-            </div>
-
-            {/* Score */}
-            <div className="flex items-center gap-1 bg-slate-900/50 px-3 py-1 rounded-full border border-yellow-500/30">
-              <Star className="w-4 h-4 text-yellow-400" />
-              <span className="font-bold font-mono text-yellow-400 text-sm md:text-base">{score}</span>
-            </div>
-          </div>
+    <div className="min-h-screen bg-slate-950 text-emerald-400 font-mono flex flex-col items-center justify-center p-4 overflow-hidden relative">
+      {/* Success Flash Overlay */}
+      <AnimatePresence>
+        {isSuccessFlash && (
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: [0, 0.4, 0], scale: [0.8, 1.2, 1.5] }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
+            className="fixed inset-0 z-[120] bg-emerald-400 pointer-events-none flex items-center justify-center"
+          >
+            <div className="w-full h-full bg-[radial-gradient(circle,white_0%,transparent_70%)] opacity-50"></div>
+          </motion.div>
         )}
+      </AnimatePresence>
 
-        <div className="flex items-center gap-2">
-          {level > 0 && level < 13 && (
-            <button 
-              onClick={useHint}
-              disabled={hintsUsed.includes(level)}
-              className={`flex items-center gap-2 px-3 py-1 rounded-full border text-xs font-bold transition-all hover:scale-105 ${
-                hintsUsed.includes(level) 
-                  ? 'bg-slate-800 border-slate-700 text-slate-500 cursor-not-allowed' 
-                  : 'bg-yellow-900/30 border-yellow-500/30 text-yellow-500 hover:bg-yellow-800/50'
-              }`}
-            >
-              <HelpCircle className="w-4 h-4" />
-              <span className="hidden sm:inline">INDICE (-50)</span>
-            </button>
-          )}
-          {level > 0 && level < 14 && (
-            <button 
-              onClick={() => { setShowGlossary(true); playSound('click'); }}
-              className="flex items-center gap-2 bg-emerald-900/30 hover:bg-emerald-800/50 text-emerald-400 px-3 py-1 rounded-full border border-emerald-500/30 text-xs font-bold transition-all hover:scale-105"
-            >
-              <Bug className="w-4 h-4" />
-              <span className="hidden sm:inline">GLOSSAIRE</span>
-            </button>
-          )}
-          {isDevMode && level > 0 && level < 14 && (
-            <div className="flex items-center gap-1 mr-2">
-              <select 
-                value={level}
-                onChange={(e) => setLevel(parseInt(e.target.value))}
-                className="bg-purple-900/50 text-purple-400 text-xs font-bold px-2 h-8 rounded-lg border border-purple-500/50 focus:outline-none focus:ring-1 focus:ring-purple-500 transition-colors cursor-pointer"
-                title="Sauter vers un niveau (Dev Mode)"
-              >
-                {[...Array(15)].map((_, i) => (
-                  <option key={i} value={i} className="bg-slate-900">
-                    {i === 0 ? 'Intro' : i === 13 ? 'Bonus' : i === 14 ? 'Fin' : `Niveau ${i}`}
-                  </option>
-                ))}
-              </select>
-              <button 
-                onClick={prevLevelDev}
-                className="flex items-center justify-center bg-purple-900/50 hover:bg-purple-800/50 text-purple-400 w-8 h-8 rounded-full border border-purple-500/50 transition-colors"
-                title="Niveau précédent (Dev Mode)"
-              >
-                <span className="text-lg leading-none transform -translate-y-[1px]">«</span>
-              </button>
-              <button 
-                onClick={skipLevelDev}
-                className="flex items-center gap-1 bg-purple-900/50 hover:bg-purple-800/50 text-purple-400 px-3 h-8 rounded-full border border-purple-500/50 text-xs font-bold transition-colors"
-                title="Passer le niveau (Dev Mode)"
-              >
-                <FastForward className="w-4 h-4" />
-                <span className="hidden sm:inline">SKIP</span>
-              </button>
-            </div>
-          )}
-          {level > 0 && level < 14 && (
-            <div className="flex items-center gap-2 text-xs md:text-sm font-bold opacity-80 bg-slate-900/50 px-3 py-1 rounded-full border border-emerald-500/30">
-              <Activity className="w-4 h-4 text-emerald-400" />
-              <span className="hidden sm:inline">NIVEAU</span> {level}/13
-            </div>
-          )}
-        </div>
-      </header>
+      <HUD
+        level={level}
+        timeLeft={timeLeft}
+        lives={lives}
+        waterSaved={waterSaved}
+        score={score}
+        isDevMode={isDevMode}
+        isMuted={isMuted}
+        unlockedFreeHints={unlockedFreeHints}
+        unlockedPaidHints={unlockedPaidHints}
+        setShowDevModal={setShowDevModal}
+        setIsMuted={setIsMuted}
+        setShowGlossary={setShowGlossary}
+        useHint={useHint}
+        setLevel={setLevel}
+        prevLevelDev={prevLevelDev}
+        skipLevelDev={skipLevelDev}
+        buyHeart={() => {
+          if (score >= 200 && lives < 3) {
+            setScore(s => s - 200);
+            setLives(l => l + 1);
+            soundManager.playSuccess();
+          }
+        }}
+      />
 
       {/* Hint Modal */}
       <AnimatePresence>
         {showHint && (
-          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-950/90">
             <motion.div 
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-slate-900 border border-yellow-500/50 p-6 rounded-2xl max-w-md w-full shadow-[0_0_50px_rgba(234,179,8,0.2)]"
+              className="bg-slate-900 border border-yellow-500/50 p-6 rounded-2xl max-w-md w-full"
             >
               <div className="flex items-center gap-3 text-yellow-500 mb-4">
                 <HelpCircle className="w-8 h-8" />
                 <h2 className="text-xl font-bold uppercase tracking-widest">Aide de NAÏA</h2>
               </div>
-              <p className="text-slate-300 leading-relaxed mb-6">
-                {HINTS[level] || "Analysez bien la situation, agent. La réponse est sous vos yeux."}
-              </p>
+              
+              {unlockedFreeHints.includes(level) && (
+                <div className="mb-4">
+                  <h3 className="text-emerald-400 text-sm font-bold uppercase mb-1">Indice Gratuit :</h3>
+                  <p className="text-slate-300 leading-relaxed">
+                    {HINTS[level]?.free || "Analysez bien la situation, agent. La réponse est sous vos yeux."}
+                  </p>
+                </div>
+              )}
+
+              {unlockedPaidHints.includes(level) && (
+                <div className="mb-4">
+                  <h3 className="text-yellow-400 text-sm font-bold uppercase mb-1">Indice Avancé :</h3>
+                  <p className="text-slate-300 leading-relaxed">
+                    {HINTS[level]?.paid || "Pas d'indice avancé pour ce niveau."}
+                  </p>
+                </div>
+              )}
+
               <button 
-                onClick={() => { setShowHint(false); playSound('click'); }}
-                className="w-full bg-yellow-600 hover:bg-yellow-500 text-white py-3 rounded-xl font-bold transition-all"
+                onClick={() => setShowHint(false)}
+                className="w-full bg-yellow-600 hover:bg-yellow-500 text-white py-3 rounded-xl font-bold transition-all mt-4"
               >
                 COMPRIS
               </button>
@@ -398,24 +419,24 @@ export default function App() {
       {/* Glossary Modal */}
       <AnimatePresence>
         {showGlossary && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/90">
             <motion.div 
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-slate-900 border border-emerald-500/50 p-6 rounded-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto shadow-[0_0_50px_rgba(16,185,129,0.2)]"
+              className="bg-slate-900 border border-emerald-500/50 rounded-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto shadow-[0_0_50px_rgba(16,185,129,0.2)]"
             >
-              <div className="flex justify-between items-center mb-6 sticky top-0 bg-slate-900 py-2 z-10 border-b border-emerald-900/50">
+              <div className="flex justify-between items-center sticky top-0 bg-slate-900/95 px-6 py-5 z-20 border-b border-emerald-900/50">
                 <h2 className="text-xl font-bold text-emerald-400 flex items-center gap-2">
                   <Bug className="w-6 h-6" />
                   GLOSSAIRE TECHNIQUE
                 </h2>
-                <button onClick={() => setShowGlossary(false)} className="text-slate-400 hover:text-white transition-colors">
+                <button onClick={() => setShowGlossary(false)} className="text-slate-400 hover:text-white transition-colors p-2 hover:bg-slate-800 rounded-full">
                   <X className="w-6 h-6" />
                 </button>
               </div>
               
-              <div className="grid gap-4">
+              <div className="grid gap-4 p-6">
                 {[
                   { term: 'IA', title: 'Intelligence Artificielle', def: 'Programmes informatiques capables de simuler des traits de l\'intelligence humaine.' },
                   { term: 'LLM', title: 'Large Language Model', def: 'Modèle de langage géant (comme GPT) capable de comprendre et générer du texte.' },
@@ -449,29 +470,20 @@ export default function App() {
                 })}
               </div>
               
-              <button 
-                onClick={() => setShowGlossary(false)}
-                className="w-full mt-8 bg-emerald-600 hover:bg-emerald-500 text-white py-3 rounded-xl font-bold transition-all"
-              >
-                RETOUR À LA MISSION
-              </button>
+              <div className="p-6 pt-0">
+                <button 
+                  onClick={() => setShowGlossary(false)}
+                  className="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-3 rounded-xl font-bold transition-all shadow-[0_0_20px_rgba(16,185,129,0.3)]"
+                >
+                  RETOUR À LA MISSION
+                </button>
+              </div>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
 
       {/* Progress Bar (Top edge under header) */}
-      {level > 0 && level < 14 && (
-        <div className="fixed top-[60px] md:top-[72px] left-0 right-0 h-1 bg-slate-900 z-40">
-          <motion.div 
-            className="h-full bg-gradient-to-r from-cyan-500 via-emerald-500 to-purple-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"
-            initial={{ width: 0 }}
-            animate={{ width: `${(level / 13) * 100}%` }}
-            transition={{ duration: 1 }}
-          />
-        </div>
-      )}
-
       {/* Dev Mode Modal */}
       <AnimatePresence>
         {showDevModal && (
@@ -479,7 +491,7 @@ export default function App() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4"
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/90 p-4"
           >
             <motion.div
               initial={{ scale: 0.9, y: 20 }}
@@ -536,7 +548,28 @@ export default function App() {
       </AnimatePresence>
 
       {/* Main Content Area */}
-      <main className="w-full max-w-4xl mt-16 md:mt-20 pb-16 relative z-10">
+      <AnimatePresence>
+        {isTransitioning && pendingLevel !== null && (
+          <TransitionScreen 
+            key="transition" 
+            level={pendingLevel} 
+            fact={FACTS[pendingLevel]}
+            score={score}
+            pointsGained={lastPointsGained}
+            timeRemaining={lastTimeRemaining}
+            onTransitionComplete={handleTransitionComplete} 
+          />
+        )}
+      </AnimatePresence>
+
+      <motion.main 
+        className="w-full max-w-4xl mt-16 md:mt-20 pb-16 relative z-10"
+        animate={isShaking ? { 
+          x: [-10, 10, -10, 10, 0], 
+          filter: ["hue-rotate(0deg)", "hue-rotate(90deg)", "hue-rotate(-90deg)", "hue-rotate(0deg)"],
+          transition: { duration: 0.4 } 
+        } : {}}
+      >
         <AnimatePresence mode="wait" onExitComplete={() => window.scrollTo(0, 0)}>
           {(timeLeft === 0 || lives === 0) && level !== 14 ? (
             <GameOver key="gameover" reason={lives === 0 ? 'lives' : 'time'} onRetry={startGame} nickname={nickname} />
@@ -596,27 +629,10 @@ export default function App() {
             />
           ) : null}
         </AnimatePresence>
-      </main>
+      </motion.main>
 
-      {/* Decorative background elements (Ocean / Waves) */}
-      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
-        <svg className="absolute bottom-0 left-0 w-full h-[30vh] opacity-10" preserveAspectRatio="none" viewBox="0 0 1440 320">
-          <motion.path 
-            fill="#10b981" 
-            d="M0,224L48,213.3C96,203,192,181,288,186.7C384,192,480,224,576,218.7C672,213,768,171,864,165.3C960,160,1056,192,1152,197.3C1248,203,1344,181,1392,170.7L1440,160L1440,320L0,320Z"
-            animate={{ x: ["0%", "-50%"] }}
-            transition={{ repeat: Infinity, duration: 20, ease: "linear" }}
-          />
-        </svg>
-        <svg className="absolute bottom-0 left-0 w-full h-[40vh] opacity-5" preserveAspectRatio="none" viewBox="0 0 1440 320">
-          <motion.path 
-            fill="#06b6d4" 
-            d="M0,288L48,272C96,256,192,224,288,213.3C384,203,480,224,576,234.7C672,245,768,245,864,224C960,203,1056,160,1152,154.7C1248,149,1344,181,1392,197.3L1440,213L1440,320L0,320Z"
-            animate={{ x: ["-50%", "0%"] }}
-            transition={{ repeat: Infinity, duration: 25, ease: "linear" }}
-          />
-        </svg>
-      </div>
+      {/* Decorative background elements */}
+      <Background />
 
       <div className="fixed bottom-2 left-4 z-50 text-[10px] sm:text-xs font-sans text-emerald-500/40 hover:text-emerald-400 transition-colors opacity-80 pointer-events-none">
         Développé par David Trafial
@@ -624,4 +640,14 @@ export default function App() {
     </div>
   );
 }
+
+// Optimized Background Component
+const Background = React.memo(() => {
+  return (
+    <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden bg-slate-950">
+      {/* Subtle Vignette for depth */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_20%,rgba(2,6,23,0.8)_100%)]" />
+    </div>
+  );
+});
 

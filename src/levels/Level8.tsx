@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Server, CheckCircle2, AlertTriangle, Wrench, Trash2, Cpu, MemoryStick, HardDrive } from 'lucide-react';
-import Hint from '../components/Hint';
 import NaiaDialogue from '../components/NaiaDialogue';
 import TechTerm from '../components/TechTerm';
 
@@ -105,7 +104,7 @@ export default function Level8({ isDevMode, onComplete, onScoreUpdate, onMistake
                 </div>
                 <span className="text-xs text-emerald-500">OK</span>
               </div>
-              <div className="h-12 bg-red-900/20 rounded border border-red-500/50 flex items-center px-4 gap-4 animate-pulse">
+              <div className="h-12 bg-red-900/20 rounded border border-red-500/50 flex items-center px-4 gap-4">
                 <MemoryStick className="w-6 h-6 text-red-500" />
                 <div className="flex-1 h-2 bg-red-500/20 rounded-full overflow-hidden">
                   <div className="h-full bg-red-500 w-1/4"></div>
@@ -136,7 +135,7 @@ export default function Level8({ isDevMode, onComplete, onScoreUpdate, onMistake
                   onClick={() => handleSelect(action.id)}
                   className={`relative p-4 rounded-xl border-2 text-left transition-all duration-300 flex items-center gap-4 ${
                     isSelected 
-                      ? `${action.bg} ${action.border} shadow-[0_0_15px_rgba(255,255,255,0.1)] scale-[1.02]` 
+                      ? `${action.bg} ${action.border} scale-[1.02]` 
                       : 'bg-slate-950 border-slate-800 hover:border-slate-600'
                   }`}
                 >
@@ -166,7 +165,7 @@ export default function Level8({ isDevMode, onComplete, onScoreUpdate, onMistake
                   ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
                   : showError
                   ? 'bg-red-600 text-white animate-shake'
-                  : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:scale-105'
+                  : 'bg-emerald-600 hover:bg-emerald-500 text-white hover:scale-105'
               }`}
             >
               {showError ? 'MAUVAISE DÉCISION' : 'EXÉCUTER L\'ACTION'}
@@ -198,11 +197,7 @@ export default function Level8({ isDevMode, onComplete, onScoreUpdate, onMistake
           )}
         </AnimatePresence>
 
-        <Hint 
-          hintText="La Data Hygiene permet de réduire les calculs inutiles en supprimant les données redondantes avant qu'elles ne soient traitées." 
-          delaySeconds={30} 
-        />
-      </div>
+              </div>
     </motion.div>
   );
 }
