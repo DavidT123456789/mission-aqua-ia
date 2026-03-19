@@ -4,6 +4,14 @@ class SoundManager {
   isMuted: boolean = false;
   initialized: boolean = false;
 
+  // Cached MP3 buffers (loaded once, played many times)
+  private clickBuffer: AudioBuffer | null = null;
+  private startBuffer: AudioBuffer | null = null;
+
+  // MP3 URLs from V1
+  private static CLICK_URL = 'https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3';
+  private static START_URL = 'https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3';
+
   init() {
     if (this.initialized) {
       if (this.ctx && this.ctx.state === 'suspended') {
@@ -18,9 +26,38 @@ class SoundManager {
       this.masterGain.connect(this.ctx.destination);
       this.masterGain.gain.value = this.isMuted ? 0 : 0.3;
       this.initialized = true;
+
+      // Preload MP3 buffers in background
+      this.loadBuffer(SoundManager.CLICK_URL).then(buf => { this.clickBuffer = buf; });
+      this.loadBuffer(SoundManager.START_URL).then(buf => { this.startBuffer = buf; });
     } catch (e) {
       console.error("Web Audio API not supported", e);
     }
+  }
+
+  private async loadBuffer(url: string): Promise<AudioBuffer | null> {
+    if (!this.ctx) return null;
+    try {
+      const response = await fetch(url);
+      const arrayBuffer = await response.arrayBuffer();
+      return await this.ctx.decodeAudioData(arrayBuffer);
+    } catch (e) {
+      console.error("Failed to load audio:", url, e);
+      return null;
+    }
+  }
+
+  private playBuffer(buffer: AudioBuffer | null, volume = 0.4) {
+    if (this.isMuted || !this.ctx || !this.masterGain || !buffer) return;
+    try {
+      const source = this.ctx.createBufferSource();
+      const gain = this.ctx.createGain();
+      source.buffer = buffer;
+      source.connect(gain);
+      gain.connect(this.masterGain);
+      gain.gain.value = volume;
+      source.start(0);
+    } catch (e) {}
   }
 
   setMuted(muted: boolean) {
@@ -60,125 +97,27 @@ class SoundManager {
   }
 
   playClick() {
-    if (this.isMuted || !this.ctx || !this.masterGain) return;
-    this.init();
-
-    try {
-      const now = this.ctx.currentTime;
-
-      // Layer 1: Low-frequency "whoosh" body (gives depth)
-      const oscLow = this.ctx.createOscillator();
-      const gainLow = this.ctx.createGain();
-      oscLow.type = 'sine';
-      oscLow.connect(gainLow);
-      gainLow.connect(this.masterGain);
-      oscLow.frequency.setValueAtTime(400, now);
-      oscLow.frequency.exponentialRampToValueAtTime(150, now + 0.08);
-      gainLow.gain.setValueAtTime(0.12, now);
-      gainLow.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
-      oscLow.start(now);
-      oscLow.stop(now + 0.08);
-
-      // Layer 2: High-frequency "snap" attack (gives crispness)
-      const oscHigh = this.ctx.createOscillator();
-      const gainHigh = this.ctx.createGain();
-      oscHigh.type = 'triangle';
-      oscHigh.connect(gainHigh);
-      gainHigh.connect(this.masterGain);
-      oscHigh.frequency.setValueAtTime(1800, now);
-      oscHigh.frequency.exponentialRampToValueAtTime(600, now + 0.04);
-      gainHigh.gain.setValueAtTime(0.06, now);
-      gainHigh.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
-      oscHigh.start(now);
-      oscHigh.stop(now + 0.04);
-
-      // Layer 3: Noise burst for texture
-      const bufferSize = this.ctx.sampleRate * 0.03;
-      const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-      const output = noiseBuffer.getChannelData(0);
-      for (let i = 0; i < bufferSize; i++) {
-        output[i] = (Math.random() * 2 - 1) * 0.3;
-      }
-      const noiseSource = this.ctx.createBufferSource();
-      noiseSource.buffer = noiseBuffer;
-      const noiseGain = this.ctx.createGain();
-      const noiseFilter = this.ctx.createBiquadFilter();
-      noiseFilter.type = 'bandpass';
-      noiseFilter.frequency.value = 2000;
-      noiseFilter.Q.value = 0.5;
-      noiseSource.connect(noiseFilter);
-      noiseFilter.connect(noiseGain);
-      noiseGain.connect(this.masterGain);
-      noiseGain.gain.setValueAtTime(0.04, now);
-      noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
-      noiseSource.start(now);
-    } catch (e) {}
+    // MP3 click from V1 — each call creates a new source,
+    // so rapid clicks overlap naturally = louder with fast clicks
+    if (this.clickBuffer) {
+      this.playBuffer(this.clickBuffer, 0.3);
+    } else {
+      // Fallback if buffer not loaded yet
+      this.playTone(1600, 'sine', 0.03, 0.1);
+    }
   }
 
   playStart() {
-    if (this.isMuted || !this.ctx || !this.masterGain) return;
-    this.init();
-
-    try {
-      const now = this.ctx.currentTime;
-
-      // Phase 1: Deep rumble build-up (0 - 0.3s)
-      const rumble = this.ctx.createOscillator();
-      const rumbleGain = this.ctx.createGain();
-      rumble.type = 'sawtooth';
-      rumble.connect(rumbleGain);
-      rumbleGain.connect(this.masterGain);
-      rumble.frequency.setValueAtTime(60, now);
-      rumble.frequency.exponentialRampToValueAtTime(200, now + 0.3);
-      rumbleGain.gain.setValueAtTime(0.01, now);
-      rumbleGain.gain.linearRampToValueAtTime(0.08, now + 0.15);
-      rumbleGain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
-      rumble.start(now);
-      rumble.stop(now + 0.4);
-
-      // Phase 2: Rising sweep "power-on" (0.1 - 0.5s)
-      const sweep = this.ctx.createOscillator();
-      const sweepGain = this.ctx.createGain();
-      sweep.type = 'sine';
-      sweep.connect(sweepGain);
-      sweepGain.connect(this.masterGain);
-      sweep.frequency.setValueAtTime(200, now + 0.1);
-      sweep.frequency.exponentialRampToValueAtTime(800, now + 0.45);
-      sweepGain.gain.setValueAtTime(0.001, now);
-      sweepGain.gain.linearRampToValueAtTime(0.1, now + 0.3);
-      sweepGain.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
-      sweep.start(now + 0.1);
-      sweep.stop(now + 0.55);
-
-      // Phase 3: Confirmation chord (0.35s - 0.9s)
-      const chordFreqs = [523.25, 659.25, 783.99]; // C5 - E5 - G5 major chord
-      chordFreqs.forEach((freq, i) => {
-        const osc = this.ctx!.createOscillator();
-        const gain = this.ctx!.createGain();
-        osc.type = 'sine';
-        osc.connect(gain);
-        gain.connect(this.masterGain!);
-        osc.frequency.setValueAtTime(freq, now + 0.35);
-        gain.gain.setValueAtTime(0.001, now);
-        gain.gain.linearRampToValueAtTime(0.07, now + 0.4 + i * 0.02);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.9);
-        osc.start(now + 0.35);
-        osc.stop(now + 0.9);
-      });
-
-      // Phase 4: Final "ping" resonance (0.5s)
-      const ping = this.ctx.createOscillator();
-      const pingGain = this.ctx.createGain();
-      ping.type = 'sine';
-      ping.connect(pingGain);
-      pingGain.connect(this.masterGain);
-      ping.frequency.setValueAtTime(1046.50, now + 0.5); // C6 - octave above
-      pingGain.gain.setValueAtTime(0.001, now);
-      pingGain.gain.linearRampToValueAtTime(0.08, now + 0.52);
-      pingGain.gain.exponentialRampToValueAtTime(0.001, now + 1.0);
-      ping.start(now + 0.5);
-      ping.stop(now + 1.0);
-    } catch (e) {}
+    if (this.isMuted) return;
+    // MP3 start sound from V1 — dramatic game launch sound
+    if (this.startBuffer) {
+      this.playBuffer(this.startBuffer, 0.5);
+    } else {
+      // Buffer not loaded yet (first interaction) — play directly via Audio element
+      const audio = new Audio(SoundManager.START_URL);
+      audio.volume = 0.4;
+      audio.play().catch(() => {});
+    }
   }
 
   playError() {
