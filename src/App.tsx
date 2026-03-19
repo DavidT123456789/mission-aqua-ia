@@ -147,7 +147,7 @@ export default function App() {
       setUnlockedFreeHints(state.unlockedFreeHints || []);
       setUnlockedPaidHints(state.unlockedPaidHints || []);
       setIsActive(true);
-      soundManager.playSuccess();
+      soundManager.playStart();
     }
   };
 
@@ -204,7 +204,7 @@ export default function App() {
     setUnlockedPaidHints([]);
     setFinalEvaluation(null);
     setFinalImageUrl(null);
-    soundManager.playSuccess();
+    soundManager.playStart();
   };
 
   const nextLevel = () => {
