@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Terminal, Droplets, Clock, Star, Activity, Heart, Bug, FastForward, HelpCircle, Volume2, VolumeX, Menu, X } from 'lucide-react';
+import { Droplets, Clock, Star, Activity, Heart, Bug, FastForward, HelpCircle, Menu, X } from 'lucide-react';
 
 interface HUDProps {
   level: number;
@@ -9,22 +9,21 @@ interface HUDProps {
   waterSaved: number;
   score: number;
   isDevMode: boolean;
-  isMuted: boolean;
   unlockedFreeHints: number[];
   unlockedPaidHints: number[];
   setShowDevModal: (show: boolean) => void;
-  setIsMuted: (muted: boolean) => void;
   setShowGlossary: (show: boolean) => void;
   useHint: (type: 'free' | 'paid') => void;
   setLevel: (level: number) => void;
   prevLevelDev: () => void;
   skipLevelDev: () => void;
   buyHeart: () => void;
+  buyTime: () => void;
 }
 
 export default function HUD({
-  level, timeLeft, lives, waterSaved, score, isDevMode, isMuted, unlockedFreeHints, unlockedPaidHints,
-  setShowDevModal, setIsMuted, setShowGlossary, useHint, setLevel, prevLevelDev, skipLevelDev, buyHeart
+  level, timeLeft, lives, waterSaved, score, isDevMode, unlockedFreeHints, unlockedPaidHints,
+  setShowDevModal, setShowGlossary, useHint, setLevel, prevLevelDev, skipLevelDev, buyHeart, buyTime
 }: HUDProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [glossaryPlusOnes, setGlossaryPlusOnes] = useState<number[]>([]);
@@ -54,13 +53,19 @@ export default function HUD({
     <header className="fixed top-0 left-0 right-0 p-3 md:p-4 bg-slate-950 z-50">
       {/* Progress Bar as Bottom Border */}
       {level > 0 && level < 14 ? (
-        <div className="absolute bottom-0 left-0 right-0 h-1 bg-slate-900">
+        <div className="absolute bottom-0 left-0 right-0 h-1 bg-slate-900 group/progress cursor-help">
           <motion.div 
             className="h-full bg-gradient-to-r from-cyan-500 via-emerald-500 to-purple-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"
             initial={{ width: 0 }}
             animate={{ width: `${(level / 13) * 100}%` }}
             transition={{ duration: 1 }}
           />
+          {/* Tooltip for Level Progress */}
+          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/progress:block w-max bg-slate-900 text-[10px] md:text-xs text-slate-200 px-2 py-1.5 rounded border border-slate-700 shadow-xl z-[100] pointer-events-none font-sans not-italic font-normal tracking-normal">
+            Progression de la mission : {level}/13 niveaux complétés
+            <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-700"></div>
+            <div className="absolute top-[calc(100%-1px)] left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-900"></div>
+          </div>
         </div>
       ) : (
         <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-white/10" />
@@ -68,33 +73,12 @@ export default function HUD({
 
       <div className="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-2 md:gap-4 relative z-10">
         
-        {/* Left: Branding & Dev/Sound */}
-        <div className="flex items-center gap-2">
-          <div className="relative group flex items-center">
-            <button onClick={() => { setShowDevModal(true); }} className="focus:outline-none" aria-label="Mode Développeur">
-              <Terminal className={`w-5 h-5 md:w-6 md:h-6 ${isDevMode ? 'text-purple-500' : 'text-emerald-400 group-hover:text-emerald-300'}`} />
-            </button>
-            <div className="absolute top-full left-0 mt-2 hidden group-hover:block w-max bg-slate-900 text-xs text-slate-200 px-2 py-1.5 rounded border border-slate-700 shadow-xl z-[100] pointer-events-none font-sans not-italic font-normal tracking-normal">
-              Mode Développeur
-              <div className="absolute bottom-full left-2 border-4 border-transparent border-b-slate-700"></div>
-              <div className="absolute bottom-[calc(100%-1px)] left-2 border-4 border-transparent border-b-slate-900"></div>
-            </div>
-          </div>
-          <div className="relative group flex items-center">
-            <button onClick={() => setIsMuted(!isMuted)} className="focus:outline-none text-emerald-400 hover:text-emerald-300 transition-colors" aria-label={isMuted ? "Activer le son" : "Désactiver le son"}>
-              {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-            </button>
-            <div className="absolute top-full left-0 mt-2 hidden group-hover:block w-max bg-slate-900 text-xs text-slate-200 px-2 py-1.5 rounded border border-slate-700 shadow-xl z-[100] pointer-events-none font-sans not-italic font-normal tracking-normal">
-              {isMuted ? "Activer le son" : "Désactiver le son"}
-              <div className="absolute bottom-full left-2 border-4 border-transparent border-b-slate-700"></div>
-              <div className="absolute bottom-[calc(100%-1px)] left-2 border-4 border-transparent border-b-slate-900"></div>
-            </div>
-          </div>
-          <span className="font-bold tracking-widest uppercase text-sm md:text-base bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent hidden sm:inline">
-            AQUA-IA {isDevMode && <span className="text-purple-500 text-xs ml-1">[DEV]</span>}
+        {/* Left: Branding */}
+        <div className="flex items-center gap-2 group cursor-default">
+          <span className="font-bold tracking-[0.2em] md:tracking-[0.3em] uppercase text-sm md:text-base bg-gradient-to-r from-emerald-400 via-cyan-400 to-emerald-400 bg-[length:200%_auto] animate-gradient-x bg-clip-text text-transparent hidden sm:inline drop-shadow-[0_0_8px_rgba(52,211,153,0.3)]">
+            AQUA-IA {isDevMode && <span className="text-purple-500 text-[10px] md:text-xs ml-1 font-black animate-pulse">[DEV]</span>}
           </span>
         </div>
-        
         {/* Center: Main Stats (Always visible) */}
         {level > 0 && level < 14 && (timeLeft > 0 && lives > 0) && (
           <div className="flex items-center gap-3 md:gap-8">
@@ -153,22 +137,68 @@ export default function HUD({
             </div>
 
             {/* Timer */}
-            <div className={`flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1 rounded-full border transition-all duration-500 ${timeLeft < 300 ? 'border-red-500 text-red-500 bg-red-950/20' : 'border-emerald-500/30 text-emerald-400 bg-emerald-950/10'}`} aria-label={`Temps restant : ${formatTime(timeLeft)}`}>
-              <Clock className={`w-3 h-3 md:w-4 md:h-4 ${timeLeft < 300 ? 'text-red-400' : 'text-emerald-400'}`} />
-              <span className="font-bold font-mono text-xs md:text-lg">{formatTime(timeLeft)}</span>
+            <div className="flex items-center gap-1">
+              <div className="relative group/timer">
+                <div className={`flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1 rounded-full border transition-all duration-500 cursor-help ${timeLeft < 300 ? 'border-red-500 text-red-500 bg-red-950/20' : 'border-emerald-500/30 text-emerald-400 bg-emerald-950/10'}`} aria-label={`Temps restant : ${formatTime(timeLeft)}`}>
+                  <Clock className={`w-3 h-3 md:w-4 md:h-4 ${timeLeft < 300 ? 'text-red-400' : 'text-emerald-400'}`} />
+                  <span className="font-bold font-mono text-xs md:text-lg">{formatTime(timeLeft)}</span>
+                </div>
+                {/* Timer Tooltip */}
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 hidden group-hover/timer:block w-max bg-slate-900 text-xs text-slate-200 px-2 py-1.5 rounded border border-slate-700 shadow-xl z-[100] pointer-events-none font-sans not-italic font-normal tracking-normal text-center">
+                  Temps restant :<br />Résolvez les missions avant 00:00
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 border-4 border-transparent border-b-slate-700"></div>
+                  <div className="absolute bottom-[calc(100%-1px)] left-1/2 -translate-x-1/2 border-4 border-transparent border-b-slate-900"></div>
+                </div>
+              </div>
+              
+              <div className="relative group/buytime">
+                <button 
+                  onClick={buyTime}
+                  disabled={score < 200}
+                  className={`text-xs rounded px-1.5 py-0.5 font-bold transition-all ${
+                    score >= 200 
+                      ? 'bg-emerald-900/50 text-emerald-400 border border-emerald-500/50 hover:bg-emerald-800/50 cursor-pointer' 
+                      : 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed'
+                  }`}
+                  aria-label="Acheter du temps"
+                >
+                  +
+                </button>
+                {/* Tooltip for buying time */}
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 hidden group-hover/buytime:block w-max bg-slate-900 text-[10px] md:text-xs text-slate-200 px-2 py-1.5 rounded border border-slate-700 shadow-xl z-[100] pointer-events-none font-sans not-italic font-normal tracking-normal">
+                  <div className="flex items-center gap-1.5">
+                    <span>Ajouter 2 min :</span>
+                    <span className={score >= 200 ? "text-yellow-400 font-bold" : "text-red-400 font-bold"}>200 pts</span>
+                  </div>
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 border-4 border-transparent border-b-slate-700"></div>
+                  <div className="absolute bottom-[calc(100%-1px)] left-1/2 -translate-x-1/2 border-4 border-transparent border-b-slate-900"></div>
+                </div>
+              </div>
             </div>
 
             {/* Score */}
-            <motion.div 
-              key={score}
-              initial={{ scale: 1.2, color: '#fff' }}
-              animate={{ scale: 1, color: '#facc15' }}
-              className="flex items-center gap-1 bg-slate-900/40 px-2 md:px-3 py-1 rounded-full border border-yellow-500/30" 
-              aria-label={`Score : ${score}`}
-            >
-              <Star className="w-3 h-3 md:w-4 md:h-4 text-yellow-400" />
-              <span className="font-bold font-mono text-yellow-400 text-xs md:text-base">{score}</span>
-            </motion.div>
+            <div className="relative group/score">
+              <motion.div 
+                key={score}
+                initial={{ scale: 1.2, color: '#fff' }}
+                animate={{ scale: 1, color: '#facc15' }}
+                className="flex items-center gap-1 bg-slate-900/40 px-2 md:px-3 py-1 rounded-full border border-yellow-500/30 cursor-help" 
+                aria-label={`Score : ${score}`}
+              >
+                <Star className="w-3 h-3 md:w-4 md:h-4 text-yellow-400" />
+                <span className="font-bold font-mono text-yellow-400 text-xs md:text-base">{score}</span>
+              </motion.div>
+              {/* Tooltip for Score */}
+              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 hidden group-hover/score:block w-max bg-slate-900 text-xs text-slate-200 px-3 py-2 rounded border border-slate-700 shadow-xl z-[100] pointer-events-none font-sans not-italic font-normal tracking-normal">
+                <div className="flex flex-col gap-1">
+                  <span className="font-bold text-yellow-500">Score de Mission</span>
+                  <span>Points accumulés via vos réponses.</span>
+                  <span className="text-[10px] text-slate-400 border-t border-slate-800 mt-1 pt-1 italic">Visez le score maximum à chaque niveau !</span>
+                </div>
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 border-4 border-transparent border-b-slate-700"></div>
+                <div className="absolute bottom-[calc(100%-1px)] left-1/2 -translate-x-1/2 border-4 border-transparent border-b-slate-900"></div>
+              </div>
+            </div>
 
             {/* Mobile Menu Toggle */}
             <button 
@@ -186,30 +216,41 @@ export default function HUD({
           {level > 0 && level < 14 && (
             <>
               {/* Water Gauge */}
-              <motion.div 
-                key={waterSaved}
-                initial={{ scale: 1.05 }}
-                animate={{ scale: 1 }}
-                className="flex items-center gap-2 bg-slate-900/40 px-3 py-1 rounded-full border border-cyan-500/30" 
-                aria-label={`Eau sauvée : ${waterSaved}%`}
-              >
-                <Droplets className="w-4 h-4 text-cyan-400" />
-                <div className="w-24 lg:w-32 h-3 bg-slate-800/50 rounded-full overflow-hidden relative border border-cyan-900/50">
-                  <motion.div 
-                    className="absolute top-0 left-0 h-full bg-gradient-to-r from-red-500 via-yellow-500 to-emerald-500"
-                    initial={{ width: '15%' }}
-                    animate={{ width: `${waterSaved}%` }}
-                    transition={{ duration: 1.5, ease: "easeInOut" }}
-                  />
-                  {/* Liquid shine effect */}
-                  <motion.div 
-                    className="absolute top-0 left-0 h-full w-8 bg-white/20 skew-x-12 blur-sm"
-                    animate={{ left: ['-40%', '140%'] }}
-                    transition={{ duration: 2.5, repeat: Infinity, ease: "linear" }}
-                  />
+              <div className="relative group/water">
+                <motion.div 
+                  key={waterSaved}
+                  initial={{ scale: 1.05 }}
+                  animate={{ scale: 1 }}
+                  className="flex items-center gap-2 bg-slate-900/40 px-3 py-1 rounded-full border border-cyan-500/30 cursor-help" 
+                  aria-label={`Eau sauvée : ${waterSaved}%`}
+                >
+                  <Droplets className="w-4 h-4 text-cyan-400" />
+                  <div className="w-24 lg:w-32 h-3 bg-slate-800/50 rounded-full overflow-hidden relative border border-cyan-900/50">
+                    <motion.div 
+                      className="absolute top-0 left-0 h-full bg-gradient-to-r from-red-500 via-yellow-500 to-emerald-500"
+                      initial={{ width: '15%' }}
+                      animate={{ width: `${waterSaved}%` }}
+                      transition={{ duration: 1.5, ease: "easeInOut" }}
+                    />
+                    {/* Liquid shine effect */}
+                    <motion.div 
+                      className="absolute top-0 left-0 h-full w-8 bg-white/20 skew-x-12 blur-sm"
+                      animate={{ left: ['-40%', '140%'] }}
+                      transition={{ duration: 2.5, repeat: Infinity, ease: "linear" }}
+                    />
+                  </div>
+                  <span className="font-bold font-mono text-xs text-white drop-shadow-md">{waterSaved}%</span>
+                </motion.div>
+                {/* Tooltip for Water Gauge */}
+                <div className="absolute top-full right-0 mt-2 hidden group-hover/water:block w-64 bg-slate-900 text-xs text-slate-200 px-3 py-2 rounded border border-slate-700 shadow-xl z-[100] pointer-events-none font-sans not-italic font-normal tracking-normal">
+                  <div className="flex flex-col gap-1">
+                    <span className="font-bold text-cyan-400">Taux de Préservation</span>
+                    <span>Pourcentage d'eau économisée grâce à vos décisions techniques et écologiques.</span>
+                  </div>
+                  <div className="absolute bottom-full right-6 border-4 border-transparent border-b-slate-700"></div>
+                  <div className="absolute bottom-[calc(100%-1px)] right-6 border-4 border-transparent border-b-slate-900"></div>
                 </div>
-                <span className="font-bold font-mono text-xs text-white drop-shadow-md">{waterSaved}%</span>
-              </motion.div>
+              </div>
 
               <div className="flex items-center gap-1">
                 <div className="relative group">
@@ -287,9 +328,16 @@ export default function HUD({
                 </div>
               </div>
               
-              <div className="flex items-center gap-2 text-xs lg:text-sm font-bold opacity-80 bg-slate-900/50 px-3 py-1 rounded-full border border-emerald-500/30" aria-label={`Niveau ${level} sur 13`}>
-                <Activity className="w-4 h-4 text-emerald-400" />
-                <span>NIVEAU</span> {level}/13
+              <div className="relative group">
+                <div className="flex items-center gap-2 text-xs lg:text-sm font-bold bg-slate-900/50 px-3 py-1 rounded-full border border-emerald-500/30 transition-colors hover:border-emerald-500/60" aria-label={`Niveau ${level} sur 13`}>
+                  <Activity className="w-4 h-4 text-emerald-400" />
+                  <span className="text-emerald-400">{level}/13</span>
+                </div>
+                <div className="absolute top-full right-0 mt-2 hidden group-hover:block w-max bg-slate-900 text-xs text-slate-200 px-2 py-1.5 rounded border border-slate-700 shadow-xl z-[100] pointer-events-none font-sans not-italic font-normal tracking-normal">
+                  Énigme {level}/13
+                  <div className="absolute bottom-full right-6 border-4 border-transparent border-b-slate-700"></div>
+                  <div className="absolute bottom-[calc(100%-1px)] right-6 border-4 border-transparent border-b-slate-900"></div>
+                </div>
               </div>
             </>
           )}
@@ -342,16 +390,21 @@ export default function HUD({
             className="md:hidden overflow-hidden mt-3 pt-3 border-t border-emerald-900/50 flex flex-col gap-3"
           >
             {/* Water Gauge Mobile */}
-            <div className="flex items-center gap-2 bg-slate-900/50 px-3 py-2 rounded-lg border border-cyan-500/30 w-full">
-              <Droplets className="w-4 h-4 text-cyan-400" />
-              <div className="flex-1 h-3 bg-slate-800 rounded-full overflow-hidden relative border border-cyan-900/50">
+            <div className="bg-slate-900/50 px-3 py-2 rounded-lg border border-cyan-500/30 w-full overflow-hidden">
+              <div className="flex justify-between items-center mb-1.5">
+                <div className="flex items-center gap-1.5">
+                  <Droplets className="w-3.5 h-3.5 text-cyan-400" />
+                  <span className="text-[10px] font-black uppercase tracking-wider text-cyan-500/80">Eau Préservée</span>
+                </div>
+                <span className="font-bold font-mono text-xs text-white">{waterSaved}%</span>
+              </div>
+              <div className="h-2 bg-slate-800 rounded-full overflow-hidden relative border border-cyan-900/50">
                 <motion.div 
                   className="absolute top-0 left-0 h-full bg-gradient-to-r from-red-500 via-yellow-500 to-emerald-500"
                   initial={{ width: '15%' }}
                   animate={{ width: `${waterSaved}%` }}
                 />
               </div>
-              <span className="font-bold font-mono text-xs text-white drop-shadow-md">{waterSaved}%</span>
             </div>
 
             <div className="flex gap-2">
@@ -406,9 +459,9 @@ export default function HUD({
               </button>
             </div>
 
-            <div className="flex items-center justify-center gap-2 text-xs font-bold opacity-80 bg-slate-900/50 px-3 py-2 rounded-lg border border-emerald-500/30">
+            <div className="flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest opacity-80 bg-slate-900/50 px-3 py-2 rounded-lg border border-emerald-500/30">
               <Activity className="w-4 h-4 text-emerald-400" />
-              <span>NIVEAU {level}/13</span>
+              <span className="text-emerald-400">Progression Mission : {level}/13</span>
             </div>
           </motion.div>
         )}

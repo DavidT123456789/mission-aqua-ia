@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Info } from 'lucide-react';
+
 
 const TERMS_DICTIONARY: Record<string, { title: string; definition: string }> = {
   'LLM': {

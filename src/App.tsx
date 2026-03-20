@@ -353,11 +353,9 @@ export default function App() {
         waterSaved={waterSaved}
         score={score}
         isDevMode={isDevMode}
-        isMuted={isMuted}
         unlockedFreeHints={unlockedFreeHints}
         unlockedPaidHints={unlockedPaidHints}
         setShowDevModal={setShowDevModal}
-        setIsMuted={setIsMuted}
         setShowGlossary={setShowGlossary}
         useHint={useHint}
         setLevel={setLevel}
@@ -367,6 +365,13 @@ export default function App() {
           if (score >= 200 && lives < 3) {
             setScore(s => s - 200);
             setLives(l => l + 1);
+            soundManager.playSuccess();
+          }
+        }}
+        buyTime={() => {
+          if (score >= 200) {
+            setScore(s => s - 200);
+            setTimeLeft(t => t + 120); // Add 2 minutes
             soundManager.playSuccess();
           }
         }}
@@ -634,9 +639,15 @@ export default function App() {
       {/* Decorative background elements */}
       <Background />
 
-      <div className="fixed bottom-2 left-4 z-50 text-[10px] sm:text-xs font-sans text-emerald-500/40 hover:text-emerald-400 transition-colors opacity-80 pointer-events-none">
-        Développé par David Trafial
-      </div>
+      <button 
+        onClick={() => setShowDevModal(true)}
+        className="fixed bottom-2 left-4 z-[60] text-[10px] sm:text-xs font-sans text-emerald-500/30 hover:text-emerald-500/60 transition-all duration-500 bg-transparent border-none p-2 focus:outline-none cursor-default group"
+        aria-label="Mode Développeur"
+      >
+        <span className="group-hover:translate-x-1 inline-block transition-transform duration-500">
+          Développé par David Trafial
+        </span>
+      </button>
     </div>
   );
 }
@@ -647,6 +658,34 @@ const Background = React.memo(() => {
     <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden bg-slate-950">
       {/* Subtle Vignette for depth */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_20%,rgba(2,6,23,0.8)_100%)]" />
+      
+      {/* Dynamic Water Particles */}
+      {[...Array(15)].map((_, i) => (
+        <motion.div
+          key={i}
+          className="absolute rounded-full bg-cyan-500/10 blur-[1px]"
+          initial={{ 
+            width: Math.random() * 4 + 2, 
+            height: Math.random() * 4 + 2,
+            x: Math.random() * 100 + '%',
+            y: '110%',
+            opacity: Math.random() * 0.3 + 0.1
+          }}
+          animate={{ 
+            y: '-10%',
+            x: (Math.random() * 100 + (Math.sin(i) * 5)) + '%',
+          }}
+          transition={{ 
+            duration: Math.random() * 10 + 10,
+            repeat: Infinity,
+            delay: Math.random() * 20,
+            ease: "linear"
+          }}
+        />
+      ))}
+
+      {/* Subtle digital scanning lines */}
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(13,148,136,0.03)_1px,transparent_1px)] bg-[length:100%_4px] pointer-events-none" />
     </div>
   );
 });
