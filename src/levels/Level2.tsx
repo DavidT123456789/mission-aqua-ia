@@ -58,14 +58,14 @@ export default function Level2({ isDevMode, onComplete, onScoreUpdate, onMistake
           Dev Answer: 50 + 75 + 25 (1, 2, 4)
         </div>
       )}
-      <div className="flex items-center gap-3 mb-4 border-b border-emerald-900/50 pb-3">
+      <div className="flex items-center gap-3 mb-3 border-b border-emerald-900/50 pb-3">
         <Settings className="w-8 h-8 text-emerald-400" />
         <h2 className="text-xl md:text-2xl font-bold text-white uppercase tracking-widest">
           Niveau 2 : Refroidissement
         </h2>
       </div>
 
-      <div className="mb-5">
+      <div className="mb-3">
         <NaiaDialogue 
           message={
             <>
@@ -255,8 +255,7 @@ export default function Level2({ isDevMode, onComplete, onScoreUpdate, onMistake
             </motion.div>
           )}
         </AnimatePresence>
-
-              </div>
+      </div>
     </motion.div>
   );
 }

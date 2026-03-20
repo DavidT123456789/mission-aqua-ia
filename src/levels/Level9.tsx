@@ -74,14 +74,14 @@ export default function Level9({ isDevMode, onComplete, onScoreUpdate, onMistake
           Dev Answer: Réseau de Chaleur Urbain (district_heating)
         </div>
       )}
-      <div className="flex items-center gap-3 mb-4 border-b border-emerald-900/50 pb-3">
+      <div className="flex items-center gap-3 mb-3 border-b border-emerald-900/50 pb-3">
         <Flame className="w-8 h-8 text-emerald-400" />
         <h2 className="text-xl md:text-2xl font-bold text-white uppercase tracking-widest">
           Niveau 9 : Valorisation Thermique
         </h2>
       </div>
 
-      <div className="mb-5">
+      <div className="mb-3">
         <NaiaDialogue 
           message={
             <>
@@ -93,74 +93,77 @@ export default function Level9({ isDevMode, onComplete, onScoreUpdate, onMistake
       </div>
 
       <div className="space-y-4 text-slate-300">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-5">
-          {paths.map((path) => {
-            const isSelected = selectedPath === path.id;
-            return (
-              <button
-                key={path.id}
-                onClick={() => handleSelect(path.id)}
-                className={`relative flex flex-col p-6 rounded-xl border-2 text-left transition-all duration-300 ${
-                  isSelected 
-                    ? `${path.bg} ${path.border} scale-105 z-10` 
-                    : 'bg-slate-950 border-slate-800 hover:border-slate-600'
-                }`}
-              >
-                <h3 className={`font-bold text-lg mb-3 ${isSelected ? 'text-white' : 'text-slate-300'}`}>{path.name}</h3>
-                <p className="text-sm text-slate-400 mb-6 flex-grow">{path.desc}</p>
-                
-                <div className="space-y-2 w-full">
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="text-slate-500">Perte d'eau</span>
-                    <span className={`font-bold ${path.color}`}>{path.waterWaste}</span>
+        <div className="flex flex-col lg:flex-row gap-5 mt-5">
+          {/* Left: Choice cards */}
+          <div className="w-full lg:w-1/2 flex flex-col gap-4">
+            {paths.map((path) => {
+              const isSelected = selectedPath === path.id;
+              return (
+                <button
+                  key={path.id}
+                  onClick={() => handleSelect(path.id)}
+                  className={`relative flex flex-col p-5 rounded-xl border-2 text-left transition-all duration-300 ${
+                    isSelected 
+                      ? `${path.bg} ${path.border} scale-[1.02] z-10` 
+                      : 'bg-slate-950 border-slate-800 hover:border-slate-600'
+                  }`}
+                >
+                  <h3 className={`font-bold text-lg mb-2 ${isSelected ? 'text-white' : 'text-slate-300'}`}>{path.name}</h3>
+                  <p className="text-sm text-slate-400 mb-4 flex-grow">{path.desc}</p>
+                  
+                  <div className="space-y-2 w-full">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-slate-500">Perte d'eau</span>
+                      <span className={`font-bold ${path.color}`}>{path.waterWaste}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-slate-500">Récupération Énergie</span>
+                      <span className={`font-bold ${path.color}`}>{path.energyRecovery}</span>
+                    </div>
                   </div>
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="text-slate-500">Récupération Énergie</span>
-                    <span className={`font-bold ${path.color}`}>{path.energyRecovery}</span>
-                  </div>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Visual representation */}
-        <div className="mt-5 p-6 bg-slate-950 rounded-xl border border-slate-800 flex items-center justify-center gap-4 md:gap-5">
-          <div className="flex flex-col items-center gap-2">
-            <div className="w-16 h-16 bg-slate-800 rounded-lg border border-slate-600 flex items-center justify-center">
-              <Flame className="w-8 h-8 text-orange-500" />
-            </div>
-            <span className="text-xs text-slate-400">Data Center</span>
-          </div>
-          
-          <div className="flex-1 flex items-center justify-center relative">
-            <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
-              {selectedPath && (
-                <motion.div 
-                  className={`h-full ${selectedPath === 'district_heating' ? 'bg-emerald-500' : selectedPath === 'river' ? 'bg-yellow-500' : 'bg-red-500'}`}
-                  initial={{ width: 0 }}
-                  animate={{ width: '100%' }}
-                  transition={{ duration: 1 }}
-                />
-              )}
-            </div>
-            <ArrowRight className={`absolute text-slate-600 w-6 h-6 ${selectedPath ? 'opacity-0' : 'opacity-100'}`} />
+                </button>
+              );
+            })}
           </div>
 
-          <div className="flex flex-col items-center gap-2">
-            <div className={`w-16 h-16 rounded-lg border flex items-center justify-center transition-colors ${
-              selectedPath === 'district_heating' ? 'bg-emerald-900/50 border-emerald-500' :
-              selectedPath === 'river' ? 'bg-yellow-900/50 border-yellow-500' :
-              selectedPath === 'towers' ? 'bg-red-900/50 border-red-500' :
-              'bg-slate-800 border-slate-600'
-            }`}>
-              {selectedPath === 'district_heating' ? <Home className="w-8 h-8 text-emerald-400" /> :
-               selectedPath === 'river' ? <Droplets className="w-8 h-8 text-yellow-400" /> :
-               <Flame className="w-8 h-8 text-slate-500" />}
+          {/* Right: Pipeline visual */}
+          <div className="w-full lg:w-1/2 p-6 bg-slate-950 rounded-xl border border-slate-800 flex flex-col items-center justify-center gap-6">
+            <div className="flex flex-col items-center gap-2">
+              <div className="w-20 h-20 bg-slate-800 rounded-lg border border-slate-600 flex items-center justify-center">
+                <Flame className="w-10 h-10 text-orange-500" />
+              </div>
+              <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">Data Center</span>
             </div>
-            <span className="text-xs text-slate-400">
-              {selectedPath === 'district_heating' ? 'Ville' : selectedPath === 'river' ? 'Rivière' : 'Atmosphère'}
-            </span>
+            
+            <div className="w-full flex flex-col items-center justify-center relative gap-1">
+              <div className="w-full h-3 bg-slate-800 rounded-full overflow-hidden">
+                {selectedPath && (
+                  <motion.div 
+                    className={`h-full ${selectedPath === 'district_heating' ? 'bg-emerald-500' : selectedPath === 'river' ? 'bg-yellow-500' : 'bg-red-500'}`}
+                    initial={{ width: 0 }}
+                    animate={{ width: '100%' }}
+                    transition={{ duration: 1 }}
+                  />
+                )}
+              </div>
+              <ArrowRight className={`text-slate-600 w-5 h-5 rotate-90 ${selectedPath ? 'opacity-0' : 'opacity-100'} transition-opacity`} />
+            </div>
+
+            <div className="flex flex-col items-center gap-2">
+              <div className={`w-20 h-20 rounded-lg border flex items-center justify-center transition-colors ${
+                selectedPath === 'district_heating' ? 'bg-emerald-900/50 border-emerald-500' :
+                selectedPath === 'river' ? 'bg-yellow-900/50 border-yellow-500' :
+                selectedPath === 'towers' ? 'bg-red-900/50 border-red-500' :
+                'bg-slate-800 border-slate-600'
+              }`}>
+                {selectedPath === 'district_heating' ? <Home className="w-10 h-10 text-emerald-400" /> :
+                 selectedPath === 'river' ? <Droplets className="w-10 h-10 text-yellow-400" /> :
+                 <Flame className="w-10 h-10 text-slate-500" />}
+              </div>
+              <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">
+                {selectedPath === 'district_heating' ? 'Ville' : selectedPath === 'river' ? 'Rivière' : 'Atmosphère'}
+              </span>
+            </div>
           </div>
         </div>
 
@@ -205,8 +208,7 @@ export default function Level9({ isDevMode, onComplete, onScoreUpdate, onMistake
             </motion.div>
           )}
         </AnimatePresence>
-
-              </div>
+      </div>
     </motion.div>
   );
 }

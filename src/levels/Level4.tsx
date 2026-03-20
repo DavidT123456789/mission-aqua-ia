@@ -197,19 +197,22 @@ export default function Level4({ isDevMode, onComplete, onScoreUpdate, onMistake
           Dev Answer: 1:capteur, 2:previsions, 3:seuil, 4:or, 5:False, 6:eau, 7:True, 8:aube
         </div>
       )}
-      <div className="flex items-center gap-3 mb-4 border-b border-emerald-900/50 pb-3">
+      <div className="flex items-center gap-3 mb-3 border-b border-emerald-900/50 pb-3">
         <Cpu className="w-8 h-8 text-emerald-400" />
         <h2 className="text-xl md:text-2xl font-bold text-white uppercase tracking-widest">
           Niveau 4 : L'Algorithme d'Arrosage
         </h2>
       </div>
 
-      <div className="space-y-4 text-slate-300">
+      <div className="mb-3">
         <NaiaDialogue message={
           <>
             L'agriculture consomme <strong>70% de l'eau douce mondiale</strong>. Je peux réduire ça de moitié grâce à un arrosage intelligent mais mon algorithme est <strong>incomplet</strong> ! Aidez-moi à le réparer.
           </>
         } />
+      </div>
+
+      <div className="space-y-4 text-slate-300">
 
         <div className="bg-slate-950/50 border border-cyan-500/20 p-5 rounded-xl mb-6 shadow-[0_0_15px_rgba(6,182,212,0.1)] flex flex-col md:flex-row gap-6">
           <div className="flex-1">
@@ -395,8 +398,7 @@ export default function Level4({ isDevMode, onComplete, onScoreUpdate, onMistake
             </motion.div>
           )}
         </AnimatePresence>
-
-              </div>
+      </div>
     </motion.div>
   );
 

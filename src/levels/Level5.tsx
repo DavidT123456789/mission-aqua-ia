@@ -78,21 +78,21 @@ export default function Level5({ isDevMode, onComplete, onScoreUpdate, onMistake
       initial={{ opacity: 0, x: 50 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -50 }}
-      className="bg-slate-900 border border-emerald-500/30 p-4 md:p-6 rounded-xl shadow-2xl max-w-5xl mx-auto font-mono relative"
+      className="bg-slate-900 border border-emerald-500/30 p-4 md:p-6 rounded-xl shadow-2xl max-w-4xl mx-auto font-mono relative"
     >
       {isDevMode && (
         <div className="absolute top-2 right-2 bg-purple-900/80 text-purple-300 text-xs px-2 py-1 rounded border border-purple-500/50 z-50">
           Dev Answer: Cercle Arctique (arctic)
         </div>
       )}
-      <div className="flex items-center gap-3 mb-4 border-b border-emerald-900/50 pb-3">
+      <div className="flex items-center gap-3 mb-3 border-b border-emerald-900/50 pb-3">
         <Map className="w-8 h-8 text-emerald-400" />
         <h2 className="text-xl md:text-2xl font-bold text-white uppercase tracking-widest">
           Niveau 5 : Stratégie d'Implantation
         </h2>
       </div>
 
-      <div className="mb-5">
+      <div className="mb-3">
         <NaiaDialogue 
           message={
             <>
@@ -228,8 +228,7 @@ export default function Level5({ isDevMode, onComplete, onScoreUpdate, onMistake
             </motion.div>
           )}
         </AnimatePresence>
-
-              </div>
+      </div>
     </motion.div>
   );
 }

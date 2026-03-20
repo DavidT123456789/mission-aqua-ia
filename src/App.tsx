@@ -563,7 +563,7 @@ export default function App() {
       </AnimatePresence>
 
       <motion.main 
-        className="w-full max-w-4xl mt-16 md:mt-20 pb-16 relative z-10"
+        className="w-full mt-16 md:mt-20 pb-16 relative z-10"
         animate={isShaking ? { 
           x: [-10, 10, -10, 10, 0], 
           filter: ["hue-rotate(0deg)", "hue-rotate(90deg)", "hue-rotate(-90deg)", "hue-rotate(0deg)"],
