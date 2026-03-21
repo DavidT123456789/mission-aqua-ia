@@ -36,7 +36,7 @@ export default function Intro({ onStart, hasSavedGame, onLoadGame, onClearSave }
             Notre <TechTerm term="IA">intelligence artificielle</TechTerm> centrale, <strong className="text-red-400 font-mono">HYDRA</strong>, consomme toute notre réserve d'eau potable pour refroidir ses immenses <TechTerm term="Serveur">serveurs</TechTerm> de calcul.
           </p>
           <p>
-            Votre mission : infiltrer le système en 7 étapes, stopper l'hémorragie, et reprogrammer HYDRA pour qu'elle nous aide à économiser l'eau et l'énergie au lieu de les gaspiller.
+            Votre mission : infiltrer le système à travers 12 niveaux de sécurité, stopper l'hémorragie, et accéder à l'Innovation Lab pour reprogrammer HYDRA afin qu'elle nous aide à économiser l'eau et l'énergie au lieu de les gaspiller.
           </p>
           
           <div className="mt-5 p-6 bg-slate-950/50 rounded-xl border border-emerald-500/20 space-y-4">

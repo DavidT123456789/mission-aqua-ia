@@ -52,7 +52,7 @@ function TypewriterNode({ content, contentKey }: { content: React.ReactNode, con
         // @ts-ignore
         if (node.props && node.props.children) {
           // @ts-ignore
-          return React.cloneElement(node, { ...node.props, children: renderProgressive(node.props.children, counter) });
+          return React.cloneElement(node, { ...node.props, className: `${node.props.className || ''} opacity-0`.trim(), children: renderProgressive(node.props.children, counter) });
         }
         counter.val += 1;
         return <span className="opacity-0">{node}</span>;

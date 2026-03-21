@@ -81,7 +81,7 @@ export default function Level7({ isDevMode, onComplete, onScoreUpdate, onMistake
     >
       {isDevMode && (
         <div className="absolute top-2 right-2 bg-purple-900/80 text-purple-300 text-xs px-2 py-1 rounded border border-purple-500/50 z-50">
-          Dev Answer: Modèle Spécialisé (specialized)
+          Dev Réponses : Modèle Spécialisé (specialized)
         </div>
       )}
       <div className="flex items-center gap-3 mb-3 border-b border-emerald-900/50 pb-3">

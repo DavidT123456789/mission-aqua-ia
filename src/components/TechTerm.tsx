@@ -44,9 +44,10 @@ const TERMS_DICTIONARY: Record<string, { title: string; definition: string }> = 
 interface TechTermProps {
   term: string;
   children?: React.ReactNode;
+  className?: string;
 }
 
-export default function TechTerm({ term, children }: TechTermProps) {
+export default function TechTerm({ term, children, className = '' }: TechTermProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isDiscovered, setIsDiscovered] = useState(false);
   const [positionClass, setPositionClass] = useState('left-1/2 -translate-x-1/2');
@@ -110,7 +111,7 @@ export default function TechTerm({ term, children }: TechTermProps) {
 
   return (
     <span 
-      className="relative inline-block"
+      className={`relative inline-block ${className}`.trim()}
       ref={spanRef}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={() => setIsHovered(false)}

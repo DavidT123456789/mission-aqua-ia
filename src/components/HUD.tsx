@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Droplets, Clock, Star, Activity, Heart, Bug, FastForward, HelpCircle, Menu, X } from 'lucide-react';
+import { Droplets, Clock, Star, Activity, Heart, Bug, FastForward, HelpCircle, Menu, X, ChevronRight } from 'lucide-react';
 
 interface HUDProps {
   level: number;
@@ -19,14 +19,16 @@ interface HUDProps {
   skipLevelDev: () => void;
   buyHeart: () => void;
   buyTime: () => void;
+  onGoHome: () => void;
 }
 
 export default function HUD({
   level, timeLeft, lives, waterSaved, score, isDevMode, unlockedFreeHints, unlockedPaidHints,
-  setShowDevModal, setShowGlossary, useHint, setLevel, prevLevelDev, skipLevelDev, buyHeart, buyTime
+  setShowDevModal, setShowGlossary, useHint, setLevel, prevLevelDev, skipLevelDev, buyHeart, buyTime, onGoHome
 }: HUDProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [glossaryPlusOnes, setGlossaryPlusOnes] = useState<number[]>([]);
+  const [isDevPanelOpen, setIsDevPanelOpen] = useState(false);
 
   useEffect(() => {
     const handleGlossaryPlusOne = () => {
@@ -74,8 +76,14 @@ export default function HUD({
       <div className="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-2 md:gap-4 relative z-10">
         
         {/* Left: Branding */}
-        <div className="flex items-center gap-2 group cursor-default">
-          <span className="font-bold tracking-[0.2em] md:tracking-[0.3em] uppercase text-sm md:text-base bg-gradient-to-r from-emerald-400 via-cyan-400 to-emerald-400 bg-[length:200%_auto] animate-gradient-x bg-clip-text text-transparent hidden sm:inline drop-shadow-[0_0_8px_rgba(52,211,153,0.3)]">
+        <div 
+          className="flex items-center gap-2 group cursor-pointer"
+          onClick={onGoHome}
+          title="Retour à l'accueil"
+          role="button"
+          tabIndex={0}
+        >
+          <span className="font-bold tracking-[0.2em] md:tracking-[0.3em] uppercase text-sm md:text-base bg-gradient-to-r from-emerald-400 via-cyan-400 to-emerald-400 bg-[length:200%_auto] animate-gradient-x bg-clip-text text-transparent hidden sm:inline drop-shadow-[0_0_8px_rgba(52,211,153,0.3)] hover:brightness-125 transition-all">
             AQUA-IA {isDevMode && <span className="text-purple-500 text-[10px] md:text-xs ml-1 font-black animate-pulse">[DEV]</span>}
           </span>
         </div>
@@ -154,9 +162,9 @@ export default function HUD({
               <div className="relative group/buytime">
                 <button 
                   onClick={buyTime}
-                  disabled={score < 200}
+                  disabled={score < 100}
                   className={`text-xs rounded px-1.5 py-0.5 font-bold transition-all ${
-                    score >= 200 
+                    score >= 100 
                       ? 'bg-emerald-900/50 text-emerald-400 border border-emerald-500/50 hover:bg-emerald-800/50 cursor-pointer' 
                       : 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed'
                   }`}
@@ -167,8 +175,8 @@ export default function HUD({
                 {/* Tooltip for buying time */}
                 <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 hidden group-hover/buytime:block w-max bg-slate-900 text-[10px] md:text-xs text-slate-200 px-2 py-1.5 rounded border border-slate-700 shadow-xl z-[100] pointer-events-none font-sans not-italic font-normal tracking-normal">
                   <div className="flex items-center gap-1.5">
-                    <span>Ajouter 2 min :</span>
-                    <span className={score >= 200 ? "text-yellow-400 font-bold" : "text-red-400 font-bold"}>200 pts</span>
+                    <span>Ajouter 3 min :</span>
+                    <span className={score >= 100 ? "text-yellow-400 font-bold" : "text-red-400 font-bold"}>100 pts</span>
                   </div>
                   <div className="absolute bottom-full left-1/2 -translate-x-1/2 border-4 border-transparent border-b-slate-700"></div>
                   <div className="absolute bottom-[calc(100%-1px)] left-1/2 -translate-x-1/2 border-4 border-transparent border-b-slate-900"></div>
@@ -342,41 +350,7 @@ export default function HUD({
             </>
           )}
 
-          {/* Dev Controls */}
-          {isDevMode && level > 0 && level < 14 && (
-            <div className="flex items-center gap-1 ml-2">
-              <select 
-                value={level}
-                onChange={(e) => setLevel(parseInt(e.target.value))}
-                className="bg-purple-900/50 text-purple-400 text-xs font-bold px-2 h-8 rounded-lg border border-purple-500/50 focus:outline-none focus:ring-1 focus:ring-purple-500 transition-colors cursor-pointer"
-                title="Sauter vers un niveau (Dev Mode)"
-                aria-label="Sélectionner un niveau"
-              >
-                {[...Array(15)].map((_, i) => (
-                  <option key={i} value={i} className="bg-slate-900">
-                    {i === 0 ? 'Intro' : i === 13 ? 'Bonus' : i === 14 ? 'Fin' : `Niveau ${i}`}
-                  </option>
-                ))}
-              </select>
-              <button 
-                onClick={prevLevelDev}
-                className="flex items-center justify-center bg-purple-900/50 hover:bg-purple-800/50 text-purple-400 w-8 h-8 rounded-full border border-purple-500/50 transition-colors"
-                title="Niveau précédent (Dev Mode)"
-                aria-label="Niveau précédent"
-              >
-                <span className="text-lg leading-none transform -translate-y-[1px]">«</span>
-              </button>
-              <button 
-                onClick={skipLevelDev}
-                className="flex items-center gap-1 bg-purple-900/50 hover:bg-purple-800/50 text-purple-400 px-3 h-8 rounded-full border border-purple-500/50 text-xs font-bold transition-colors"
-                title="Passer le niveau (Dev Mode)"
-                aria-label="Passer le niveau"
-              >
-                <FastForward className="w-4 h-4" />
-                <span>SKIP</span>
-              </button>
-            </div>
-          )}
+
         </div>
       </div>
 
@@ -466,6 +440,66 @@ export default function HUD({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Dev Controls Floating Card */}
+      {isDevMode && level > 0 && level < 14 && (
+        <div className="fixed right-0 md:right-8 top-20 md:top-24 z-[60] flex flex-col items-end">
+          {isDevPanelOpen ? (
+            <div className="p-3 bg-slate-900/80 backdrop-blur border border-purple-500/30 rounded-l-xl md:rounded-xl shadow-[0_0_15px_rgba(168,85,247,0.15)] flex flex-col gap-2">
+              <div className="flex justify-between items-center border-b border-purple-500/20 pb-1 mb-1 gap-4">
+                <span className="text-[10px] uppercase font-black tracking-widest text-purple-400/70">Dev Tools</span>
+                <button 
+                  onClick={() => setIsDevPanelOpen(false)} 
+                  className="text-purple-400/50 hover:text-purple-400 transition-colors p-0.5 rounded-full hover:bg-purple-500/20"
+                  aria-label="Réduire"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+              <select 
+                value={level}
+                onChange={(e) => setLevel(parseInt(e.target.value))}
+                className="bg-purple-900/50 text-purple-400 text-xs font-bold px-2 h-8 rounded-lg border border-purple-500/50 focus:outline-none focus:ring-1 focus:ring-purple-500 transition-colors cursor-pointer w-full"
+                title="Sauter vers un niveau (Dev Mode)"
+                aria-label="Sélectionner un niveau"
+              >
+                {[...Array(15)].map((_, i) => (
+                  <option key={i} value={i} className="bg-slate-900">
+                    {i === 0 ? 'Intro' : i === 13 ? 'Bonus' : i === 14 ? 'Fin' : `Niveau ${i}`}
+                  </option>
+                ))}
+              </select>
+              <div className="flex gap-2">
+                <button 
+                  onClick={prevLevelDev}
+                  className="flex items-center justify-center bg-purple-900/50 hover:bg-purple-800/50 text-purple-400 w-8 h-8 rounded-full border border-purple-500/50 transition-colors shrink-0"
+                  title="Niveau précédent (Dev Mode)"
+                  aria-label="Niveau précédent"
+                >
+                  <span className="text-lg leading-none transform -translate-y-[1px]">«</span>
+                </button>
+                <button 
+                  onClick={skipLevelDev}
+                  className="flex items-center justify-center flex-1 gap-1 bg-purple-900/50 hover:bg-purple-800/50 text-purple-400 h-8 rounded-full border border-purple-500/50 text-xs font-bold transition-colors"
+                  title="Passer le niveau (Dev Mode)"
+                  aria-label="Passer le niveau"
+                >
+                  <FastForward className="w-4 h-4" />
+                  <span>SKIP</span>
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => setIsDevPanelOpen(true)}
+              className="bg-slate-900/80 backdrop-blur border border-purple-500/30 md:border-r border-r-0 rounded-l-xl md:rounded-xl py-3 px-2 text-purple-400/70 hover:text-purple-400 hover:bg-purple-900/40 transition-all shadow-[0_0_15px_rgba(168,85,247,0.15)] group"
+              title="Ouvrir Dev Tools"
+            >
+              <div style={{ writingMode: 'vertical-rl' }} className="text-[10px] font-black uppercase tracking-wide rotate-180 group-hover:scale-105 transition-transform">Dev</div>
+            </button>
+          )}
+        </div>
+      )}
     </header>
   );
 }

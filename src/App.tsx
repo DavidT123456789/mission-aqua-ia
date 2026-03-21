@@ -369,11 +369,15 @@ export default function App() {
           }
         }}
         buyTime={() => {
-          if (score >= 200) {
-            setScore(s => s - 200);
-            setTimeLeft(t => t + 120); // Add 2 minutes
+          if (score >= 100) {
+            setScore(s => s - 100);
+            setTimeLeft(t => t + 180); // Add 3 minutes
             soundManager.playSuccess();
           }
+        }}
+        onGoHome={() => {
+          setIsActive(false);
+          setLevel(0);
         }}
       />
 
@@ -645,7 +649,7 @@ export default function App() {
         aria-label="Mode Développeur"
       >
         <span className="group-hover:translate-x-1 inline-block transition-transform duration-500">
-          Développé par David Trafial
+          Réalisé par David Trafial
         </span>
       </button>
     </div>

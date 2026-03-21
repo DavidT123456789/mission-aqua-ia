@@ -21,7 +21,7 @@ export default function TransitionScreen({ level, fact, onTransitionComplete, sc
     const timer = setTimeout(() => {
       setIsComplete(true);
       // Success sound removed as requested
-    }, 4200); // Slightly more than the bar duration
+    }, 2700); // Slightly more than the bar duration
     return () => clearTimeout(timer);
   }, []);
 
@@ -158,7 +158,7 @@ export default function TransitionScreen({ level, fact, onTransitionComplete, sc
                 <motion.div 
                   initial={{ width: 0 }}
                   animate={{ width: "100%" }}
-                  transition={{ duration: 4, ease: "easeInOut" }}
+                  transition={{ duration: 2.5, ease: "easeInOut" }}
                   className="h-full bg-gradient-to-r from-emerald-600 to-emerald-400 rounded-full shadow-[0_0_20px_rgba(16,185,129,0.6)]"
                 />
               </div>

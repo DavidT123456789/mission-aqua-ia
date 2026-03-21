@@ -36,7 +36,7 @@ export default function Level12({ isDevMode, onComplete, onScoreUpdate, onMistak
     >
       {isDevMode && (
         <div className="absolute top-2 right-2 bg-purple-900/80 text-purple-300 text-xs px-2 py-1 rounded border border-purple-500/50 z-50">
-          Dev Answer: Set slider between 30 and 45
+          Dev Réponses : Set slider between 30 and 45
         </div>
       )}
       <div className="flex items-center gap-3 mb-3 border-b border-emerald-900/50 pb-3">

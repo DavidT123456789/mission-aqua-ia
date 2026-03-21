@@ -71,7 +71,7 @@ export default function Level9({ isDevMode, onComplete, onScoreUpdate, onMistake
     >
       {isDevMode && (
         <div className="absolute top-2 right-2 bg-purple-900/80 text-purple-300 text-xs px-2 py-1 rounded border border-purple-500/50 z-50">
-          Dev Answer: Réseau de Chaleur Urbain (district_heating)
+          Dev Réponses : Réseau de Chaleur Urbain (district_heating)
         </div>
       )}
       <div className="flex items-center gap-3 mb-3 border-b border-emerald-900/50 pb-3">
