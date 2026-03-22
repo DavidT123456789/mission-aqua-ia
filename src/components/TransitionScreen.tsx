@@ -18,6 +18,15 @@ export default function TransitionScreen({ level, fact, onTransitionComplete, sc
   const [displayScore, setDisplayScore] = useState(score - pointsGained);
 
   useEffect(() => {
+    // Prevent body scroll when transition screen is mounted
+    const originalStyle = window.getComputedStyle(document.body).overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalStyle;
+    };
+  }, []);
+
+  useEffect(() => {
     const timer = setTimeout(() => {
       setIsComplete(true);
       // Success sound removed as requested
@@ -56,20 +65,21 @@ export default function TransitionScreen({ level, fact, onTransitionComplete, sc
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[120] bg-slate-950/80 backdrop-blur-sm flex flex-col items-center justify-center font-mono overflow-hidden"
+      className="fixed inset-0 z-[120] bg-slate-950/98 backdrop-blur-md overflow-y-auto font-mono"
     >
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9, rotateY: 90 }}
-        animate={{ opacity: 1, scale: 1, rotateY: 0 }}
-        exit={{ opacity: 0, scale: 1.05 }}
-        transition={{ 
-          type: "spring",
-          stiffness: 100,
-          damping: 20,
-          mass: 1
-        }}
-        className="flex flex-col items-center gap-8 glass p-10 rounded-3xl border border-white/10 relative overflow-hidden max-w-xl w-full mx-6 z-10"
-      >
+      <div className="min-h-[100dvh] min-h-full flex flex-col items-center justify-center p-4 py-12 sm:p-8">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9, rotateY: 90 }}
+          animate={{ opacity: 1, scale: 1, rotateY: 0 }}
+          exit={{ opacity: 0, scale: 1.05 }}
+          transition={{ 
+            type: "spring",
+            stiffness: 100,
+            damping: 20,
+            mass: 1
+          }}
+          className="flex flex-col items-center gap-6 sm:gap-8 glass p-6 sm:p-10 rounded-3xl border border-white/10 relative overflow-hidden max-w-xl w-full z-10 my-auto"
+        >
         <div className="relative">
           <Terminal className="w-20 h-20 text-emerald-400 relative z-10" />
         </div>
@@ -153,8 +163,8 @@ export default function TransitionScreen({ level, fact, onTransitionComplete, sc
 
         <div className="flex flex-col items-center gap-6 w-full">
           {!isComplete ? (
-            <div className="flex flex-col items-center gap-4">
-              <div className="w-full h-2 bg-slate-950 rounded-full relative overflow-hidden p-0.5 border border-white/10 min-w-[300px]">
+            <div className="flex flex-col items-center gap-4 w-full">
+              <div className="w-full h-2 bg-slate-950 rounded-full relative overflow-hidden p-0.5 border border-white/10 sm:min-w-[300px]">
                 <motion.div 
                   initial={{ width: 0 }}
                   animate={{ width: "100%" }}
@@ -182,7 +192,8 @@ export default function TransitionScreen({ level, fact, onTransitionComplete, sc
             </motion.button>
           )}
         </div>
-      </motion.div>
+        </motion.div>
+      </div>
     </motion.div>
   );
 }
