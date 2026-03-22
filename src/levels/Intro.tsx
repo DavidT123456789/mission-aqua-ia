@@ -17,7 +17,7 @@ export default function Intro({ onStart, hasSavedGame, onLoadGame, onClearSave }
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, y: -20 }}
-      className="bg-slate-900/90 border border-emerald-500/20 p-8 rounded-xl shadow-2xl max-w-2xl mx-auto backdrop-blur-xl"
+      className="sm:bg-slate-900/90 border-transparent sm:border-emerald-500/20 p-4 sm:p-8 sm:rounded-xl sm:shadow-2xl max-w-2xl mx-auto backdrop-blur-xl"
     >
       <div className="flex flex-col items-center text-center space-y-4">
         <div className="p-4 bg-emerald-950/50 rounded-full border border-emerald-500/50">

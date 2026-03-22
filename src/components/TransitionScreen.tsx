@@ -78,7 +78,7 @@ export default function TransitionScreen({ level, fact, onTransitionComplete, sc
             damping: 20,
             mass: 1
           }}
-          className="flex flex-col items-center gap-6 sm:gap-8 glass p-6 sm:p-10 rounded-3xl border border-white/10 relative overflow-hidden max-w-xl w-full z-10 my-auto"
+          className="flex flex-col items-center gap-6 sm:gap-8 sm:glass px-4 py-8 sm:p-10 sm:rounded-3xl border border-transparent sm:border-white/10 relative overflow-hidden max-w-xl w-full z-10 my-auto"
         >
         <div className="relative">
           <Terminal className="w-20 h-20 text-emerald-400 relative z-10" />

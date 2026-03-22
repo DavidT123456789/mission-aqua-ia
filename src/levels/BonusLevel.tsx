@@ -140,7 +140,7 @@ export default function BonusLevel({ onComplete, onScoreUpdate, nickname, onFina
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
-      className="bg-slate-900 border border-emerald-500/30 p-4 md:p-6 rounded-xl shadow-2xl max-w-4xl mx-auto font-mono relative"
+      className="sm:bg-slate-900 border-transparent sm:border-emerald-500/30 sm:border px-0 sm:px-6 py-4 sm:py-6 sm:rounded-xl sm:shadow-2xl max-w-4xl mx-auto font-mono relative flex flex-col"
     >
       <div className="flex items-center gap-3 mb-3 border-b border-emerald-900/50 pb-3">
         <Sparkles className="w-8 h-8 text-yellow-400" />

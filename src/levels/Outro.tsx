@@ -76,7 +76,7 @@ export default function Outro({ timeLeft, score, onRestart, nickname, evaluation
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="bg-slate-900 border border-emerald-500/50 p-8 rounded-xl shadow-[0_0_50px_rgba(16,185,129,0.2)] max-w-3xl mx-auto text-center"
+      className="sm:bg-slate-900 border-transparent sm:border-emerald-500/50 p-4 sm:p-8 sm:rounded-xl sm:shadow-[0_0_50px_rgba(16,185,129,0.2)] max-w-3xl mx-auto text-center"
     >
       <div className="flex justify-center mb-6">
         <div className="relative">
