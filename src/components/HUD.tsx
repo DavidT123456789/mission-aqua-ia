@@ -63,10 +63,10 @@ export default function HUD({
             transition={{ duration: 1 }}
           />
           {/* Tooltip for Level Progress */}
-          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/progress:block w-max bg-slate-900 text-[10px] md:text-xs text-slate-200 px-2 py-1.5 rounded border border-slate-700 shadow-xl z-[100] pointer-events-none font-sans not-italic font-normal tracking-normal">
+          <div className="fixed top-16 left-1/2 -translate-x-1/2 md:absolute md:top-auto md:bottom-full md:left-1/2 md:-translate-x-1/2 md:mb-2 hidden group-hover/progress:block w-max max-w-[90vw] bg-slate-900 text-[10px] md:text-xs text-slate-200 px-2 py-1.5 rounded border border-slate-700 shadow-xl z-[100] pointer-events-none font-sans not-italic font-normal tracking-normal text-center">
             Progression de la mission : {level}/13 niveaux complétés
-            <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-700"></div>
-            <div className="absolute top-[calc(100%-1px)] left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-900"></div>
+            <div className="hidden md:block absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-700"></div>
+            <div className="hidden md:block absolute top-[calc(100%-1px)] left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-900"></div>
           </div>
         </div>
       ) : (
@@ -132,13 +132,13 @@ export default function HUD({
                     +
                   </button>
                   {/* Tooltip */}
-                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 hidden group-hover:block w-max bg-slate-900 text-xs text-slate-200 px-2 py-1.5 rounded border border-slate-700 shadow-xl z-[100] pointer-events-none font-sans not-italic font-normal tracking-normal">
-                    <div className="flex items-center gap-1.5">
+                  <div className="fixed top-16 left-1/2 -translate-x-1/2 md:absolute md:top-full md:left-1/2 md:-translate-x-1/2 md:mt-2 hidden group-hover:block w-max max-w-[90vw] bg-slate-900 text-xs text-slate-200 px-2 py-1.5 rounded border border-slate-700 shadow-xl z-[100] pointer-events-none font-sans not-italic font-normal tracking-normal">
+                    <div className="flex items-center gap-1.5 justify-center">
                       <span>Acheter une vie :</span>
                       <span className={score >= 200 ? "text-yellow-400 font-bold" : "text-red-400 font-bold"}>200 pts</span>
                     </div>
-                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 border-4 border-transparent border-b-slate-700"></div>
-                    <div className="absolute bottom-[calc(100%-1px)] left-1/2 -translate-x-1/2 border-4 border-transparent border-b-slate-900"></div>
+                    <div className="hidden md:block absolute bottom-full left-1/2 -translate-x-1/2 border-4 border-transparent border-b-slate-700"></div>
+                    <div className="hidden md:block absolute bottom-[calc(100%-1px)] left-1/2 -translate-x-1/2 border-4 border-transparent border-b-slate-900"></div>
                   </div>
                 </div>
               )}
@@ -152,10 +152,10 @@ export default function HUD({
                   <span className="font-bold font-mono text-xs md:text-lg">{formatTime(timeLeft)}</span>
                 </div>
                 {/* Timer Tooltip */}
-                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 hidden group-hover/timer:block w-max bg-slate-900 text-xs text-slate-200 px-2 py-1.5 rounded border border-slate-700 shadow-xl z-[100] pointer-events-none font-sans not-italic font-normal tracking-normal text-center">
+                <div className="fixed top-16 left-1/2 -translate-x-1/2 md:absolute md:top-full md:left-1/2 md:-translate-x-1/2 md:mt-2 hidden group-hover/timer:block w-max max-w-[90vw] bg-slate-900 text-xs text-slate-200 px-2 py-1.5 rounded border border-slate-700 shadow-xl z-[100] pointer-events-none font-sans not-italic font-normal tracking-normal text-center">
                   Temps restant :<br />Résolvez les missions avant 00:00
-                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 border-4 border-transparent border-b-slate-700"></div>
-                  <div className="absolute bottom-[calc(100%-1px)] left-1/2 -translate-x-1/2 border-4 border-transparent border-b-slate-900"></div>
+                  <div className="hidden md:block absolute bottom-full left-1/2 -translate-x-1/2 border-4 border-transparent border-b-slate-700"></div>
+                  <div className="hidden md:block absolute bottom-[calc(100%-1px)] left-1/2 -translate-x-1/2 border-4 border-transparent border-b-slate-900"></div>
                 </div>
               </div>
               
@@ -173,13 +173,13 @@ export default function HUD({
                   +
                 </button>
                 {/* Tooltip for buying time */}
-                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 hidden group-hover/buytime:block w-max bg-slate-900 text-[10px] md:text-xs text-slate-200 px-2 py-1.5 rounded border border-slate-700 shadow-xl z-[100] pointer-events-none font-sans not-italic font-normal tracking-normal">
-                  <div className="flex items-center gap-1.5">
+                <div className="fixed top-16 left-1/2 -translate-x-1/2 md:absolute md:top-full md:left-1/2 md:-translate-x-1/2 md:mt-2 hidden group-hover/buytime:block w-max max-w-[90vw] bg-slate-900 text-[10px] md:text-xs text-slate-200 px-2 py-1.5 rounded border border-slate-700 shadow-xl z-[100] pointer-events-none font-sans not-italic font-normal tracking-normal">
+                  <div className="flex items-center gap-1.5 justify-center">
                     <span>Ajouter 3 min :</span>
                     <span className={score >= 100 ? "text-yellow-400 font-bold" : "text-red-400 font-bold"}>100 pts</span>
                   </div>
-                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 border-4 border-transparent border-b-slate-700"></div>
-                  <div className="absolute bottom-[calc(100%-1px)] left-1/2 -translate-x-1/2 border-4 border-transparent border-b-slate-900"></div>
+                  <div className="hidden md:block absolute bottom-full left-1/2 -translate-x-1/2 border-4 border-transparent border-b-slate-700"></div>
+                  <div className="hidden md:block absolute bottom-[calc(100%-1px)] left-1/2 -translate-x-1/2 border-4 border-transparent border-b-slate-900"></div>
                 </div>
               </div>
             </div>
@@ -197,14 +197,14 @@ export default function HUD({
                 <span className="font-bold font-mono text-yellow-400 text-xs md:text-base">{score}</span>
               </motion.div>
               {/* Tooltip for Score */}
-              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 hidden group-hover/score:block w-max bg-slate-900 text-xs text-slate-200 px-3 py-2 rounded border border-slate-700 shadow-xl z-[100] pointer-events-none font-sans not-italic font-normal tracking-normal">
-                <div className="flex flex-col gap-1">
+              <div className="fixed top-16 left-1/2 -translate-x-1/2 md:absolute md:top-full md:left-1/2 md:-translate-x-1/2 md:mt-2 hidden group-hover/score:block w-max max-w-[90vw] bg-slate-900 text-xs text-slate-200 px-3 py-2 rounded border border-slate-700 shadow-xl z-[100] pointer-events-none font-sans not-italic font-normal tracking-normal">
+                <div className="flex flex-col gap-1 text-center md:text-left">
                   <span className="font-bold text-yellow-500">Score de Mission</span>
                   <span>Points accumulés via vos réponses.</span>
-                  <span className="text-[10px] text-slate-400 border-t border-slate-800 mt-1 pt-1 italic">Visez le score maximum à chaque niveau !</span>
+                  <span className="text-[10px] text-slate-400 border-t border-slate-800 mt-1 pt-1 italic whitespace-normal md:whitespace-nowrap">Visez le score maximum à chaque niveau !</span>
                 </div>
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 border-4 border-transparent border-b-slate-700"></div>
-                <div className="absolute bottom-[calc(100%-1px)] left-1/2 -translate-x-1/2 border-4 border-transparent border-b-slate-900"></div>
+                <div className="hidden md:block absolute bottom-full left-1/2 -translate-x-1/2 border-4 border-transparent border-b-slate-700"></div>
+                <div className="hidden md:block absolute bottom-[calc(100%-1px)] left-1/2 -translate-x-1/2 border-4 border-transparent border-b-slate-900"></div>
               </div>
             </div>
 
