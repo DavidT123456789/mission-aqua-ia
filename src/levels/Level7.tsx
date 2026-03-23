@@ -16,11 +16,11 @@ export default function Level7({ isDevMode, onComplete, onScoreUpdate, onMistake
       desc: 'Modèle massif capable de tout faire. Précision parfaite mais extrêmement lourd.',
       accuracy: '99.9%',
       energy: '500 Wh / requête',
-      color: 'text-red-500',
-      bg: 'bg-red-950/30',
-      border: 'border-red-500/50',
+      color: 'text-purple-500',
+      bg: 'bg-purple-950/30',
+      border: 'border-purple-500/50',
       barWidth: 'w-full',
-      barColor: 'bg-red-500'
+      barColor: 'bg-purple-500'
     },
     {
       id: 'specialized',
@@ -29,11 +29,11 @@ export default function Level7({ isDevMode, onComplete, onScoreUpdate, onMistake
       desc: 'Modèle entraîné spécifiquement pour cette tâche. Excellent compromis.',
       accuracy: '98.5%',
       energy: '5 Wh / requête',
-      color: 'text-emerald-500',
-      bg: 'bg-emerald-950/30',
-      border: 'border-emerald-500/50',
+      color: 'text-blue-500',
+      bg: 'bg-blue-950/30',
+      border: 'border-blue-500/50',
       barWidth: 'w-1/4',
-      barColor: 'bg-emerald-500'
+      barColor: 'bg-blue-500'
     },
     {
       id: 'heuristic',
@@ -42,11 +42,11 @@ export default function Level7({ isDevMode, onComplete, onScoreUpdate, onMistake
       desc: 'Filtres classiques basés sur des mots-clés. Très rapide mais moins précis.',
       accuracy: '85.0%',
       energy: '0.1 Wh / requête',
-      color: 'text-blue-400',
-      bg: 'bg-blue-950/30',
-      border: 'border-blue-400/50',
+      color: 'text-orange-500',
+      bg: 'bg-orange-950/30',
+      border: 'border-orange-500/50',
       barWidth: 'w-2',
-      barColor: 'bg-blue-400'
+      barColor: 'bg-orange-500'
     }
   ];
 

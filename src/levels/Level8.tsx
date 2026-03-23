@@ -16,9 +16,9 @@ export default function Level8({ isDevMode, onComplete, onScoreUpdate, onMistake
       icon: Trash2,
       desc: 'Jeter l\'ancien serveur et en acheter un neuf de dernière génération.',
       waterCost: '1200 L',
-      color: 'text-red-500',
-      bg: 'bg-red-950/30',
-      border: 'border-red-500/50'
+      color: 'text-purple-400',
+      bg: 'bg-purple-950/30',
+      border: 'border-purple-500/50'
     },
     {
       id: 'repair_ram',
@@ -26,9 +26,9 @@ export default function Level8({ isDevMode, onComplete, onScoreUpdate, onMistake
       icon: Wrench,
       desc: 'Identifier le composant défectueux (RAM) et le remplacer uniquement.',
       waterCost: '15 L',
-      color: 'text-emerald-500',
-      bg: 'bg-emerald-950/30',
-      border: 'border-emerald-500/50'
+      color: 'text-blue-400',
+      bg: 'bg-blue-950/30',
+      border: 'border-blue-500/50'
     },
     {
       id: 'ignore',
@@ -36,9 +36,9 @@ export default function Level8({ isDevMode, onComplete, onScoreUpdate, onMistake
       icon: AlertTriangle,
       desc: 'Laisser le serveur tourner au ralenti avec des erreurs.',
       waterCost: '0 L',
-      color: 'text-yellow-500',
-      bg: 'bg-yellow-950/30',
-      border: 'border-yellow-500/50'
+      color: 'text-orange-400',
+      bg: 'bg-orange-950/30',
+      border: 'border-orange-500/50'
     }
   ];
 

@@ -16,9 +16,9 @@ export default function Level9({ isDevMode, onComplete, onScoreUpdate, onMistake
       desc: 'Évaporer l\'eau chaude dans l\'atmosphère pour refroidir le système.',
       waterWaste: 'Élevé',
       energyRecovery: '0%',
-      color: 'text-red-500',
-      bg: 'bg-red-950/30',
-      border: 'border-red-500/50'
+      color: 'text-cyan-400',
+      bg: 'bg-cyan-950/30',
+      border: 'border-cyan-500/50'
     },
     {
       id: 'river',
@@ -26,9 +26,9 @@ export default function Level9({ isDevMode, onComplete, onScoreUpdate, onMistake
       desc: 'Rejeter l\'eau chaude directement dans l\'écosystème local.',
       waterWaste: 'Moyen (Impact Faune)',
       energyRecovery: '0%',
-      color: 'text-yellow-500',
-      bg: 'bg-yellow-950/30',
-      border: 'border-yellow-500/50'
+      color: 'text-blue-400',
+      bg: 'bg-blue-950/30',
+      border: 'border-blue-500/50'
     },
     {
       id: 'district_heating',
@@ -36,9 +36,9 @@ export default function Level9({ isDevMode, onComplete, onScoreUpdate, onMistake
       desc: 'Rediriger l\'eau chaude pour chauffer les habitations de la ville voisine.',
       waterWaste: 'Nul (Circuit fermé)',
       energyRecovery: '85%',
-      color: 'text-emerald-500',
-      bg: 'bg-emerald-950/30',
-      border: 'border-emerald-500/50'
+      color: 'text-orange-400',
+      bg: 'bg-orange-950/30',
+      border: 'border-orange-500/50'
     }
   ];
 
@@ -140,7 +140,7 @@ export default function Level9({ isDevMode, onComplete, onScoreUpdate, onMistake
               <div className="w-full h-3 bg-slate-800 rounded-full overflow-hidden">
                 {selectedPath && (
                   <motion.div 
-                    className={`h-full ${selectedPath === 'district_heating' ? 'bg-emerald-500' : selectedPath === 'river' ? 'bg-yellow-500' : 'bg-red-500'}`}
+                    className={`h-full ${selectedPath === 'district_heating' ? 'bg-orange-500' : selectedPath === 'river' ? 'bg-blue-500' : 'bg-cyan-500'}`}
                     initial={{ width: 0 }}
                     animate={{ width: '100%' }}
                     transition={{ duration: 1 }}
@@ -152,14 +152,14 @@ export default function Level9({ isDevMode, onComplete, onScoreUpdate, onMistake
 
             <div className="flex flex-col items-center gap-2">
               <div className={`w-20 h-20 rounded-lg border flex items-center justify-center transition-colors ${
-                selectedPath === 'district_heating' ? 'bg-emerald-900/50 border-emerald-500' :
-                selectedPath === 'river' ? 'bg-yellow-900/50 border-yellow-500' :
-                selectedPath === 'towers' ? 'bg-red-900/50 border-red-500' :
+                selectedPath === 'district_heating' ? 'bg-orange-900/50 border-orange-500' :
+                selectedPath === 'river' ? 'bg-blue-900/50 border-blue-500' :
+                selectedPath === 'towers' ? 'bg-cyan-900/50 border-cyan-500' :
                 'bg-slate-800 border-slate-600'
               }`}>
-                {selectedPath === 'district_heating' ? <Home className="w-10 h-10 text-emerald-400" /> :
-                 selectedPath === 'river' ? <Droplets className="w-10 h-10 text-yellow-400" /> :
-                 <Flame className="w-10 h-10 text-slate-500" />}
+                {selectedPath === 'district_heating' ? <Home className="w-10 h-10 text-orange-400" /> :
+                 selectedPath === 'river' ? <Droplets className="w-10 h-10 text-blue-400" /> :
+                 <Flame className="w-10 h-10 text-cyan-400" />}
               </div>
               <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">
                 {selectedPath === 'district_heating' ? 'Ville' : selectedPath === 'river' ? 'Rivière' : 'Atmosphère'}
