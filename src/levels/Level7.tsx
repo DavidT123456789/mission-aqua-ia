@@ -95,7 +95,7 @@ export default function Level7({ isDevMode, onComplete, onScoreUpdate, onMistake
         <NaiaDialogue 
           message={
             <>
-              Dernière étape, Agent. La ville reçoit 10 millions d'emails par jour. Nous devons déployer un système pour filtrer le spam. Utiliser le plus gros modèle d'<TechTerm term="IA" /> consommerait autant d'électricité qu'un quartier entier ! Choisissez l'architecture logicielle offrant le meilleur ratio entre précision et coût environnemental pour cette tâche spécifique.
+              Continuons, Agent. La ville reçoit 10 millions d'emails par jour. Nous devons déployer un système pour filtrer le spam. Utiliser le plus gros modèle d'<TechTerm term="IA" /> consommerait autant d'électricité qu'un quartier entier ! Choisissez l'architecture logicielle offrant le meilleur ratio entre précision et coût environnemental pour cette tâche spécifique.
             </>
           }
           emotion="neutral"
@@ -204,7 +204,7 @@ export default function Level7({ isDevMode, onComplete, onScoreUpdate, onMistake
                 onClick={onComplete}
                 className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-3 rounded-lg font-bold transition-colors shadow-[0_0_20px_rgba(16,185,129,0.4)]"
               >
-                TERMINER LA MISSION
+                PASSER AU NIVEAU SUIVANT
               </button>
             </motion.div>
           )}

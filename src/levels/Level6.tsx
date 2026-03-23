@@ -285,7 +285,7 @@ export default function Level6({ isDevMode, onComplete, onScoreUpdate, onMistake
               onClick={onComplete}
               className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-3 rounded-lg font-bold transition-colors shadow-[0_0_20px_rgba(16,185,129,0.4)]"
             >
-                TERMINER LA MISSION
+                PASSER AU NIVEAU SUIVANT
               </button>
             </motion.div>
           )}
