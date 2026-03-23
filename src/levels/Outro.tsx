@@ -16,9 +16,10 @@ interface Evaluation {
   feedback: string;
 }
 
-export default function Outro({ timeLeft, score, onRestart, nickname, evaluation, imageUrl, leaderboard }: { 
+export default function Outro({ timeLeft, score, waterSaved, onRestart, nickname, evaluation, imageUrl, leaderboard }: { 
   timeLeft: number; 
   score: number; 
+  waterSaved: number;
   onRestart: (name: string) => void; 
   nickname: string;
   evaluation?: Evaluation | null;
@@ -37,11 +38,11 @@ export default function Outro({ timeLeft, score, onRestart, nickname, evaluation
   const timeTaken = 1800 - timeLeft;
 
   const getGrade = () => {
-    if (score >= 1000) return { title: 'COMMANDANT SUPRÊME', icon: '🌟', color: 'text-yellow-400', hex: '#facc15' };
-    if (score >= 800) return { title: 'EXPERT HYDROSAVE', icon: '💎', color: 'text-cyan-400', hex: '#22d3ee' };
-    if (score >= 600) return { title: 'AGENT SENIOR', icon: '🥇', color: 'text-emerald-400', hex: '#34d399' };
-    if (score >= 400) return { title: 'AGENT CONFIRMÉ', icon: '🥈', color: 'text-slate-300', hex: '#cbd5e1' };
-    return { title: 'AGENT JUNIOR', icon: '🥉', color: 'text-orange-400', hex: '#fb923c' };
+    if (score >= 1000) return { title: 'COMMANDANT SUPRÊME', icon: <Star className="w-8 h-8 text-yellow-400" />, color: 'text-yellow-400', hex: '#facc15', bg: 'bg-yellow-400/10', border: 'border-yellow-500/50' };
+    if (score >= 800) return { title: 'EXPERT HYDROSAVE', icon: <Droplets className="w-8 h-8 text-cyan-400" />, color: 'text-cyan-400', hex: '#22d3ee', bg: 'bg-cyan-400/10', border: 'border-cyan-500/50' };
+    if (score >= 600) return { title: 'AGENT SENIOR', icon: <Award className="w-8 h-8 text-emerald-400" />, color: 'text-emerald-400', hex: '#34d399', bg: 'bg-emerald-400/10', border: 'border-emerald-500/50' };
+    if (score >= 400) return { title: 'AGENT CONFIRMÉ', icon: <ShieldCheck className="w-8 h-8 text-slate-300" />, color: 'text-slate-300', hex: '#cbd5e1', bg: 'bg-slate-300/10', border: 'border-slate-500/50' };
+    return { title: 'AGENT JUNIOR', icon: <Zap className="w-8 h-8 text-orange-400" />, color: 'text-orange-400', hex: '#fb923c', bg: 'bg-orange-400/10', border: 'border-orange-500/50' };
   };
 
   const grade = getGrade();
@@ -72,63 +73,108 @@ export default function Outro({ timeLeft, score, onRestart, nickname, evaluation
     }
   };
 
+  const containerVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      transition: { 
+        duration: 0.6, 
+        staggerChildren: 0.1 
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, scale: 0.8 },
+    visible: { opacity: 1, scale: 1 }
+  };
+
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      className="sm:bg-slate-900 border-transparent sm:border-emerald-500/50 p-4 sm:p-8 sm:rounded-xl sm:shadow-[0_0_50px_rgba(16,185,129,0.2)] max-w-3xl mx-auto text-center"
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+      className="bg-slate-900/90 border border-emerald-500/40 p-6 sm:p-10 rounded-3xl shadow-[0_0_40px_rgba(16,185,129,0.15),inset_0_0_20px_rgba(16,185,129,0.05)] max-w-3xl mx-auto text-center backdrop-blur-xl relative overflow-hidden"
     >
-      <div className="flex justify-center mb-6">
-        <div className="relative">
-          <Trophy className="w-24 h-24 text-yellow-400" />
+      {/* Subtle animated border glow line (optional but cool) */}
+      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-emerald-500/20 to-transparent opacity-50" />
+      <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-cyan-500/20 to-transparent opacity-50" />
+      <motion.div variants={itemVariants} className="flex justify-center mb-8">
+        <div className="relative group">
+          <motion.div 
+            animate={{ rotate: [0, 5, -5, 0], scale: [1, 1.05, 1] }} 
+            transition={{ duration: 4, repeat: Infinity }}
+            className="relative"
+          >
+            <Trophy className="w-28 h-28 text-yellow-400 drop-shadow-[0_0_15px_rgba(250,204,21,0.5)]" />
+          </motion.div>
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
-            transition={{ delay: 0.5, type: 'spring' }}
-            className="absolute -bottom-2 -right-2 bg-emerald-500 rounded-full p-2"
+            transition={{ delay: 0.8, type: 'spring' }}
+            className="absolute -bottom-2 -right-2 bg-emerald-500 rounded-full p-2.5 shadow-lg border-2 border-slate-900"
           >
             <Droplets className="w-6 h-6 text-white" />
           </motion.div>
         </div>
-      </div>
+      </motion.div>
 
-      <h1 className="text-3xl md:text-4xl font-bold text-white mb-2 uppercase tracking-widest">
+      <motion.h1 variants={itemVariants} className="text-4xl md:text-5xl font-black text-white mb-2 uppercase tracking-[0.2em] drop-shadow-sm">
         Mission Accomplie !
-      </h1>
+      </motion.h1>
+      <motion.p variants={itemVariants} className="text-emerald-400/80 font-mono text-sm tracking-widest mb-8">
+        OPÉRATION "HYDROSAVE" TERMINÉE AVEC SUCCÈS
+      </motion.p>
       
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-2xl mx-auto my-8">
-        <div className="bg-emerald-950/30 border border-emerald-500/30 p-4 rounded-lg">
-          <Clock className="w-6 h-6 text-emerald-400 mx-auto mb-2" />
-          <div className="text-2xl font-mono font-bold text-emerald-400">{formatTime(timeTaken)}</div>
-          <div className="text-xs text-slate-400 uppercase">Temps</div>
-        </div>
-        <div className="bg-yellow-950/30 border border-yellow-500/30 p-4 rounded-lg">
-          <Star className="w-6 h-6 text-yellow-400 mx-auto mb-2" />
-          <div className="text-2xl font-mono font-bold text-yellow-400">{score}</div>
-          <div className="text-xs text-slate-400 uppercase">Score</div>
-        </div>
-        <div className="bg-cyan-950/30 border border-cyan-500/30 p-4 rounded-lg">
-          <Droplets className="w-6 h-6 text-cyan-400 mx-auto mb-2" />
-          <div className="text-2xl font-mono font-bold text-cyan-400">100%</div>
-          <div className="text-xs text-slate-400 uppercase">Eau Sauvée</div>
-        </div>
-        <div className="bg-purple-950/30 border border-purple-500/30 p-4 rounded-lg">
-          <Award className="w-6 h-6 text-purple-400 mx-auto mb-2" />
-          <div className={`text-xl font-bold ${grade.color}`}>{grade.icon}</div>
-          <div className="text-xs text-slate-400 uppercase">Grade</div>
-        </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-2xl mx-auto mb-10">
+        {[
+          { icon: Clock, label: 'Temps', value: formatTime(timeTaken), color: 'text-emerald-400', bg: 'bg-emerald-950/40', border: 'border-emerald-500/30' },
+          { icon: Star, label: 'Score', value: score, color: 'text-yellow-400', bg: 'bg-yellow-950/40', border: 'border-yellow-500/30' },
+          { icon: Droplets, label: 'Eau Sauvée', value: `${waterSaved}%`, color: 'text-cyan-400', bg: 'bg-cyan-950/40', border: 'border-cyan-500/30' },
+          { icon: Award, label: 'Grade', value: grade.title, color: grade.color, bg: grade.bg, border: grade.border, fullWidth: true }
+        ].map((stat, i) => (
+          <motion.div 
+            key={i} 
+            variants={itemVariants}
+            whileHover={{ y: -5, transition: { duration: 0.2 } }}
+            className={`${stat.bg} ${stat.border} border p-4 rounded-xl flex flex-col items-center justify-center transition-all duration-300 hover:shadow-lg`}
+          >
+            <stat.icon className={`w-5 h-5 ${stat.color} mb-3`} />
+            <div className={`text-xl font-mono font-bold ${stat.color} truncate max-w-full`}>{stat.value}</div>
+            <div className="text-[10px] text-slate-500 uppercase font-bold tracking-widest mt-1">{stat.label}</div>
+          </motion.div>
+        ))}
       </div>
 
-      <div className="bg-gradient-to-r from-cyan-900/20 to-purple-900/20 border-2 border-cyan-500/30 rounded-xl p-6 mb-5 max-w-xl mx-auto">
-        <h3 className="text-cyan-400 font-mono font-bold mb-2">CERTIFICAT HYDROSAVE</h3>
-        <p className="text-slate-300 text-sm mb-1">Cette équipe a sauvé les réserves d'eau mondiales !</p>
-        <div className="text-white font-bold mb-4 uppercase tracking-widest border-b border-cyan-500/20 pb-2">
-          Agent : {nickname}
+      <motion.div 
+        variants={itemVariants}
+        className="relative bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border-2 border-emerald-500/20 rounded-2xl p-8 mb-8 max-w-xl mx-auto overflow-hidden shadow-2xl"
+      >
+        <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-3xl -mr-16 -mt-16" />
+        <div className="absolute bottom-0 left-0 w-32 h-32 bg-cyan-500/5 rounded-full blur-3xl -ml-16 -mb-16" />
+        
+        <div className="relative z-10">
+          <h3 className="text-emerald-500 font-mono font-bold text-xs tracking-[0.3em] mb-4 opacity-70">SOCIÉTÉ HYDROSAVE - CERTIFICAT OFFICIEL</h3>
+          
+          <div className="flex flex-col items-center mb-6">
+            <div className="text-slate-400 text-xs uppercase tracking-widest mb-2 font-mono">Agent de liaison</div>
+            <div className="text-2xl md:text-3xl font-black text-white uppercase tracking-tight border-b-2 border-emerald-500/10 pb-4 w-full">
+              {nickname || 'ANONYME'}
+            </div>
+          </div>
+          
+          <div className="flex flex-col items-center">
+            <div className="text-slate-400 text-xs uppercase tracking-widest mb-3 font-mono">Niveau d'accréditation</div>
+            <div className={`flex items-center gap-3 px-6 py-3 rounded-full ${grade.bg} border-2 ${grade.border}`}>
+              <div className="shrink-0">{grade.icon}</div>
+              <div className={`text-xl font-black font-mono tracking-tighter ${grade.color}`}>
+                {grade.title}
+              </div>
+            </div>
+          </div>
         </div>
-        <div className={`text-2xl font-bold font-mono tracking-widest ${grade.color}`}>
-          {grade.title}
-        </div>
-      </div>
+      </motion.div>
 
       {leaderboard && leaderboard.length > 0 && (
         <div className="max-w-xl mx-auto mb-5 bg-slate-950/50 border border-slate-800 rounded-xl p-4">
@@ -149,62 +195,63 @@ export default function Outro({ timeLeft, score, onRestart, nickname, evaluation
         </div>
       )}
 
-      <div className="flex flex-col sm:flex-row gap-4 justify-center mb-5">
+      <motion.div variants={itemVariants} className="flex flex-col sm:flex-row gap-4 justify-center mb-10">
         <button
           onClick={downloadFullCertificate}
-          className="flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-4 rounded-xl font-bold transition-all hover:scale-105 shadow-[0_0_20px_rgba(16,185,129,0.3)]"
+          className="flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-4 rounded-xl font-black transition-all hover:scale-105 shadow-[0_0_20px_rgba(16,185,129,0.3)] active:scale-95"
         >
           <Download className="w-5 h-5" />
           TÉLÉCHARGER MON DOSSIER COMPLET (A4)
         </button>
         <button
           onClick={() => onRestart(nickname)}
-          className="flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-6 py-4 rounded-xl font-bold transition-colors"
+          className="flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-8 py-4 rounded-xl font-bold transition-all hover:bg-slate-750 active:scale-95 border border-slate-700"
         >
           <RotateCcw className="w-5 h-5" />
           REJOUER
         </button>
-      </div>
+      </motion.div>
 
-      <div className="space-y-4 text-left bg-slate-950 p-6 rounded-lg border border-slate-800 font-sans text-slate-300">
-        <p className="text-lg font-bold text-white border-b border-slate-800 pb-2">
+      <motion.div variants={itemVariants} className="space-y-4 text-left bg-slate-950/80 backdrop-blur-md p-8 rounded-2xl border border-slate-800/50 font-sans text-slate-300 shadow-inner">
+        <p className="text-xl font-black text-white border-b border-slate-800 pb-4 mb-6 flex items-center gap-3">
+          <Bot className="w-6 h-6 text-emerald-500" />
           Ce qu'il faut retenir :
         </p>
         
-        <div className="space-y-4">
+        <div className="grid md:grid-cols-2 gap-8">
           <div className="flex gap-4">
-            <div className="w-8 h-8 rounded-full bg-red-900/50 flex items-center justify-center shrink-0 text-red-400 font-bold">1</div>
+            <div className="w-10 h-10 rounded-xl bg-red-400/10 border border-red-400/20 flex items-center justify-center shrink-0 text-red-400 font-black shadow-sm">1</div>
             <div>
-              <p className="font-bold text-white">L'<TechTerm term="IA" /> a une empreinte écologique</p>
-              <p className="text-sm mt-1">Les <TechTerm term="Datacenter">datacenters</TechTerm> consomment énormément d'eau pour le <TechTerm term="Refroidissement" /> et d'électricité pour le calcul. Chaque requête a un coût environnemental.</p>
+              <p className="font-bold text-white text-lg">L'<TechTerm term="IA" /> a une empreinte écologique</p>
+              <p className="text-sm mt-2 leading-relaxed opacity-80">Les <TechTerm term="Datacenter">datacenters</TechTerm> consomment énormément d'au pour le <TechTerm term="Refroidissement" /> et d'électricité. Chaque requête a un coût réel.</p>
             </div>
           </div>
           
           <div className="flex gap-4">
-            <div className="w-8 h-8 rounded-full bg-blue-900/50 flex items-center justify-center shrink-0 text-blue-400 font-bold">2</div>
+            <div className="w-10 h-10 rounded-xl bg-blue-400/10 border border-blue-400/20 flex items-center justify-center shrink-0 text-blue-400 font-black shadow-sm">2</div>
             <div>
-              <p className="font-bold text-white">L'optimisation est possible</p>
-              <p className="text-sm mt-1">En choisissant des lieux froids (Free Cooling), en récupérant la chaleur fatale et en entraînant les modèles quand l'énergie est décarbonée, on réduit drastiquement cet impact.</p>
+              <p className="font-bold text-white text-lg">L'optimisation est possible</p>
+              <p className="text-sm mt-2 leading-relaxed opacity-80">En choisissant des lieux froids (Free Cooling) et en récupérant la chaleur, on réduit drastiquement cet impact environnemental.</p>
             </div>
           </div>
 
           <div className="flex gap-4">
-            <div className="w-8 h-8 rounded-full bg-emerald-900/50 flex items-center justify-center shrink-0 text-emerald-400 font-bold">3</div>
+            <div className="w-10 h-10 rounded-xl bg-emerald-400/10 border border-emerald-400/20 flex items-center justify-center shrink-0 text-emerald-400 font-black shadow-sm">3</div>
             <div>
-              <p className="font-bold text-white">L'économie circulaire et la donnée</p>
-              <p className="text-sm mt-1">Réparer le matériel plutôt que le remplacer économise l'eau de fabrication. De même, trier les données d'entraînement (Data Hygiene) évite des calculs inutiles.</p>
+              <p className="font-bold text-white text-lg">L'économie circulaire</p>
+              <p className="text-sm mt-2 leading-relaxed opacity-80">Réparer le matériel et trier les données (Data Hygiene) évite des calculs inutiles et économise l'eau de fabrication.</p>
             </div>
           </div>
 
           <div className="flex gap-4">
-            <div className="w-8 h-8 rounded-full bg-purple-900/50 flex items-center justify-center shrink-0 text-purple-400 font-bold">4</div>
+            <div className="w-10 h-10 rounded-xl bg-purple-400/10 border border-purple-400/20 flex items-center justify-center shrink-0 text-purple-400 font-black shadow-sm">4</div>
             <div>
-              <p className="font-bold text-white">La sobriété et la régulation</p>
-              <p className="text-sm mt-1">Il ne faut pas utiliser un modèle massif pour une tâche simple. L'innovation doit s'accompagner de règles éthiques pour garantir un équilibre entre progrès et préservation.</p>
+              <p className="font-bold text-white text-lg">La sobriété et l'éthique</p>
+              <p className="text-sm mt-2 leading-relaxed opacity-80">Il faut utiliser le bon modèle pour le bon usage. L'innovation doit s'accompagner de règles pour protéger nos ressources.</p>
             </div>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Hidden A4 Certificate for Download */}
       <div style={{ display: 'none' }}>
@@ -235,14 +282,18 @@ export default function Outro({ timeLeft, score, onRestart, nickname, evaluation
             </div>
             <div className="bg-slate-900/50 p-6 rounded-2xl border border-emerald-500/20">
               <h2 className="text-xs font-bold text-emerald-500 uppercase tracking-widest mb-4">STATISTIQUES DE MISSION</h2>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-2">
                 <div>
                   <div className="text-[10px] text-slate-500 uppercase">Score Total</div>
-                  <div className="text-2xl font-bold text-yellow-400">{score}</div>
+                  <div className="text-xl font-bold text-yellow-400">{score}</div>
                 </div>
                 <div>
-                  <div className="text-[10px] text-slate-500 uppercase">Temps de Mission</div>
-                  <div className="text-2xl font-bold text-emerald-400">{formatTime(timeTaken)}</div>
+                  <div className="text-[10px] text-slate-500 uppercase">Temps</div>
+                  <div className="text-xl font-bold text-emerald-400">{formatTime(timeTaken)}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] text-slate-500 uppercase">Eau Sauvée</div>
+                  <div className="text-xl font-bold text-cyan-400">{waterSaved}%</div>
                 </div>
               </div>
             </div>

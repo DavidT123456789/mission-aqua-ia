@@ -640,6 +640,7 @@ export default function App() {
               key="outro" 
               timeLeft={timeLeft} 
               score={score} 
+              waterSaved={waterSaved}
               onRestart={startGame} 
               nickname={nickname}
               evaluation={finalEvaluation}
