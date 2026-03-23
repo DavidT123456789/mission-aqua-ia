@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Server, CheckCircle2, AlertTriangle, Wrench, Trash2, Cpu, MemoryStick, HardDrive } from 'lucide-react';
+import { Server, CheckCircle2, AlertTriangle, Wrench, Trash2, Cpu, MemoryStick, HardDrive, Recycle } from 'lucide-react';
 import NaiaDialogue from '../components/NaiaDialogue';
 import TechTerm from '../components/TechTerm';
 
@@ -29,6 +29,16 @@ export default function Level8({ isDevMode, onComplete, onScoreUpdate, onMistake
       color: 'text-blue-400',
       bg: 'bg-blue-950/30',
       border: 'border-blue-500/50'
+    },
+    {
+      id: 'refurbished',
+      name: 'Serveur Reconditionné',
+      icon: Recycle,
+      desc: 'Acheter une machine d\'occasion pour limiter la fabrication neuve.',
+      waterCost: '180 L',
+      color: 'text-cyan-400',
+      bg: 'bg-cyan-950/30',
+      border: 'border-cyan-500/50'
     },
     {
       id: 'ignore',
