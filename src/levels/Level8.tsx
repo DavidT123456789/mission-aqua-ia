@@ -47,8 +47,11 @@ export default function Level8({ isDevMode, onComplete, onScoreUpdate, onMistake
     setShowError(false);
   };
 
+  const [isSuccess, setIsSuccess] = useState(false);
+
   const checkAnswer = () => {
     if (selectedAction === 'repair_ram') {
+      setIsSuccess(true);
       if (!hasScored) {
         setHasScored(true);
         onScoreUpdate(150, 50);
@@ -59,8 +62,6 @@ export default function Level8({ isDevMode, onComplete, onScoreUpdate, onMistake
       setTimeout(() => setShowError(false), 2000);
     }
   };
-
-  const isSuccess = selectedAction === 'repair_ram';
 
   return (
     <motion.div

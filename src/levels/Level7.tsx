@@ -56,9 +56,11 @@ export default function Level7({ isDevMode, onComplete, onScoreUpdate, onMistake
   };
 
   const [hasScored, setHasScored] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
 
   const checkAnswer = () => {
     if (selectedModel === 'specialized') {
+      setIsSuccess(true);
       if (!hasScored) {
         setHasScored(true);
         onScoreUpdate(200, 0); // High score for final level
@@ -69,8 +71,6 @@ export default function Level7({ isDevMode, onComplete, onScoreUpdate, onMistake
       setTimeout(() => setShowError(false), 2000);
     }
   };
-
-  const isSuccess = selectedModel === 'specialized';
 
   return (
     <motion.div

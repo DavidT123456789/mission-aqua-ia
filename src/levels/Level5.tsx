@@ -57,9 +57,11 @@ export default function Level5({ isDevMode, onComplete, onScoreUpdate, onMistake
   };
 
   const [hasScored, setHasScored] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
 
   const checkAnswer = () => {
     if (selectedLocation === 'arctic') {
+      setIsSuccess(true);
       if (!hasScored) {
         setHasScored(true);
         onScoreUpdate(150, 60);
@@ -70,8 +72,6 @@ export default function Level5({ isDevMode, onComplete, onScoreUpdate, onMistake
       setTimeout(() => setShowError(false), 2000);
     }
   };
-
-  const isSuccess = selectedLocation === 'arctic';
 
   return (
     <motion.div

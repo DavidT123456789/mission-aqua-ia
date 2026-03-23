@@ -73,9 +73,11 @@ export default function Level6({ isDevMode, onComplete, onScoreUpdate, onMistake
   ];
 
   const [hasScored, setHasScored] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
 
   const handleSubmit = () => {
     if (selectedBlock === 1) {
+      setIsSuccess(true);
       if (!hasScored) {
         setHasScored(true);
         onScoreUpdate(150, 0); // No water saved directly here, but good for carbon
@@ -86,8 +88,6 @@ export default function Level6({ isDevMode, onComplete, onScoreUpdate, onMistake
       setTimeout(() => setShowError(false), 2000);
     }
   };
-
-  const isSuccess = selectedBlock === 1;
 
   // Generate points for the carbon intensity graph
   const graphPoints = blocks.map(b => `${(b.start / 24) * 100},${100 - (b.intensity / 250) * 100} ${(b.end / 24) * 100},${100 - (b.intensity / 250) * 100}`).join(' ');

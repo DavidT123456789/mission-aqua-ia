@@ -47,8 +47,11 @@ export default function Level9({ isDevMode, onComplete, onScoreUpdate, onMistake
     setShowError(false);
   };
 
+  const [isSuccess, setIsSuccess] = useState(false);
+
   const checkAnswer = () => {
     if (selectedPath === 'district_heating') {
+      setIsSuccess(true);
       if (!hasScored) {
         setHasScored(true);
         onScoreUpdate(200, 80);
@@ -59,8 +62,6 @@ export default function Level9({ isDevMode, onComplete, onScoreUpdate, onMistake
       setTimeout(() => setShowError(false), 2000);
     }
   };
-
-  const isSuccess = selectedPath === 'district_heating';
 
   return (
     <motion.div
