@@ -39,6 +39,14 @@ const TERMS_DICTIONARY: Record<string, { title: string; definition: string }> = 
   'Refroidissement': {
     title: 'Refroidissement liquide',
     definition: 'L\'utilisation d\'eau pour absorber la chaleur des serveurs. Cette eau s\'évapore et disparaît du cycle local.'
+  },
+  'Prompt': {
+    title: 'Prompt',
+    definition: 'Une instruction ou un texte envoyé à une IA pour obtenir une réponse ou une image spécifique.'
+  },
+  'IA Générative': {
+    title: 'IA Générative',
+    definition: 'Une technologie d\'IA capable de créer du contenu original (texte, image, son) à partir de données existantes.'
   }
 };
 
@@ -162,7 +170,7 @@ export default function TechTerm({ term, children, className = '' }: TechTermPro
               animate={{ opacity: 1, y: '-100%', x: '-50%', scale: 1 }}
               exit={{ opacity: 0, y: 'calc(-100% + 5px)', x: '-50%', scale: 0.95 }}
               transition={{ duration: 0.2 }}
-              className="w-72 p-4 bg-slate-900 border border-slate-700 rounded-lg shadow-2xl block text-left font-normal tracking-normal !fixed"
+              className="w-72 p-4 bg-slate-900 border border-slate-700 rounded-lg shadow-2xl block text-left font-normal tracking-normal absolute"
             >
               <span className="text-emerald-400 font-bold text-sm mb-1.5 flex items-center gap-2 normal-case font-sans not-italic tracking-normal">
                 {info.title}

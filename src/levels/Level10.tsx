@@ -15,6 +15,7 @@ export default function Level10({ isDevMode, onComplete, onScoreUpdate, onMistak
     { id: 3, text: 'Obligation d\'utiliser l\'eau potable pour refroidir les serveurs.', good: false },
     { id: 4, text: <>Interdiction d'entraîner des <TechTerm term="LLM">LLMs</TechTerm> géants pour des tâches simples.</>, good: true },
     { id: 5, text: <>Réutilisation obligatoire de la chaleur fatale des <TechTerm term="Datacenter">data centers</TechTerm>.</>, good: true },
+    { id: 6, text: 'Autorisation de construire des centres de données sans étude d\'impact environnemental.', good: false },
   ];
 
   const toggleClause = (id: number) => {
@@ -48,14 +49,14 @@ export default function Level10({ isDevMode, onComplete, onScoreUpdate, onMistak
       initial={{ opacity: 0, x: 50 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -50 }}
-      className="sm:bg-slate-900 border-transparent sm:border-emerald-500/30 sm:border px-0 sm:px-6 py-4 sm:py-6 sm:rounded-xl sm:shadow-2xl max-w-4xl mx-auto font-mono relative flex flex-col"
+      className="sm:bg-slate-900 border-transparent sm:border-cyan-500/20 sm:border px-0 sm:px-6 py-4 sm:py-6 sm:rounded-xl max-w-4xl mx-auto font-mono relative flex flex-col"
     >
       {isDevMode && (
         <div className="absolute top-2 right-2 bg-purple-900/80 text-purple-300 text-xs px-2 py-1 rounded border border-purple-500/50 z-50">
           Dev Réponses : Select clauses 1, 4, 5
         </div>
       )}
-      <div className="flex items-center gap-3 mb-3 border-b border-emerald-900/50 pb-3">
+      <div className="flex items-center gap-3 mb-3 border-b border-cyan-900/50 pb-3">
         <FileText className="w-8 h-8 text-emerald-400" />
         <h2 className="text-xl md:text-2xl font-bold text-white uppercase tracking-widest">
           Niveau 10 : La Charte Éthique
@@ -76,7 +77,7 @@ export default function Level10({ isDevMode, onComplete, onScoreUpdate, onMistak
       <div className="space-y-4 text-slate-300">
         <div className="bg-slate-950 p-6 rounded-xl border border-slate-800">
           <h3 className="text-center font-bold text-lg mb-6 uppercase tracking-widest text-slate-400">Projet de Loi - Article 1</h3>
-          <div className="space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {clauses.map((clause) => (
               <button
                 key={clause.id}

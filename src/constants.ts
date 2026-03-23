@@ -50,16 +50,16 @@ export const HINTS: Record<number, { free: string, paid: string }> = {
 };
 
 export const FACTS: Record<number, string> = {
-  2: "Saviez-vous que l'IA générative consomme beaucoup plus d'eau que les autres types d'IA pour refroidir ses processeurs ultra-puissants ?",
-  3: "Le 'Free Cooling' est une technique qui utilise l'air extérieur froid pour refroidir les serveurs, économisant ainsi des millions de litres d'eau.",
-  4: "Les GPU sont les moteurs de l'IA, mais ils chauffent énormément. Le refroidissement liquide est bien plus efficace que l'air pour ces composants.",
-  5: "Un seul datacenter peut consommer autant d'eau qu'une ville de 10 000 habitants en une seule journée pour ses besoins de refroidissement.",
-  6: "L'empreinte carbone du numérique mondial dépasse celle de l'aviation civile. L'optimisation est cruciale.",
-  7: "Entraîner un grand modèle de langage peut émettre autant de CO2 que 5 voitures sur toute leur durée de vie.",
-  8: "La chaleur fatale des datacenters peut être récupérée pour chauffer des serres agricoles ou des piscines municipales.",
-  9: "Les serveurs fonctionnent de manière optimale entre 18 et 27°C. Refroidir en dessous de 18°C est souvent un gaspillage d'énergie.",
-  10: "L'eau utilisée pour le refroidissement des datacenters doit être extrêmement pure pour éviter la corrosion des équipements.",
-  11: "Certains datacenters sont construits sous l'eau ou dans des pays nordiques pour profiter d'un refroidissement naturel gratuit.",
-  12: "L'optimisation logicielle (code plus efficace) peut réduire la consommation d'énergie d'un serveur jusqu'à 90%.",
-  13: "La cybersécurité est aussi une question écologique : les attaques DDoS consomment d'énormes quantités d'énergie et de bande passante."
+  2: "La génération d'images demande beaucoup de calculs. Une intelligence artificielle générative peut consommer environ un demi-litre d'eau douce (pour le refroidissement des serveurs) rien que pour créer 100 images !",
+  3: "Pour acheminer l'eau potable dans nos villes, il faut des millions de kilomètres de tuyaux. Une gestion intelligente de la pression diminue la contrainte sur ces conduites et permet d'éviter les ruptures.",
+  4: "En France, on estime qu'environ 20 % de l'eau potable produite est perdue à cause des fuites dans les réseaux de distribution (données de l'Observatoire, 2021). C'est 1 litre sur 5 qui n'arrive jamais au robinet !",
+  5: "Le 'Free Cooling' est une technique astucieuse qui utilise l'air extérieur (souvent dans les régions très froides) pour refroidir les serveurs, évitant ainsi d'utiliser de l'eau ou de puissantes climatisations.",
+  6: "L'intensité carbone représente la quantité de CO2 émise pour produire l'électricité. Planifier les gros calculs d'IA la nuit permet souvent de profiter d'une électricité 'plus verte'.",
+  7: "Entraîner un immense Modèle de Langage (LLM) peut émettre autant de CO2 que 5 voitures sur toute leur vie. Un 'Petit Modèle Spécialisé' (SLM) est souvent tout aussi performant, pour un coût écologique infime.",
+  8: "La fabrication du matériel informatique représente plus de 70 % de son empreinte carbone totale. Réparer la pièce défectueuse (comme la RAM) plutôt que de tout jeter est l'acte numérique le plus écologique.",
+  9: "La 'chaleur fatale' (ou chaleur perdue) générée par les serveurs informatiques peut être récupérée ! Plusieurs villes l'utilisent déjà pour chauffer des éco-quartiers ou des piscines municipales.",
+  10: "Le stockage de 'données mortes' (fichiers inutilisés, doublons) encombre d'immenses serveurs fonctionnant en permanence. Filtrer et supprimer les données inutiles est la base de la sobriété numérique.",
+  11: "L'empreinte carbone du secteur numérique mondial représente près de 4 % des émissions globales de gaz à effet de serre, dépassant celle de l'aviation civile (avant COVID). Les chartes éthiques deviennent vitales.",
+  12: "L'IA et le code peuvent aussi aider la planète : des algorithmes d'irrigation intelligente connectés à des capteurs d'humidité permettent de réduire la consommation d'eau agricole jusqu'à 50 % !",
+  13: "L'éco-conception d'un logiciel consiste à optimiser son code informatique. Un programme bien optimisé est non seulement plus rapide, mais il peut réduire la consommation d'énergie du serveur de 50 à 90 % !"
 };

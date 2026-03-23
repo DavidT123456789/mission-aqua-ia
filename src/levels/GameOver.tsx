@@ -6,7 +6,7 @@ export default function GameOver({ onRetry, nickname, reason = 'time' }: { onRet
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="sm:bg-slate-900 border-transparent sm:border-red-500/50 p-4 sm:p-8 sm:rounded-xl sm:shadow-[0_0_50px_rgba(239,68,68,0.2)] max-w-2xl mx-auto text-center font-mono"
+      className="sm:bg-slate-900 border-transparent sm:border-red-500/50 p-4 sm:p-8 sm:rounded-xl max-w-2xl mx-auto text-center font-mono"
     >
       <div className="flex justify-center mb-6">
         {reason === 'lives' ? (

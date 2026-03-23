@@ -1,7 +1,7 @@
-import { useRef } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Trophy, Droplets, RotateCcw, Star, Award, Clock, Download, ShieldCheck, Zap, Bot } from 'lucide-react';
-import html2canvas from 'html2canvas';
+import { toPng } from 'html-to-image';
 import TechTerm from '../components/TechTerm';
 
 interface Evaluation {
@@ -28,6 +28,29 @@ export default function Outro({ timeLeft, score, waterSaved, onRestart, nickname
   key?: string 
 }) {
   const certificateRef = useRef<HTMLDivElement>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [safeImageUrl, setSafeImageUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (imageUrl) {
+      if (imageUrl.startsWith('data:')) {
+        setSafeImageUrl(imageUrl);
+        return;
+      }
+      // Précharger l'image en base64 pour contourner les blocages CORS agressifs de html2canvas
+      fetch(imageUrl, { mode: 'cors' })
+        .then(res => res.blob())
+        .then(blob => {
+          const reader = new FileReader();
+          reader.onloadend = () => setSafeImageUrl(reader.result as string);
+          reader.readAsDataURL(blob);
+        })
+        .catch(err => {
+          console.error("Impossible de précharger l'image en Base64:", err);
+          setSafeImageUrl(imageUrl); // Fallback mais risqué pour html2canvas
+        });
+    }
+  }, [imageUrl]);
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
@@ -48,28 +71,29 @@ export default function Outro({ timeLeft, score, waterSaved, onRestart, nickname
   const grade = getGrade();
 
   const downloadFullCertificate = async () => {
-    if (!certificateRef.current) return;
+    if (!certificateRef.current || isDownloading) return;
+    setIsDownloading(true);
     
-    // Temporarily show the hidden certificate for capture
     const element = certificateRef.current;
-    element.style.display = 'block';
     
     try {
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        useCORS: true,
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      const dataUrl = await toPng(certificateRef.current, {
+        pixelRatio: 2,
         backgroundColor: '#020617',
-        logging: false,
+        width: 794,
+        height: 1123,
       });
       
       const link = document.createElement('a');
-      link.download = `CERTIFICAT_AQUA_IA_${nickname.toUpperCase()}.png`;
-      link.href = canvas.toDataURL('image/png');
+      link.download = `DOSSIER_AQUA_IA_${nickname.toUpperCase()}.png`;
+      link.href = dataUrl;
       link.click();
     } catch (err) {
       console.error("Erreur lors du téléchargement du certificat:", err);
     } finally {
-      element.style.display = 'none';
+      setIsDownloading(false);
     }
   };
 
@@ -179,7 +203,7 @@ export default function Outro({ timeLeft, score, waterSaved, onRestart, nickname
       {leaderboard && leaderboard.length > 0 && (
         <div className="max-w-xl mx-auto mb-5 bg-slate-950/50 border border-slate-800 rounded-xl p-4">
           <h3 className="text-yellow-500 font-bold uppercase tracking-widest text-sm mb-4 flex items-center justify-center gap-2">
-            <Trophy className="w-4 h-4" /> MEILLEURS AGENTS
+            <Trophy className="w-4 h-4" /> TOP 5 DES MEILLEURS AGENTS
           </h3>
           <div className="space-y-2">
             {leaderboard.map((entry, idx) => (
@@ -198,10 +222,21 @@ export default function Outro({ timeLeft, score, waterSaved, onRestart, nickname
       <motion.div variants={itemVariants} className="flex flex-col sm:flex-row gap-4 justify-center mb-10">
         <button
           onClick={downloadFullCertificate}
-          className="flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-4 rounded-xl font-black transition-all hover:scale-105 shadow-[0_0_20px_rgba(16,185,129,0.3)] active:scale-95"
+          disabled={isDownloading}
+          className={`flex items-center justify-center gap-3 relative overflow-hidden group px-8 py-4 rounded-xl font-black transition-all ${isDownloading ? 'bg-emerald-600/50 text-white/50 cursor-wait border border-emerald-500/30' : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:scale-105 active:scale-95 border-b-4 border-emerald-800'}`}
         >
-          <Download className="w-5 h-5" />
-          TÉLÉCHARGER MON DOSSIER COMPLET (A4)
+          {/* Shine effect */}
+          {!isDownloading && (
+             <div className="absolute inset-0 -translate-x-full group-hover:animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent z-0" />
+          )}
+          <span className="relative z-10 flex items-center justify-center gap-2">
+            {isDownloading ? (
+               <div className="w-5 h-5 border-[3px] border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+               <Download className="w-5 h-5 group-hover:-translate-y-1 transition-transform" />
+            )}
+            {isDownloading ? 'GÉNÉRATION EN COURS...' : 'TÉLÉCHARGER MON DOSSIER COMPLET (A4)'}
+          </span>
         </button>
         <button
           onClick={() => onRestart(nickname)}
@@ -254,131 +289,171 @@ export default function Outro({ timeLeft, score, waterSaved, onRestart, nickname
       </motion.div>
 
       {/* Hidden A4 Certificate for Download */}
-      <div style={{ display: 'none' }}>
+      <div style={{ position: 'absolute', top: '-9999px', left: '-9999px' }}>
         <div 
           ref={certificateRef}
-          className="w-[794px] min-h-[1123px] bg-slate-950 text-white p-12 relative overflow-hidden font-sans"
+          className="w-[794px] h-[1123px] bg-[#020617] text-white relative overflow-hidden font-sans flex flex-col items-stretch"
           style={{ fontFamily: 'Inter, sans-serif' }}
         >
           {/* Background Decorations */}
-          <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl -mr-32 -mt-32" />
-          <div className="absolute bottom-0 left-0 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl -ml-32 -mb-32" />
+          <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-emerald-500/10 rounded-full blur-[100px] -mr-32 -mt-32" />
+          <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-cyan-500/10 rounded-full blur-[100px] -ml-32 -mb-32" />
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-blue-500/5 rounded-full blur-[120px]" />
           
-          {/* Header */}
-          <div className="flex justify-between items-start border-b-2 border-emerald-500/30 pb-8 mb-12">
-            <div>
-              <h1 className="text-4xl font-black tracking-tighter text-emerald-400 mb-2">AQUA-IA : RAPPORT DE MISSION</h1>
-              <p className="text-slate-400 font-mono text-sm">Réf: MISSION_HYDROSAVE_2024_001</p>
-            </div>
-            <ShieldCheck className="w-16 h-16 text-emerald-400" />
-          </div>
+          <div className="absolute inset-0 border-[16px] border-[#020617] m-0 z-20 pointer-events-none" />
+          <div className="absolute inset-0 border-[3px] border-emerald-500/30 m-6 rounded-2xl pointer-events-none z-10" />
 
-          {/* Agent Info */}
-          <div className="grid grid-cols-2 gap-5 mb-12">
-            <div className="bg-slate-900/50 p-6 rounded-2xl border border-emerald-500/20">
-              <h2 className="text-xs font-bold text-emerald-500 uppercase tracking-widest mb-4">IDENTITÉ DE L'AGENT</h2>
-              <div className="text-3xl font-bold mb-2">{nickname}</div>
-              <div className={`text-xl font-bold font-mono ${grade.color}`}>{grade.title}</div>
+          <div className="flex-1 p-10 flex flex-col justify-between relative z-10 w-full h-full">
+
+            {/* Header */}
+            <div className="flex justify-between items-start border-b-2 border-emerald-500/30 pb-5 mb-6">
+              <div>
+                <div className="flex items-center gap-3 mb-1">
+                   <ShieldCheck className="w-12 h-12 text-emerald-400 drop-shadow-[0_0_15px_rgba(52,211,153,0.5)]" />
+                   <h1 className="text-4xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">RAPPORT DE MISSION</h1>
+                </div>
+                <p className="text-emerald-500/70 font-mono text-sm tracking-[0.2em] font-bold uppercase ml-[3.75rem]">AQUA-IA / HYDROSAVE_2024</p>
+              </div>
             </div>
-            <div className="bg-slate-900/50 p-6 rounded-2xl border border-emerald-500/20">
-              <h2 className="text-xs font-bold text-emerald-500 uppercase tracking-widest mb-4">STATISTIQUES DE MISSION</h2>
-              <div className="grid grid-cols-3 gap-2">
-                <div>
-                  <div className="text-[10px] text-slate-500 uppercase">Score Total</div>
-                  <div className="text-xl font-bold text-yellow-400">{score}</div>
-                </div>
-                <div>
-                  <div className="text-[10px] text-slate-500 uppercase">Temps</div>
-                  <div className="text-xl font-bold text-emerald-400">{formatTime(timeTaken)}</div>
-                </div>
-                <div>
-                  <div className="text-[10px] text-slate-500 uppercase">Eau Sauvée</div>
-                  <div className="text-xl font-bold text-cyan-400">{waterSaved}%</div>
+
+            {/* Agent Info */}
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className="bg-slate-900/60 p-5 rounded-2xl border border-emerald-500/20 backdrop-blur-xl shadow-lg relative overflow-hidden group">
+                <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent z-0" />
+                <h2 className="text-[9px] font-bold text-emerald-500 uppercase tracking-widest mb-3 relative z-10 flex items-center gap-2">
+                   <Bot className="w-4 h-4" /> IDENTITÉ DE L'AGENT
+                </h2>
+                <div className="text-3xl font-black mb-1 uppercase tracking-tight relative z-10 text-white drop-shadow-md">{nickname}</div>
+                <div className={`text-lg font-bold font-mono tracking-widest relative z-10 ${grade.color}`}>{grade.title}</div>
+              </div>
+              
+              <div className="bg-slate-900/60 p-5 rounded-2xl border border-cyan-500/20 backdrop-blur-xl shadow-lg relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 to-transparent z-0" />
+                <h2 className="text-[9px] font-bold text-cyan-500 uppercase tracking-widest mb-3 relative z-10 flex items-center gap-2">
+                   <Trophy className="w-4 h-4" /> STATISTIQUES GLOBALES
+                </h2>
+                <div className="grid grid-cols-3 gap-2 relative z-10">
+                  <div className="text-center bg-slate-950/50 p-3 rounded-xl border border-slate-800">
+                    <div className="text-lg font-black text-yellow-400 mb-0.5">{score}</div>
+                    <div className="text-[9px] text-slate-500 uppercase tracking-wider font-bold">Score Total</div>
+                  </div>
+                  <div className="text-center bg-slate-950/50 p-3 rounded-xl border border-slate-800">
+                    <div className="text-lg font-black text-emerald-400 mb-0.5">{formatTime(timeTaken)}</div>
+                    <div className="text-[9px] text-slate-500 uppercase tracking-wider font-bold">Temps</div>
+                  </div>
+                  <div className="text-center bg-slate-950/50 p-3 rounded-xl border border-slate-800">
+                    <div className="text-lg font-black text-cyan-400 mb-0.5">{waterSaved}%</div>
+                    <div className="text-[9px] text-slate-500 uppercase tracking-wider font-bold">Eau Sauvée</div>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Innovation Section */}
-          {evaluation && (
-            <div className="mb-12">
-              <h2 className="text-xs font-bold text-cyan-500 uppercase tracking-widest mb-6 flex items-center gap-2">
-                <Zap className="w-4 h-4" /> DOSSIER D'INNOVATION TECHNOLOGIQUE
-              </h2>
-              <div className="grid grid-cols-3 gap-5">
-                <div className="col-span-2 space-y-4">
-                  <div className="bg-slate-900/80 p-6 rounded-2xl border border-cyan-500/30">
-                    <h3 className="text-2xl font-bold text-white mb-2">{evaluation.title}</h3>
-                    <p className="text-slate-300 leading-relaxed mb-6 italic">"{evaluation.description}"</p>
-                    
-                    <div className="grid grid-cols-4 gap-4">
-                      <div className="text-center">
-                        <div className="text-[10px] text-slate-500 uppercase mb-1">Impact</div>
-                        <div className="font-bold text-emerald-400">{evaluation.impact}/10</div>
+            {/* Innovation Section */}
+            {evaluation && (
+              <div className="mb-6 pl-1">
+                <h2 className="text-[10px] font-bold text-cyan-400 uppercase tracking-[0.2em] mb-3 flex items-center gap-3">
+                  <Zap className="w-4 h-4 text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.5)]" /> 
+                  PROJET : LABORATOIRE D'INNOVATION
+                </h2>
+                <div className="grid grid-cols-[3fr_2fr] gap-4">
+                  <div className="space-y-3">
+                    <div className="bg-slate-900/80 p-5 rounded-2xl border border-cyan-500/30 shadow-[0_0_30px_rgba(34,211,238,0.05)]">
+                      <h3 className="text-xl font-black text-white mb-2 uppercase tracking-tight">{evaluation.title}</h3>
+                      <p className="text-slate-300 leading-snug mb-4 italic text-[13px] border-l-2 border-emerald-500/50 pl-3 py-1">"{evaluation.description}"</p>
+                      
+                      <div className="flex gap-3 mb-3">
+                         <div className="flex-1 bg-slate-950/80 p-2.5 rounded-xl border border-slate-800 flex justify-between items-center transition-all hover:border-emerald-500/50">
+                            <span className="text-[9px] text-slate-400 uppercase font-mono">Impact</span>
+                            <span className="font-black text-emerald-400 text-base">{evaluation.impact}/10</span>
+                         </div>
+                         <div className="flex-1 bg-slate-950/80 p-2.5 rounded-xl border border-slate-800 flex justify-between items-center transition-all hover:border-blue-500/50">
+                            <span className="text-[9px] text-slate-400 uppercase font-mono">Faisabilité</span>
+                            <span className="font-black text-blue-400 text-base">{evaluation.feasibility}/10</span>
+                         </div>
                       </div>
-                      <div className="text-center">
-                        <div className="text-[10px] text-slate-500 uppercase mb-1">Faisabilité</div>
-                        <div className="font-bold text-blue-400">{evaluation.feasibility}/10</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-[10px] text-slate-500 uppercase mb-1">Rigueur</div>
-                        <div className="font-bold text-purple-400">{evaluation.precision}/10</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-[10px] text-slate-500 uppercase mb-1">Score IA</div>
-                        <div className="font-bold text-yellow-400">{evaluation.score}%</div>
+                      <div className="flex gap-3">
+                         <div className="flex-1 bg-slate-950/80 p-2.5 rounded-xl border border-slate-800 flex justify-between items-center transition-all hover:border-purple-500/50">
+                            <span className="text-[9px] text-slate-400 uppercase font-mono">Rigueur</span>
+                            <span className="font-black text-purple-400 text-base">{evaluation.precision}/10</span>
+                         </div>
+                         <div className="flex-1 bg-slate-950/80 p-2.5 rounded-xl border border-yellow-500/20 flex justify-between items-center shadow-[inset_0_0_15px_rgba(234,179,8,0.1)]">
+                            <span className="text-[9px] text-yellow-500 uppercase font-mono font-bold">Score Global</span>
+                            <span className="font-black text-yellow-400 text-lg">{evaluation.score}%</span>
+                         </div>
                       </div>
                     </div>
+                    
+                    <div className="bg-emerald-950/40 p-4 rounded-2xl border border-emerald-500/30 flex items-center justify-between shadow-[0_0_20px_rgba(16,185,129,0.1)] relative overflow-hidden">
+                      <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMiIgY3k9IjIiIHI9IjEiIGZpbGw9InJnYmEoMTYsMTg1LDEyOSwwLjIpIi8+PC9zdmc+')] opacity-50 mix-blend-overlay" />
+                      <span className="text-[9px] text-emerald-400 font-bold uppercase tracking-widest font-mono z-10 w-24 leading-snug">Épargne Projetée</span>
+                      <span className="text-2xl font-black text-emerald-400 z-10 drop-shadow-sm">{evaluation.waterSaved} <span className="text-sm text-emerald-500/70">L/AN</span></span>
+                    </div>
                   </div>
-                  <div className="bg-emerald-950/20 p-4 rounded-xl border border-emerald-500/20 flex items-center justify-between">
-                    <span className="text-emerald-400 font-bold">EAU ÉCONOMISÉE ESTIMÉE :</span>
-                    <span className="text-2xl font-black text-emerald-400">{evaluation.waterSaved} L / AN</span>
+                  
+                  <div className="bg-slate-900 rounded-2xl border border-cyan-500/20 shadow-[0_0_20px_rgba(34,211,238,0.1)] overflow-hidden flex items-center justify-center relative p-2 h-full">
+                     <div className="absolute inset-0 bg-gradient-to-tr from-cyan-500/20 to-emerald-500/5 z-0" />
+                    {safeImageUrl || imageUrl ? (
+                      <img src={safeImageUrl || imageUrl || ''} alt="Prototype" className="w-full h-full object-cover rounded-xl relative z-10" crossOrigin="anonymous" referrerPolicy="no-referrer" />
+                    ) : (
+                      <div className="text-center relative z-10">
+                        <Bot className="w-16 h-16 text-cyan-500/30 mx-auto mb-3" />
+                        <span className="text-[10px] text-cyan-500/50 uppercase tracking-widest font-mono">Image non disponible</span>
+                      </div>
+                    )}
                   </div>
                 </div>
-                <div className="bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden flex items-center justify-center min-h-[200px]">
-                  {imageUrl ? (
-                    <img src={imageUrl} alt="Prototype" className="w-full h-full object-cover" crossOrigin="anonymous" referrerPolicy="no-referrer" />
-                  ) : (
-                    <Bot className="w-12 h-12 text-slate-800" />
-                  )}
+              </div>
+            )}
+
+            {/* Learnings Section */}
+            <div className="mt-auto pl-1">
+              <h2 className="text-[10px] font-bold text-emerald-500 uppercase tracking-[0.2em] mb-3 flex items-center gap-3">
+                 <Award className="w-4 h-4" /> COMPÉTENCES ACQUISES
+              </h2>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-slate-900/40 p-3 rounded-xl border border-slate-800 relative group overflow-hidden transition-colors hover:bg-slate-800/60 hover:border-emerald-500/30">
+                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500/50" />
+                  <h4 className="font-bold text-white text-xs mb-1 pl-2">Écoconception Numérique</h4>
+                  <p className="text-[10px] text-slate-400 pl-2 leading-tight">Compréhension de l'impact des datacenters et des méthodes de refroidissement durable.</p>
+                </div>
+                <div className="bg-slate-900/40 p-3 rounded-xl border border-slate-800 relative group overflow-hidden transition-colors hover:bg-slate-800/60 hover:border-cyan-500/30">
+                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-cyan-500/50" />
+                  <h4 className="font-bold text-white text-xs mb-1 pl-2">Sobriété de l'IA</h4>
+                  <p className="text-[10px] text-slate-400 pl-2 leading-tight">Capacité à choisir le bon modèle pour le bon usage et à optimiser les données.</p>
+                </div>
+                <div className="bg-slate-900/40 p-3 rounded-xl border border-slate-800 relative group overflow-hidden transition-colors hover:bg-slate-800/60 hover:border-blue-500/30">
+                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500/50" />
+                  <h4 className="font-bold text-white text-xs mb-1 pl-2">Économie Circulaire</h4>
+                  <p className="text-[10px] text-slate-400 pl-2 leading-tight">Gestion du cycle de vie du matériel et valorisation de la chaleur fatale (Energy Reuse).</p>
+                </div>
+                <div className="bg-slate-900/40 p-3 rounded-xl border border-slate-800 relative group overflow-hidden transition-colors hover:bg-slate-800/60 hover:border-purple-500/30">
+                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-purple-500/50" />
+                  <h4 className="font-bold text-white text-xs mb-1 pl-2">Éthique Environnementale</h4>
+                  <p className="text-[10px] text-slate-400 pl-2 leading-tight">Sensibilisation à la responsabilité des créateurs d'IA face à l'épuisement des ressources.</p>
                 </div>
               </div>
             </div>
-          )}
 
-          {/* Learnings Section */}
-          <div className="mt-auto">
-            <h2 className="text-xs font-bold text-emerald-500 uppercase tracking-widest mb-6">COMPÉTENCES ACQUISES</h2>
-            <div className="grid grid-cols-2 gap-6">
-              <div className="bg-slate-900/30 p-4 rounded-xl border border-slate-800">
-                <h4 className="font-bold text-white text-sm mb-1">Écoconception Numérique</h4>
-                <p className="text-[10px] text-slate-400">Compréhension de l'impact des datacenters et des méthodes de refroidissement durable.</p>
+            {/* Footer */}
+            <div className="mt-6 pt-6 border-t border-slate-800 flex justify-between items-end relative">
+              <div className="text-[10px] text-slate-500 font-mono">
+                GÉNÉRÉ PAR SYSTÈME // NAÏA-OS V1.4<br />
+                © 2024 Aqua-IA Education Program
               </div>
-              <div className="bg-slate-900/30 p-4 rounded-xl border border-slate-800">
-                <h4 className="font-bold text-white text-sm mb-1">Sobriété de l'IA</h4>
-                <p className="text-[10px] text-slate-400">Capacité à choisir le bon modèle pour le bon usage et à optimiser les données.</p>
+              
+              <div className="w-32 h-32 absolute left-1/2 -translate-x-1/2 -bottom-4 opacity-10 pointer-events-none">
+                 <ShieldCheck className="w-full h-full text-white" />
               </div>
-              <div className="bg-slate-900/30 p-4 rounded-xl border border-slate-800">
-                <h4 className="font-bold text-white text-sm mb-1">Économie Circulaire</h4>
-                <p className="text-[10px] text-slate-400">Gestion du cycle de vie du matériel et valorisation de la chaleur fatale.</p>
-              </div>
-              <div className="bg-slate-900/30 p-4 rounded-xl border border-slate-800">
-                <h4 className="font-bold text-white text-sm mb-1">Éthique Environnementale</h4>
-                <p className="text-[10px] text-slate-400">Sensibilisation à la responsabilité des créateurs d'IA face aux ressources naturelles.</p>
-              </div>
-            </div>
-          </div>
 
-          {/* Footer */}
-          <div className="mt-12 pt-8 border-t border-slate-800 flex justify-between items-end">
-            <div className="text-[10px] text-slate-500">
-              Généré par NAÏA - Système de Protection des Ressources<br />
-              © 2024 Aqua-IA Education Program
+              <div className="text-right">
+                <div className="text-[9px] text-cyan-500/70 shadow-sm uppercase mb-2 font-bold tracking-widest border border-cyan-500/20 px-2 py-1 rounded inline-block bg-cyan-950/30">
+                   Signature Numérique Validée
+                </div>
+                <div className="font-mono text-emerald-400 text-[10px] tracking-[0.2em] uppercase">NAIA_AUTH_TOKEN_OX45FA9</div>
+              </div>
             </div>
-            <div className="text-right">
-              <div className="text-[10px] text-slate-500 uppercase mb-2">Signature de l'IA Centrale</div>
-              <div className="font-mono text-emerald-400 text-xs tracking-widest">NAIA_AUTH_TOKEN_VALIDATED</div>
-            </div>
+
           </div>
         </div>
       </div>

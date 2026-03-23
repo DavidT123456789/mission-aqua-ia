@@ -17,7 +17,7 @@ export default function Intro({ onStart, hasSavedGame, onLoadGame, onClearSave }
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, y: -20 }}
-      className="sm:bg-slate-900/90 border-transparent sm:border-emerald-500/20 p-4 sm:p-8 sm:rounded-xl sm:shadow-2xl max-w-2xl mx-auto backdrop-blur-xl"
+      className="sm:bg-slate-900/90 border-transparent sm:border-cyan-500/20 p-4 sm:p-8 sm:rounded-xl max-w-2xl mx-auto backdrop-blur-xl"
     >
       <div className="flex flex-col items-center text-center space-y-4">
         <div className="p-4 bg-emerald-950/50 rounded-full border border-emerald-500/50">
@@ -39,8 +39,8 @@ export default function Intro({ onStart, hasSavedGame, onLoadGame, onClearSave }
             Votre mission : infiltrer le système à travers 12 niveaux de sécurité, stopper l'hémorragie, et accéder à l'Innovation Lab pour reprogrammer HYDRA afin qu'elle nous aide à économiser l'eau et l'énergie au lieu de les gaspiller.
           </p>
           
-          <div className="mt-5 p-6 bg-slate-950/50 rounded-xl border border-emerald-500/20 space-y-4">
-            <label className="block text-emerald-400 font-mono text-sm uppercase tracking-widest text-center">
+            <div className="mt-5 p-6 bg-slate-950/50 rounded-xl border border-cyan-500/20 space-y-4">
+            <label className="block text-cyan-400 font-mono text-sm uppercase tracking-widest text-center">
               IDENTIFICATION DE L'AGENT
             </label>
             <input
@@ -48,7 +48,7 @@ export default function Intro({ onStart, hasSavedGame, onLoadGame, onClearSave }
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Entrez votre pseudo"
-              className="w-full bg-slate-900 border border-emerald-500/30 rounded-lg px-4 py-3 text-white text-center focus:outline-none focus:border-emerald-500 transition-colors"
+              className="w-full bg-slate-900 border border-cyan-500/30 rounded-lg px-4 py-3 text-white text-center focus:outline-none focus:border-cyan-500 transition-colors"
               maxLength={20}
             />
           </div>

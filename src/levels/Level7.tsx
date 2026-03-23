@@ -78,14 +78,14 @@ export default function Level7({ isDevMode, onComplete, onScoreUpdate, onMistake
       initial={{ opacity: 0, x: 50 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -50 }}
-      className="sm:bg-slate-900 border-transparent sm:border-emerald-500/30 sm:border px-0 sm:px-6 py-4 sm:py-6 sm:rounded-xl sm:shadow-2xl max-w-4xl mx-auto font-mono relative flex flex-col"
+      className="sm:bg-slate-900 border-transparent sm:border-cyan-500/20 sm:border px-0 sm:px-6 py-4 sm:py-6 sm:rounded-xl max-w-4xl mx-auto font-mono relative flex flex-col"
     >
       {isDevMode && (
         <div className="absolute top-2 right-2 bg-purple-900/80 text-purple-300 text-xs px-2 py-1 rounded border border-purple-500/50 z-50">
           Dev Réponses : Réparer (repair_ram)
         </div>
       )}
-      <div className="flex items-center gap-3 mb-3 border-b border-emerald-900/50 pb-3">
+      <div className="flex items-center gap-3 mb-3 border-b border-cyan-900/50 pb-3">
         <Server className="w-8 h-8 text-emerald-400" />
         <h2 className="text-xl md:text-2xl font-bold text-white uppercase tracking-widest">
           Niveau 7 : Cycle de Vie du Matériel
@@ -136,7 +136,7 @@ export default function Level7({ isDevMode, onComplete, onScoreUpdate, onMistake
           </div>
 
           {/* Actions */}
-          <div className="w-full lg:w-1/2 flex flex-col gap-4">
+          <div className="w-full lg:w-1/2 grid grid-cols-1 sm:grid-cols-2 gap-4">
             {actions.map((action) => {
               const Icon = action.icon;
               const isSelected = selectedAction === action.id;
@@ -144,7 +144,7 @@ export default function Level7({ isDevMode, onComplete, onScoreUpdate, onMistake
                 <button
                   key={action.id}
                   onClick={() => handleSelect(action.id)}
-                  className={`relative p-4 rounded-xl border-2 text-left transition-all duration-300 flex items-center gap-4 ${
+                  className={`relative p-4 rounded-xl border-2 text-center transition-all duration-300 flex flex-col items-center gap-3 ${
                     isSelected 
                       ? `${action.bg} ${action.border} scale-[1.02]` 
                       : 'bg-slate-950 border-slate-800 hover:border-slate-600'
@@ -153,11 +153,11 @@ export default function Level7({ isDevMode, onComplete, onScoreUpdate, onMistake
                   <div className={`p-3 rounded-full ${isSelected ? 'bg-slate-900' : 'bg-slate-900/50'}`}>
                     <Icon className={`w-6 h-6 ${isSelected ? action.color : 'text-slate-500'}`} />
                   </div>
-                  <div className="flex-1">
+                  <div className="flex-1 flex flex-col items-center">
                     <h3 className={`font-bold ${isSelected ? 'text-white' : 'text-slate-300'}`}>{action.name}</h3>
                     <p className="text-xs text-slate-400 mt-1">{action.desc}</p>
-                    <div className="mt-2 text-xs font-bold text-blue-400">
-                      Coût en eau (fabrication) : {action.waterCost}
+                    <div className="mt-2 text-[10px] xl:text-xs font-bold text-blue-400">
+                      Coût : {action.waterCost}
                     </div>
                   </div>
                 </button>

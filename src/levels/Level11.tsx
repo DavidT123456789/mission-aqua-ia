@@ -190,14 +190,14 @@ export default function Level11({ isDevMode, onComplete, onScoreUpdate, onMistak
       initial={{ opacity: 0, x: 50 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -50 }}
-      className="sm:bg-slate-900 border-transparent sm:border-emerald-500/30 sm:border px-0 sm:px-6 py-4 sm:py-6 sm:rounded-xl sm:shadow-2xl max-w-4xl mx-auto font-mono relative flex flex-col"
+      className="sm:bg-slate-900 border-transparent sm:border-cyan-500/20 sm:border px-0 sm:px-6 py-4 sm:py-6 sm:rounded-xl max-w-4xl mx-auto font-mono relative flex flex-col"
     >
       {isDevMode && (
         <div className="absolute top-2 right-2 bg-purple-900/80 text-purple-300 text-xs px-2 py-1 rounded border border-purple-500/50 z-50">
           Dev Réponses : 1:capteur, 2:previsions, 3:seuil, 4:or, 5:False, 6:eau, 7:True, 8:aube
         </div>
       )}
-      <div className="flex items-center gap-3 mb-3 border-b border-emerald-900/50 pb-3">
+      <div className="flex items-center gap-3 mb-3 border-b border-cyan-900/50 pb-3">
         <Cpu className="w-8 h-8 text-emerald-400" />
         <h2 className="text-xl md:text-2xl font-bold text-white uppercase tracking-widest">
           Niveau 11 : L'Algorithme d'Arrosage
@@ -207,7 +207,8 @@ export default function Level11({ isDevMode, onComplete, onScoreUpdate, onMistak
       <div className="mb-3">
         <NaiaDialogue message={
           <>
-            Le système HYDRA est optimisé et la Charte est posée. Il est temps d'agir. L'agriculture consomme <strong>70% de l'eau douce mondiale</strong>. Déployons l'algorithme agricole mondial pour résoudre la crise. Mon code est <strong>incomplet</strong> ! Aidez-moi à le réparer.
+            <span className="text-red-400 font-bold block mb-2 uppercase tracking-widest text-xs">⚠️ Alerte : Interfaces simplifiées verrouillées</span>
+            Agent, le pare-feu d'HYDRA a neutralisé nos raccourcis visuels. Vous devez maintenant interagir directement avec le <strong>code source du noyau</strong> ! L'agriculture consomme <strong>70% de l'eau douce mondiale</strong>. Déployons notre algorithme Python pour stopper l'hémorragie. Mon code est <strong>incomplet</strong>. Reconstruisez-le avec précision !
           </>
         } />
       </div>
@@ -247,7 +248,7 @@ export default function Level11({ isDevMode, onComplete, onScoreUpdate, onMistak
           </div>
         </div>
 
-        <div className="text-center mb-4 p-3 bg-emerald-950/30 border border-emerald-500/20 rounded-lg text-sm">
+        <div className="text-center mb-4 p-3 bg-emerald-950/30 border border-cyan-500/20 rounded-lg text-sm">
           👆 <strong>Mission :</strong> Complétez le code ci-dessous. Vous pouvez soit <strong>prendre une étiquette</strong> puis cliquer sur un espace, soit <strong>sélectionner un espace</strong> <span className="inline-block w-8 h-4 border border-dashed border-emerald-500 mx-1"></span> puis choisir une étiquette.
         </div>
 

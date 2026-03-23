@@ -77,14 +77,14 @@ export default function Level6({ isDevMode, onComplete, onScoreUpdate, onMistake
       initial={{ opacity: 0, x: 50 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -50 }}
-      className="sm:bg-slate-900 border-transparent sm:border-emerald-500/30 sm:border px-0 sm:px-6 py-4 sm:py-6 sm:rounded-xl sm:shadow-2xl max-w-4xl mx-auto font-mono relative flex flex-col"
+      className="sm:bg-slate-900 border-transparent sm:border-cyan-500/20 sm:border px-0 sm:px-6 py-4 sm:py-6 sm:rounded-xl max-w-4xl mx-auto font-mono relative flex flex-col"
     >
       {isDevMode && (
         <div className="absolute top-2 right-2 bg-purple-900/80 text-purple-300 text-xs px-2 py-1 rounded border border-purple-500/50 z-50">
           Dev Réponses : Modèle Spécialisé (specialized)
         </div>
       )}
-      <div className="flex items-center gap-3 mb-3 border-b border-emerald-900/50 pb-3">
+      <div className="flex items-center gap-3 mb-3 border-b border-cyan-900/50 pb-3">
         <Scale className="w-8 h-8 text-emerald-400" />
         <h2 className="text-xl md:text-2xl font-bold text-white uppercase tracking-widest">
           Niveau 6 : Sobriété Algorithmique
@@ -110,7 +110,7 @@ export default function Level6({ isDevMode, onComplete, onScoreUpdate, onMistake
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 mt-5">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-5">
           {models.map((model) => {
             const isSelected = selectedModel === model.id;
             const Icon = model.icon;
@@ -119,7 +119,7 @@ export default function Level6({ isDevMode, onComplete, onScoreUpdate, onMistake
               <button
                 key={model.id}
                 onClick={() => handleSelect(model.id)}
-                className={`relative p-5 rounded-xl border-2 text-left transition-all duration-300 flex flex-col md:flex-row items-start md:items-center gap-6 ${
+                className={`relative p-5 rounded-xl border-2 text-center transition-all duration-300 flex flex-col items-center gap-4 ${
                   isSelected 
                     ? `${model.bg} ${model.border} scale-[1.02] z-10` 
                     : 'bg-slate-950 border-slate-800 hover:border-slate-600'

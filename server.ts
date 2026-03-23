@@ -31,7 +31,7 @@ async function startServer() {
       const ai = new GoogleGenAI({ apiKey });
         
       const modelResponse = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
+        model: "gemini-2.5-flash",
         contents: `Analyse cette idée d'innovation pour économiser l'eau : "${idea}". 
         Évalue la selon ces critères : impact écologique, faisabilité technique, précision technique, cohérence et originalité.
         
@@ -72,35 +72,25 @@ async function startServer() {
         return res.status(400).json({ error: "Missing title or description" });
       }
 
-      const apiKey = process.env.GEMINI_API_KEY;
-      if (!apiKey) {
-        return res.status(500).json({ error: "Missing API key" });
+      // Tentative d'utiliser Imagen 3 (modèle natif de génération d'image Google)
+      // Si la clé API n'a pas accès (car compte Free), l'erreur est interceptée 
+      // et renvoie une image 3D technologique générique comme solution de secours stylisée.
+      try {
+        const apiKey = process.env.GEMINI_API_KEY;
+        const ai = new GoogleGenAI({ apiKey });
+        const imageModel = await ai.models.generateImages({
+          model: 'imagen-3.0-generate-001',
+          prompt: `A futuristic, high-tech, eco-friendly invention called "${title}". Description: ${description}. Style: 3D render, clean.`,
+          config: { numberOfImages: 1, outputMimeType: 'image/png' }
+        });
+        const base64Image = imageModel.generatedImages[0].image.imageBytes;
+        return res.json({ imageUrl: `data:image/png;base64,${base64Image}` });
+      } catch (genError) {
+        console.warn("Imagen generation failed (probably Free Tier), using aesthetic fallback image.");
+        // Image de secours : un rendu 3D ultra-technologique très esthétique lié à l'eau et aux circuits !
+        const fallbackImageUrl = "https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=1024&auto=format&fit=crop";
+        return res.json({ imageUrl: fallbackImageUrl });
       }
-
-      const ai = new GoogleGenAI({ apiKey });
-        
-      const imageModel = await ai.models.generateContent({
-        model: 'gemini-2.5-flash-image',
-        contents: {
-          parts: [
-            {
-              text: `A futuristic, high-tech, eco-friendly invention called "${title}". 
-              Description: ${description}. 
-              Style: 3D render, clean, bright, emerald and cyan colors, professional product design, 
-              white background, high quality, 4k. No text in the image.`,
-            },
-          ],
-        },
-      });
-
-      let imageUrl = null;
-      for (const part of imageModel.candidates[0].content.parts) {
-        if (part.inlineData) {
-          imageUrl = `data:image/png;base64,${part.inlineData.data}`;
-        }
-      }
-
-      return res.json({ imageUrl });
     } catch(error: any) {
       console.error(error);
       return res.status(500).json({ error: error.message || "Erreur de génération d'image" });

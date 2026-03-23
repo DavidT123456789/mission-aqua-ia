@@ -78,14 +78,14 @@ export default function Level8({ isDevMode, onComplete, onScoreUpdate, onMistake
       initial={{ opacity: 0, x: 50 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -50 }}
-      className="sm:bg-slate-900 border-transparent sm:border-emerald-500/30 sm:border px-0 sm:px-6 py-4 sm:py-6 sm:rounded-xl sm:shadow-2xl max-w-4xl mx-auto font-mono relative flex flex-col"
+      className="sm:bg-slate-900 border-transparent sm:border-cyan-500/20 sm:border px-0 sm:px-6 py-4 sm:py-6 sm:rounded-xl max-w-4xl mx-auto font-mono relative flex flex-col"
     >
       {isDevMode && (
         <div className="absolute top-2 right-2 bg-purple-900/80 text-purple-300 text-xs px-2 py-1 rounded border border-purple-500/50 z-50">
           Dev Réponses : Réseau de Chaleur Urbain (district_heating)
         </div>
       )}
-      <div className="flex items-center gap-3 mb-3 border-b border-emerald-900/50 pb-3">
+      <div className="flex items-center gap-3 mb-3 border-b border-cyan-900/50 pb-3">
         <Flame className="w-8 h-8 text-emerald-400" />
         <h2 className="text-xl md:text-2xl font-bold text-white uppercase tracking-widest">
           Niveau 8 : Valorisation Thermique
@@ -106,21 +106,21 @@ export default function Level8({ isDevMode, onComplete, onScoreUpdate, onMistake
       <div className="space-y-4 text-slate-300">
         <div className="flex flex-col lg:flex-row gap-5 mt-5">
           {/* Left: Choice cards */}
-          <div className="w-full lg:w-1/2 flex flex-col gap-4">
+          <div className="w-full lg:w-1/2 grid grid-cols-1 sm:grid-cols-2 gap-4">
             {paths.map((path) => {
               const isSelected = selectedPath === path.id;
               return (
                 <button
                   key={path.id}
                   onClick={() => handleSelect(path.id)}
-                  className={`relative flex flex-col p-5 rounded-xl border-2 text-left transition-all duration-300 ${
+                  className={`relative flex flex-col p-4 rounded-xl border-2 text-center transition-all duration-300 ${
                     isSelected 
                       ? `${path.bg} ${path.border} scale-[1.02] z-10` 
                       : 'bg-slate-950 border-slate-800 hover:border-slate-600'
                   }`}
                 >
-                  <h3 className={`font-bold text-lg mb-2 ${isSelected ? 'text-white' : 'text-slate-300'}`}>{path.name}</h3>
-                  <p className="text-sm text-slate-400 mb-4 flex-grow">{path.desc}</p>
+                  <h3 className={`font-bold text-base mb-2 ${isSelected ? 'text-white' : 'text-slate-300'}`}>{path.name}</h3>
+                  <p className="text-xs text-slate-400 mb-4 flex-grow">{path.desc}</p>
                   
                   <div className="space-y-2 w-full">
                     <div className="flex justify-between items-center text-xs">

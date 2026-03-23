@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Terminal, Droplets, Clock, Star, Activity, Heart, Bug, X, FastForward, HelpCircle, Volume2, VolumeX, Lock } from 'lucide-react';
 import confetti from 'canvas-confetti';
@@ -57,6 +57,7 @@ export default function App() {
   const [pendingLevel, setPendingLevel] = useState<number | null>(null);
   const [lastPointsGained, setLastPointsGained] = useState(0);
   const [lastTimeRemaining, setLastTimeRemaining] = useState(0);
+  const [levelBonusScore, setLevelBonusScore] = useState(0);
 
   useEffect(() => {
     soundManager.setMuted(isMuted);
@@ -133,6 +134,35 @@ export default function App() {
     }
   }, [level, score, waterSaved, lives, timeLeft, nickname, discoveredTerms, unlockedFreeHints, unlockedPaidHints]);
 
+  useEffect(() => {
+    if (level === 14) {
+      setIsActive(false); // Arrête le timer
+      setHasSavedGame(false);
+      localStorage.removeItem('hydrosave_progress');
+
+      // Ajout du score au leaderboard de façon résiliente avec garantie d'utilisation des données les plus à jour (sans stale closure)
+      setLeaderboard((prevBoard) => {
+        const newEntry = { name: nickname || 'Agent Anonyme', score };
+        
+        // On évite les doublons stricts (même nom, même score) pour prévenir les soucis en mode dev (Strict Mode de React)
+        // et éviter d'inonder le leaderboard avec la même performance
+        const isDuplicate = prevBoard.some(entry => entry.score === newEntry.score && entry.name === newEntry.name);
+        
+        let updated;
+        if (isDuplicate) {
+           updated = prevBoard;
+        } else {
+           updated = [...prevBoard, newEntry]
+              .sort((a, b) => b.score - a.score)
+              .slice(0, 5); // Limite au Top 5
+        }
+        
+        localStorage.setItem('hydrosave_leaderboard', JSON.stringify(updated));
+        return updated;
+      });
+    }
+  }, [level, nickname, score]);
+
   const loadGame = () => {
     const saved = localStorage.getItem('hydrosave_progress');
     if (saved) {
@@ -156,15 +186,31 @@ export default function App() {
     setHasSavedGame(false);
   };
 
+  const discoveredTermsRef = useRef<string[]>([]);
+  useEffect(() => {
+    // Keep ref in sync for the event listener to check without side-effects in updaters
+    discoveredTermsRef.current = discoveredTerms;
+  }, [discoveredTerms]);
+
   useEffect(() => {
     const handleDiscovery = (e: any) => {
       const term = e.detail;
+      
+      // Check ref synchronously to prevent double-processing during rapid events or Strict Mode
+      if (discoveredTermsRef.current.includes(term)) return;
+      
+      // Immediately track it to prevent multiple executions for the same event
+      discoveredTermsRef.current = [...discoveredTermsRef.current, term];
+
       setDiscoveredTerms(prev => {
         if (prev.includes(term)) return prev;
         return [...prev, term];
       });
-      // Dispatch after state update to avoid setState during render
-      setTimeout(() => window.dispatchEvent(new CustomEvent('glossaryPlusOne')), 0);
+
+      setScore(s => s + 10);
+      setLevelBonusScore(prev => prev + 10);
+      soundManager.playSuccess();
+      window.dispatchEvent(new CustomEvent('glossaryPlusOne'));
     };
     window.addEventListener('discoverTerm', handleDiscovery);
     return () => window.removeEventListener('discoverTerm', handleDiscovery);
@@ -209,6 +255,7 @@ export default function App() {
     setTimeLeft(1800);
     setUnlockedFreeHints([]);
     setUnlockedPaidHints([]);
+    setLevelBonusScore(0);
     setFinalEvaluation(null);
     setFinalImageUrl(null);
     soundManager.playStart();
@@ -230,16 +277,7 @@ export default function App() {
     setLevel((l) => {
       const next = l + 1;
       if (next === 14) {
-        setIsActive(false); // Stop timer on win
-        // Update Leaderboard
-        const newEntry = { name: nickname || 'Agent Anonyme', score };
-        const updatedLeaderboard = [...leaderboard, newEntry]
-          .sort((a, b) => b.score - a.score)
-          .slice(0, 5);
-        setLeaderboard(updatedLeaderboard);
-        localStorage.setItem('hydrosave_leaderboard', JSON.stringify(updatedLeaderboard));
-        localStorage.removeItem('hydrosave_progress');
-        setHasSavedGame(false);
+        // L'enregistrement du leaderboard se fera via un useEffect plus robuste
         return next;
       }
 
@@ -260,6 +298,7 @@ export default function App() {
 
   const handleTransitionComplete = () => {
     setIsTransitioning(false);
+    setLevelBonusScore(0);
     if (pendingLevel !== null) {
       setLevel(pendingLevel);
       setPendingLevel(null);
@@ -269,7 +308,7 @@ export default function App() {
   const handleScoreUpdate = (points: number, water: number) => {
     setScore((s) => s + points);
     setWaterSaved(water);
-    setLastPointsGained(points);
+    setLastPointsGained(points + levelBonusScore);
   };
 
   const handleMistake = () => {
@@ -467,6 +506,7 @@ export default function App() {
                   { term: 'Machine Learning', title: 'Apprentissage Automatique', def: 'Technique d\'IA où l\'ordinateur apprend à partir de données.' },
                   { term: 'Prompt', title: 'Prompt', def: 'Instruction ou texte envoyé à une IA pour obtenir une réponse ou une image.' },
                   { term: 'IA Générative', title: 'IA Générative', def: 'IA capable de créer du contenu original (texte, image, son) à partir de données existantes.' },
+                  { term: 'Serveur', title: 'Serveur', def: 'Ordinateur puissant qui fournit des services ou des données à d\'autres ordinateurs.' },
                 ].map((item) => {
                   const isDiscovered = discoveredTerms.includes(item.term) || isDevMode;
                   return (
