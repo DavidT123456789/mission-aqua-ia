@@ -1,51 +1,51 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Server, CheckCircle2, AlertTriangle, Wrench, Trash2, Cpu, MemoryStick, HardDrive, Recycle } from 'lucide-react';
+import { Flame, CheckCircle2, Home, ArrowRight, Droplets, Leaf } from 'lucide-react';
 import NaiaDialogue from '../components/NaiaDialogue';
 import TechTerm from '../components/TechTerm';
 
 export default function Level8({ isDevMode, onComplete, onScoreUpdate, onMistake }: { isDevMode?: boolean; onComplete: () => void; onScoreUpdate: (points: number, water: number) => void; onMistake?: () => void; key?: string }) {
-  const [selectedAction, setSelectedAction] = useState<string | null>(null);
+  const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const [showError, setShowError] = useState(false);
   const [hasScored, setHasScored] = useState(false);
 
-  const actions = [
+  const paths = [
     {
-      id: 'replace_all',
-      name: 'Remplacer le serveur',
-      icon: Trash2,
-      desc: 'Jeter l\'ancien serveur et en acheter un neuf de dernière génération.',
-      waterCost: '1200 L',
-      color: 'text-purple-400',
-      bg: 'bg-purple-950/30',
-      border: 'border-purple-500/50'
-    },
-    {
-      id: 'repair_ram',
-      name: 'Réparer (Changer la RAM)',
-      icon: Wrench,
-      desc: 'Identifier le composant défectueux (RAM) et le remplacer uniquement.',
-      waterCost: '15 L',
-      color: 'text-blue-400',
-      bg: 'bg-blue-950/30',
-      border: 'border-blue-500/50'
-    },
-    {
-      id: 'refurbished',
-      name: 'Serveur Reconditionné',
-      icon: Recycle,
-      desc: 'Acheter une machine d\'occasion pour limiter la fabrication neuve.',
-      waterCost: '180 L',
+      id: 'towers',
+      name: 'Tours de Refroidissement',
+      desc: 'Évaporer l\'eau chaude dans l\'atmosphère pour refroidir le système.',
+      waterWaste: 'Élevé',
+      energyRecovery: '0%',
       color: 'text-cyan-400',
       bg: 'bg-cyan-950/30',
       border: 'border-cyan-500/50'
     },
     {
-      id: 'ignore',
-      name: 'Ignorer la panne',
-      icon: AlertTriangle,
-      desc: 'Laisser le serveur tourner au ralenti avec des erreurs.',
-      waterCost: '0 L',
+      id: 'river',
+      name: 'Rejet dans la Rivière',
+      desc: 'Rejeter l\'eau chaude directement dans l\'écosystème local.',
+      waterWaste: 'Moyen (Impact Faune)',
+      energyRecovery: '0%',
+      color: 'text-blue-400',
+      bg: 'bg-blue-950/30',
+      border: 'border-blue-500/50'
+    },
+    {
+      id: 'greenhouse',
+      name: 'Serres Agricoles',
+      desc: 'Fournir la chaleur pour la culture maraîchère locale sous serre.',
+      waterWaste: 'Faible',
+      energyRecovery: '40%',
+      color: 'text-emerald-400',
+      bg: 'bg-emerald-950/30',
+      border: 'border-emerald-500/50'
+    },
+    {
+      id: 'district_heating',
+      name: 'Réseau de Chaleur Urbain',
+      desc: 'Rediriger l\'eau chaude pour chauffer les habitations de la ville voisine.',
+      waterWaste: 'Nul (Circuit fermé)',
+      energyRecovery: '85%',
       color: 'text-orange-400',
       bg: 'bg-orange-950/30',
       border: 'border-orange-500/50'
@@ -53,18 +53,18 @@ export default function Level8({ isDevMode, onComplete, onScoreUpdate, onMistake
   ];
 
   const handleSelect = (id: string) => {
-    setSelectedAction(id);
+    setSelectedPath(id);
     setShowError(false);
   };
 
   const [isSuccess, setIsSuccess] = useState(false);
 
   const checkAnswer = () => {
-    if (selectedAction === 'repair_ram') {
+    if (selectedPath === 'district_heating') {
       setIsSuccess(true);
       if (!hasScored) {
         setHasScored(true);
-        onScoreUpdate(150, 50);
+        onScoreUpdate(200, 80);
       }
     } else {
       setShowError(true);
@@ -82,13 +82,13 @@ export default function Level8({ isDevMode, onComplete, onScoreUpdate, onMistake
     >
       {isDevMode && (
         <div className="absolute top-2 right-2 bg-purple-900/80 text-purple-300 text-xs px-2 py-1 rounded border border-purple-500/50 z-50">
-          Dev Réponses : Réparer (repair_ram)
+          Dev Réponses : Réseau de Chaleur Urbain (district_heating)
         </div>
       )}
       <div className="flex items-center gap-3 mb-3 border-b border-emerald-900/50 pb-3">
-        <Server className="w-8 h-8 text-emerald-400" />
+        <Flame className="w-8 h-8 text-emerald-400" />
         <h2 className="text-xl md:text-2xl font-bold text-white uppercase tracking-widest">
-          Niveau 8 : Cycle de Vie du Matériel
+          Niveau 8 : Valorisation Thermique
         </h2>
       </div>
 
@@ -96,73 +96,87 @@ export default function Level8({ isDevMode, onComplete, onScoreUpdate, onMistake
         <NaiaDialogue 
           message={
             <>
-              Agent, un de nos <TechTerm term="Serveur">serveurs</TechTerm> d'entraînement <TechTerm term="IA" /> vient de tomber en panne. La fabrication d'un serveur neuf nécessite d'énormes quantités d'eau pure pour nettoyer les puces électroniques. Quelle est la meilleure approche pour notre infrastructure ?
+              Nos <TechTerm term="Serveur">serveurs</TechTerm> génèrent une quantité massive de chaleur. Actuellement, nous utilisons de l'eau pour les refroidir, puis nous évaporons cette eau chaude. C'est un double gaspillage : d'eau et d'énergie. Comment pouvons-nous transformer ce problème en solution ?
             </>
           }
-          emotion="alert"
+          emotion="neutral"
         />
       </div>
 
       <div className="space-y-4 text-slate-300">
         <div className="flex flex-col lg:flex-row gap-5 mt-5">
-          {/* Server Visualization */}
-          <div className="w-full lg:w-1/2 relative bg-slate-950 rounded-xl border border-slate-800 p-6 flex flex-col items-center justify-center">
-            <div className="w-full max-w-xs space-y-4">
-              <div className="h-12 bg-slate-800 rounded border border-slate-700 flex items-center px-4 gap-4">
-                <Cpu className="w-6 h-6 text-emerald-500" />
-                <div className="flex-1 h-2 bg-emerald-500/20 rounded-full overflow-hidden">
-                  <div className="h-full bg-emerald-500 w-3/4"></div>
-                </div>
-                <span className="text-xs text-emerald-500">OK</span>
-              </div>
-              <div className="h-12 bg-red-900/20 rounded border border-red-500/50 flex items-center px-4 gap-4">
-                <MemoryStick className="w-6 h-6 text-red-500" />
-                <div className="flex-1 h-2 bg-red-500/20 rounded-full overflow-hidden">
-                  <div className="h-full bg-red-500 w-1/4"></div>
-                </div>
-                <span className="text-xs text-red-500 font-bold">ERR</span>
-              </div>
-              <div className="h-12 bg-slate-800 rounded border border-slate-700 flex items-center px-4 gap-4">
-                <HardDrive className="w-6 h-6 text-emerald-500" />
-                <div className="flex-1 h-2 bg-emerald-500/20 rounded-full overflow-hidden">
-                  <div className="h-full bg-emerald-500 w-full"></div>
-                </div>
-                <span className="text-xs text-emerald-500">OK</span>
-              </div>
-            </div>
-            <p className="mt-6 text-sm text-slate-400 text-center">
-              Diagnostic : Défaillance du module mémoire (RAM). Le reste du système est fonctionnel.
-            </p>
-          </div>
-
-          {/* Actions */}
+          {/* Left: Choice cards */}
           <div className="w-full lg:w-1/2 flex flex-col gap-4">
-            {actions.map((action) => {
-              const Icon = action.icon;
-              const isSelected = selectedAction === action.id;
+            {paths.map((path) => {
+              const isSelected = selectedPath === path.id;
               return (
                 <button
-                  key={action.id}
-                  onClick={() => handleSelect(action.id)}
-                  className={`relative p-4 rounded-xl border-2 text-left transition-all duration-300 flex items-center gap-4 ${
+                  key={path.id}
+                  onClick={() => handleSelect(path.id)}
+                  className={`relative flex flex-col p-5 rounded-xl border-2 text-left transition-all duration-300 ${
                     isSelected 
-                      ? `${action.bg} ${action.border} scale-[1.02]` 
+                      ? `${path.bg} ${path.border} scale-[1.02] z-10` 
                       : 'bg-slate-950 border-slate-800 hover:border-slate-600'
                   }`}
                 >
-                  <div className={`p-3 rounded-full ${isSelected ? 'bg-slate-900' : 'bg-slate-900/50'}`}>
-                    <Icon className={`w-6 h-6 ${isSelected ? action.color : 'text-slate-500'}`} />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className={`font-bold ${isSelected ? 'text-white' : 'text-slate-300'}`}>{action.name}</h3>
-                    <p className="text-xs text-slate-400 mt-1">{action.desc}</p>
-                    <div className="mt-2 text-xs font-bold text-blue-400">
-                      Coût en eau (fabrication) : {action.waterCost}
+                  <h3 className={`font-bold text-lg mb-2 ${isSelected ? 'text-white' : 'text-slate-300'}`}>{path.name}</h3>
+                  <p className="text-sm text-slate-400 mb-4 flex-grow">{path.desc}</p>
+                  
+                  <div className="space-y-2 w-full">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-slate-500">Perte d'eau</span>
+                      <span className={`font-bold ${path.color}`}>{path.waterWaste}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-slate-500">Récupération Énergie</span>
+                      <span className={`font-bold ${path.color}`}>{path.energyRecovery}</span>
                     </div>
                   </div>
                 </button>
               );
             })}
+          </div>
+
+          {/* Right: Pipeline visual */}
+          <div className="w-full lg:w-1/2 p-6 bg-slate-950 rounded-xl border border-slate-800 flex flex-col items-center justify-center gap-6">
+            <div className="flex flex-col items-center gap-2">
+              <div className="w-20 h-20 bg-slate-800 rounded-lg border border-slate-600 flex items-center justify-center">
+                <Flame className="w-10 h-10 text-orange-500" />
+              </div>
+              <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">Data Center</span>
+            </div>
+            
+            <div className="w-full flex flex-col items-center justify-center relative gap-1">
+              <div className="w-full h-3 bg-slate-800 rounded-full overflow-hidden">
+                {selectedPath && (
+                  <motion.div 
+                    className={`h-full ${selectedPath === 'district_heating' ? 'bg-orange-500' : selectedPath === 'greenhouse' ? 'bg-emerald-500' : selectedPath === 'river' ? 'bg-blue-500' : 'bg-cyan-500'}`}
+                    initial={{ width: 0 }}
+                    animate={{ width: '100%' }}
+                    transition={{ duration: 1 }}
+                  />
+                )}
+              </div>
+              <ArrowRight className={`text-slate-600 w-5 h-5 rotate-90 ${selectedPath ? 'opacity-0' : 'opacity-100'} transition-opacity`} />
+            </div>
+
+            <div className="flex flex-col items-center gap-2">
+              <div className={`w-20 h-20 rounded-lg border flex items-center justify-center transition-colors ${
+                selectedPath === 'district_heating' ? 'bg-orange-900/50 border-orange-500' :
+                selectedPath === 'greenhouse' ? 'bg-emerald-900/50 border-emerald-500' :
+                selectedPath === 'river' ? 'bg-blue-900/50 border-blue-500' :
+                selectedPath === 'towers' ? 'bg-cyan-900/50 border-cyan-500' :
+                'bg-slate-800 border-slate-600'
+              }`}>
+                {selectedPath === 'district_heating' ? <Home className="w-10 h-10 text-orange-400" /> :
+                 selectedPath === 'greenhouse' ? <Leaf className="w-10 h-10 text-emerald-400" /> :
+                 selectedPath === 'river' ? <Droplets className="w-10 h-10 text-blue-400" /> :
+                 <Flame className="w-10 h-10 text-cyan-400" />}
+              </div>
+              <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">
+                {selectedPath === 'district_heating' ? 'Ville' : selectedPath === 'greenhouse' ? 'Serres' : selectedPath === 'river' ? 'Rivière' : 'Atmosphère'}
+              </span>
+            </div>
           </div>
         </div>
 
@@ -170,16 +184,16 @@ export default function Level8({ isDevMode, onComplete, onScoreUpdate, onMistake
           <div className="flex justify-center mt-5">
             <button
               onClick={checkAnswer}
-              disabled={!selectedAction}
+              disabled={!selectedPath}
               className={`px-8 py-4 rounded-lg font-bold text-lg transition-all ${
-                !selectedAction
+                !selectedPath
                   ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
                   : showError
                   ? 'bg-red-600 text-white animate-shake'
                   : 'bg-emerald-600 hover:bg-emerald-500 text-white hover:scale-105'
               }`}
             >
-              {showError ? 'MAUVAISE DÉCISION' : 'EXÉCUTER L\'ACTION'}
+              {showError ? 'MAUVAIS CHOIX' : 'ROUTER LA CHALEUR'}
             </button>
           </div>
         )}
@@ -193,10 +207,10 @@ export default function Level8({ isDevMode, onComplete, onScoreUpdate, onMistake
             >
               <div className="flex items-center gap-2 text-emerald-400 font-bold text-xl mb-4">
                  <CheckCircle2 className="w-6 h-6" />
-                 RÉPARATION EFFECTUÉE
+                 SYMBIOSE URBAINE ÉTABLIE
               </div>
               <p className="text-center mb-6 text-sm">
-                L'économie circulaire est essentielle. La fabrication des composants électroniques (puces, processeurs) nécessite d'énormes quantités d'eau ultra-pure. En réparant au lieu de remplacer, nous économisons des milliers de litres d'eau virtuelle.
+                Parfait. En connectant le <TechTerm term="Datacenter">data center</TechTerm> au réseau de chaleur urbain, l'eau chaude circule en circuit fermé. Elle chauffe les maisons, se refroidit, puis revient au data center. Zéro évaporation, zéro gaspillage, et une facture de chauffage réduite pour les habitants !
               </p>
               <button
                 onClick={onComplete}

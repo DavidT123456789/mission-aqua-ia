@@ -130,7 +130,7 @@ export default function Level12({ isDevMode, onComplete, onScoreUpdate, onMistak
                 onClick={onComplete}
                 className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-3 rounded-lg font-bold transition-colors"
               >
-                TERMINER LA SIMULATION
+                DÉVERROUILLER L'INNOVATION LAB (BONUS)
               </button>
             </motion.div>
           )}

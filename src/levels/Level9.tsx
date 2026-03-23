@@ -1,70 +1,33 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Flame, CheckCircle2, Home, ArrowRight, Droplets, Leaf } from 'lucide-react';
+import { Database, CheckCircle2, Filter, Trash2 } from 'lucide-react';
 import NaiaDialogue from '../components/NaiaDialogue';
 import TechTerm from '../components/TechTerm';
 
 export default function Level9({ isDevMode, onComplete, onScoreUpdate, onMistake }: { isDevMode?: boolean; onComplete: () => void; onScoreUpdate: (points: number, water: number) => void; onMistake?: () => void; key?: string }) {
-  const [selectedPath, setSelectedPath] = useState<string | null>(null);
+  const [datasets, setDatasets] = useState([
+    { id: 1, name: 'Images de chats (10 To)', relevant: false, kept: true },
+    { id: 2, name: 'Données climatiques (2 To)', relevant: true, kept: true },
+    { id: 3, name: 'Historique des mèmes (50 To)', relevant: false, kept: true },
+    { id: 4, name: 'Relevés hydrologiques (1 To)', relevant: true, kept: true },
+    { id: 5, name: 'Vidéos virales 2010s (100 To)', relevant: false, kept: true },
+    { id: 6, name: 'Topographie des sols (3 To)', relevant: true, kept: true },
+  ]);
+
   const [showError, setShowError] = useState(false);
   const [hasScored, setHasScored] = useState(false);
 
-  const paths = [
-    {
-      id: 'towers',
-      name: 'Tours de Refroidissement',
-      desc: 'Évaporer l\'eau chaude dans l\'atmosphère pour refroidir le système.',
-      waterWaste: 'Élevé',
-      energyRecovery: '0%',
-      color: 'text-cyan-400',
-      bg: 'bg-cyan-950/30',
-      border: 'border-cyan-500/50'
-    },
-    {
-      id: 'river',
-      name: 'Rejet dans la Rivière',
-      desc: 'Rejeter l\'eau chaude directement dans l\'écosystème local.',
-      waterWaste: 'Moyen (Impact Faune)',
-      energyRecovery: '0%',
-      color: 'text-blue-400',
-      bg: 'bg-blue-950/30',
-      border: 'border-blue-500/50'
-    },
-    {
-      id: 'greenhouse',
-      name: 'Serres Agricoles',
-      desc: 'Fournir la chaleur pour la culture maraîchère locale sous serre.',
-      waterWaste: 'Faible',
-      energyRecovery: '40%',
-      color: 'text-emerald-400',
-      bg: 'bg-emerald-950/30',
-      border: 'border-emerald-500/50'
-    },
-    {
-      id: 'district_heating',
-      name: 'Réseau de Chaleur Urbain',
-      desc: 'Rediriger l\'eau chaude pour chauffer les habitations de la ville voisine.',
-      waterWaste: 'Nul (Circuit fermé)',
-      energyRecovery: '85%',
-      color: 'text-orange-400',
-      bg: 'bg-orange-950/30',
-      border: 'border-orange-500/50'
-    }
-  ];
-
-  const handleSelect = (id: string) => {
-    setSelectedPath(id);
+  const toggleDataset = (id: number) => {
+    setDatasets(datasets.map(d => d.id === id ? { ...d, kept: !d.kept } : d));
     setShowError(false);
   };
 
-  const [isSuccess, setIsSuccess] = useState(false);
-
   const checkAnswer = () => {
-    if (selectedPath === 'district_heating') {
-      setIsSuccess(true);
+    const isCorrect = datasets.every(d => d.kept === d.relevant);
+    if (isCorrect) {
       if (!hasScored) {
         setHasScored(true);
-        onScoreUpdate(200, 80);
+        onScoreUpdate(200, 40);
       }
     } else {
       setShowError(true);
@@ -72,6 +35,12 @@ export default function Level9({ isDevMode, onComplete, onScoreUpdate, onMistake
       setTimeout(() => setShowError(false), 2000);
     }
   };
+
+  const isSuccess = datasets.every(d => d.kept === d.relevant) && hasScored;
+  const totalDataKept = datasets.filter(d => d.kept).reduce((acc, curr) => {
+    const size = parseInt(curr.name.match(/\((\d+) To\)/)?.[1] || '0');
+    return acc + size;
+  }, 0);
 
   return (
     <motion.div
@@ -82,13 +51,13 @@ export default function Level9({ isDevMode, onComplete, onScoreUpdate, onMistake
     >
       {isDevMode && (
         <div className="absolute top-2 right-2 bg-purple-900/80 text-purple-300 text-xs px-2 py-1 rounded border border-purple-500/50 z-50">
-          Dev Réponses : Réseau de Chaleur Urbain (district_heating)
+          Dev Réponses : Keep only relevant datasets (Données climatiques, Relevés hydrologiques, Topographie des sols)
         </div>
       )}
       <div className="flex items-center gap-3 mb-3 border-b border-emerald-900/50 pb-3">
-        <Flame className="w-8 h-8 text-emerald-400" />
+        <Filter className="w-8 h-8 text-emerald-400" />
         <h2 className="text-xl md:text-2xl font-bold text-white uppercase tracking-widest">
-          Niveau 9 : Valorisation Thermique
+          Niveau 9 : Hygiène des Données
         </h2>
       </div>
 
@@ -96,104 +65,55 @@ export default function Level9({ isDevMode, onComplete, onScoreUpdate, onMistake
         <NaiaDialogue 
           message={
             <>
-              Nos <TechTerm term="Serveur">serveurs</TechTerm> génèrent une quantité massive de chaleur. Actuellement, nous utilisons de l'eau pour les refroidir, puis nous évaporons cette eau chaude. C'est un double gaspillage : d'eau et d'énergie. Comment pouvons-nous transformer ce problème en solution ?
+              Pour prédire les sécheresses, je dois être ré-entraînée. Actuellement, on me nourrit avec TOUTES les données d'internet. Plus il y a de données, plus l'entraînement est long, et plus il consomme d'eau et d'électricité. Filtrez mon jeu de données pour ne garder que l'essentiel.
             </>
           }
-          emotion="neutral"
+          emotion="alert"
         />
       </div>
 
       <div className="space-y-4 text-slate-300">
-        <div className="flex flex-col lg:flex-row gap-5 mt-5">
-          {/* Left: Choice cards */}
-          <div className="w-full lg:w-1/2 flex flex-col gap-4">
-            {paths.map((path) => {
-              const isSelected = selectedPath === path.id;
-              return (
-                <button
-                  key={path.id}
-                  onClick={() => handleSelect(path.id)}
-                  className={`relative flex flex-col p-5 rounded-xl border-2 text-left transition-all duration-300 ${
-                    isSelected 
-                      ? `${path.bg} ${path.border} scale-[1.02] z-10` 
-                      : 'bg-slate-950 border-slate-800 hover:border-slate-600'
-                  }`}
-                >
-                  <h3 className={`font-bold text-lg mb-2 ${isSelected ? 'text-white' : 'text-slate-300'}`}>{path.name}</h3>
-                  <p className="text-sm text-slate-400 mb-4 flex-grow">{path.desc}</p>
-                  
-                  <div className="space-y-2 w-full">
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="text-slate-500">Perte d'eau</span>
-                      <span className={`font-bold ${path.color}`}>{path.waterWaste}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="text-slate-500">Récupération Énergie</span>
-                      <span className={`font-bold ${path.color}`}>{path.energyRecovery}</span>
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
+        <div className="flex justify-between items-end mb-4">
+          <p className="text-sm">Sélectionnez les jeux de données à <strong className="text-red-400">supprimer</strong> de l'entraînement :</p>
+          <div className="text-right">
+            <span className="text-xs text-slate-500 block">Volume total à traiter</span>
+            <span className={`text-2xl font-bold ${totalDataKept > 10 ? 'text-red-400' : 'text-emerald-400'}`}>{totalDataKept} To</span>
           </div>
+        </div>
 
-          {/* Right: Pipeline visual */}
-          <div className="w-full lg:w-1/2 p-6 bg-slate-950 rounded-xl border border-slate-800 flex flex-col items-center justify-center gap-6">
-            <div className="flex flex-col items-center gap-2">
-              <div className="w-20 h-20 bg-slate-800 rounded-lg border border-slate-600 flex items-center justify-center">
-                <Flame className="w-10 h-10 text-orange-500" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {datasets.map((dataset) => (
+            <button
+              key={dataset.id}
+              onClick={() => toggleDataset(dataset.id)}
+              className={`p-4 rounded-lg border-2 flex justify-between items-center transition-all ${
+                !dataset.kept 
+                  ? 'bg-red-950/20 border-red-500/30 opacity-50' 
+                  : 'bg-slate-800 border-slate-600 hover:border-emerald-500/50'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <Database className={`w-5 h-5 ${!dataset.kept ? 'text-red-500' : 'text-blue-400'}`} />
+                <span className={`text-sm ${!dataset.kept ? 'line-through text-slate-500' : 'text-slate-200'}`}>
+                  {dataset.name}
+                </span>
               </div>
-              <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">Data Center</span>
-            </div>
-            
-            <div className="w-full flex flex-col items-center justify-center relative gap-1">
-              <div className="w-full h-3 bg-slate-800 rounded-full overflow-hidden">
-                {selectedPath && (
-                  <motion.div 
-                    className={`h-full ${selectedPath === 'district_heating' ? 'bg-orange-500' : selectedPath === 'greenhouse' ? 'bg-emerald-500' : selectedPath === 'river' ? 'bg-blue-500' : 'bg-cyan-500'}`}
-                    initial={{ width: 0 }}
-                    animate={{ width: '100%' }}
-                    transition={{ duration: 1 }}
-                  />
-                )}
-              </div>
-              <ArrowRight className={`text-slate-600 w-5 h-5 rotate-90 ${selectedPath ? 'opacity-0' : 'opacity-100'} transition-opacity`} />
-            </div>
-
-            <div className="flex flex-col items-center gap-2">
-              <div className={`w-20 h-20 rounded-lg border flex items-center justify-center transition-colors ${
-                selectedPath === 'district_heating' ? 'bg-orange-900/50 border-orange-500' :
-                selectedPath === 'greenhouse' ? 'bg-emerald-900/50 border-emerald-500' :
-                selectedPath === 'river' ? 'bg-blue-900/50 border-blue-500' :
-                selectedPath === 'towers' ? 'bg-cyan-900/50 border-cyan-500' :
-                'bg-slate-800 border-slate-600'
-              }`}>
-                {selectedPath === 'district_heating' ? <Home className="w-10 h-10 text-orange-400" /> :
-                 selectedPath === 'greenhouse' ? <Leaf className="w-10 h-10 text-emerald-400" /> :
-                 selectedPath === 'river' ? <Droplets className="w-10 h-10 text-blue-400" /> :
-                 <Flame className="w-10 h-10 text-cyan-400" />}
-              </div>
-              <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">
-                {selectedPath === 'district_heating' ? 'Ville' : selectedPath === 'greenhouse' ? 'Serres' : selectedPath === 'river' ? 'Rivière' : 'Atmosphère'}
-              </span>
-            </div>
-          </div>
+              {!dataset.kept && <Trash2 className="w-4 h-4 text-red-500" />}
+            </button>
+          ))}
         </div>
 
         {!isSuccess && (
           <div className="flex justify-center mt-5">
             <button
               onClick={checkAnswer}
-              disabled={!selectedPath}
               className={`px-8 py-4 rounded-lg font-bold text-lg transition-all ${
-                !selectedPath
-                  ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                  : showError
+                showError
                   ? 'bg-red-600 text-white animate-shake'
                   : 'bg-emerald-600 hover:bg-emerald-500 text-white hover:scale-105'
               }`}
             >
-              {showError ? 'MAUVAIS CHOIX' : 'ROUTER LA CHALEUR'}
+              {showError ? 'DONNÉES INUTILES DÉTECTÉES' : 'LANCER L\'ENTRAÎNEMENT'}
             </button>
           </div>
         )}
@@ -207,14 +127,14 @@ export default function Level9({ isDevMode, onComplete, onScoreUpdate, onMistake
             >
               <div className="flex items-center gap-2 text-emerald-400 font-bold text-xl mb-4">
                  <CheckCircle2 className="w-6 h-6" />
-                 SYMBIOSE URBAINE ÉTABLIE
+                 DONNÉES OPTIMISÉES
               </div>
               <p className="text-center mb-6 text-sm">
-                Parfait. En connectant le <TechTerm term="Datacenter">data center</TechTerm> au réseau de chaleur urbain, l'eau chaude circule en circuit fermé. Elle chauffe les maisons, se refroidit, puis revient au data center. Zéro évaporation, zéro gaspillage, et une facture de chauffage réduite pour les habitants !
+                En supprimant 160 To de données inutiles, l'entraînement prendra 95% de temps en moins. La qualité des données (Data Quality) est souvent plus importante que la quantité pour obtenir une <TechTerm term="IA" /> performante et écologique.
               </p>
               <button
                 onClick={onComplete}
-                className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-3 rounded-lg font-bold transition-colors shadow-[0_0_20px_rgba(16,185,129,0.4)]"
+                className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-3 rounded-lg font-bold transition-colors"
               >
                 PASSER AU NIVEAU SUIVANT
               </button>

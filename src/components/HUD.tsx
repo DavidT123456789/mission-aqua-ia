@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Droplets, Clock, Star, Activity, Heart, Bug, FastForward, HelpCircle, Menu, X, ChevronRight } from 'lucide-react';
 
@@ -20,15 +20,33 @@ interface HUDProps {
   buyHeart: () => void;
   buyTime: () => void;
   onGoHome: () => void;
+  setIsDevMode?: (dev: boolean) => void;
 }
 
 export default function HUD({
   level, timeLeft, lives, waterSaved, score, isDevMode, unlockedFreeHints, unlockedPaidHints,
-  setShowDevModal, setShowGlossary, useHint, setLevel, prevLevelDev, skipLevelDev, buyHeart, buyTime, onGoHome
+  setShowDevModal, setShowGlossary, useHint, setLevel, prevLevelDev, skipLevelDev, buyHeart, buyTime, onGoHome, setIsDevMode
 }: HUDProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [glossaryPlusOnes, setGlossaryPlusOnes] = useState<number[]>([]);
   const [isDevPanelOpen, setIsDevPanelOpen] = useState(false);
+  
+  const [scoreDiffs, setScoreDiffs] = useState<{id: number, diff: number}[]>([]);
+  const prevScoreRef = useRef(score);
+
+  useEffect(() => {
+    if (score !== prevScoreRef.current) {
+      const diff = score - prevScoreRef.current;
+      if (diff !== 0) {
+        const id = Date.now();
+        setScoreDiffs(prev => [...prev, { id, diff }]);
+        setTimeout(() => {
+          setScoreDiffs(prev => prev.filter(item => item.id !== id));
+        }, 1500);
+      }
+      prevScoreRef.current = score;
+    }
+  }, [score]);
 
   useEffect(() => {
     const handleGlossaryPlusOne = () => {
@@ -84,7 +102,18 @@ export default function HUD({
           tabIndex={0}
         >
           <span className="font-bold tracking-[0.2em] md:tracking-[0.3em] uppercase text-sm md:text-base bg-gradient-to-r from-emerald-400 via-cyan-400 to-emerald-400 bg-[length:200%_auto] animate-gradient-x bg-clip-text text-transparent hidden sm:inline drop-shadow-[0_0_8px_rgba(52,211,153,0.3)] hover:brightness-125 transition-all">
-            AQUA-IA {isDevMode && <span className="text-purple-500 text-[10px] md:text-xs ml-1 font-black animate-pulse">[DEV]</span>}
+            AQUA-IA {isDevMode && (
+              <span 
+                className="text-purple-500 text-[10px] md:text-xs ml-1 font-black animate-pulse cursor-pointer hover:text-red-500 transition-colors"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (setIsDevMode) setIsDevMode(false);
+                }}
+                title="Désactiver le mode développeur"
+              >
+                [DEV]
+              </span>
+            )}
           </span>
         </div>
         {/* Center: Main Stats (Always visible) */}
@@ -188,13 +217,28 @@ export default function HUD({
             <div className="relative group/score">
               <motion.div 
                 key={score}
-                initial={{ scale: 1.2, color: '#fff' }}
+                initial={{ scale: 1.2, color: score < prevScoreRef.current ? '#ef4444' : '#fff' }}
                 animate={{ scale: 1, color: '#facc15' }}
-                className="flex items-center gap-1 bg-slate-900/40 px-2 md:px-3 py-1 rounded-full border border-yellow-500/30 cursor-help" 
+                className="flex items-center gap-1 bg-slate-900/40 px-2 md:px-3 py-1 rounded-full border border-yellow-500/30 cursor-help relative" 
                 aria-label={`Score : ${score}`}
               >
                 <Star className="w-3 h-3 md:w-4 md:h-4 text-yellow-400" />
                 <span className="font-bold font-mono text-yellow-400 text-xs md:text-base">{score}</span>
+                
+                <AnimatePresence>
+                  {scoreDiffs.map(item => (
+                    <motion.div
+                      key={item.id}
+                      initial={{ opacity: 0, y: 0, scale: 0.5, x: '-50%' }}
+                      animate={{ opacity: 1, y: item.diff > 0 ? -25 : 25, scale: 1.2, x: '-50%' }}
+                      exit={{ opacity: 0, y: item.diff > 0 ? -35 : 35, scale: 0.8, x: '-50%' }}
+                      transition={{ duration: 1, ease: "easeOut" }}
+                      className={`absolute left-1/2 font-black text-sm md:text-base drop-shadow-[0_0_10px_rgba(0,0,0,0.8)] pointer-events-none z-[60] ${item.diff > 0 ? 'text-emerald-400' : 'text-red-500'}`}
+                    >
+                      {item.diff > 0 ? `+${item.diff}` : item.diff}
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
               </motion.div>
               {/* Tooltip for Score */}
               <div className="fixed top-16 left-1/2 -translate-x-1/2 md:absolute md:top-full md:left-1/2 md:-translate-x-1/2 md:mt-2 hidden group-hover/score:block w-max max-w-[90vw] bg-slate-900 text-xs text-slate-200 px-3 py-2 rounded border border-slate-700 shadow-xl z-[100] pointer-events-none font-sans not-italic font-normal tracking-normal">

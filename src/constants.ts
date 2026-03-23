@@ -12,36 +12,36 @@ export const HINTS: Record<number, { free: string, paid: string }> = {
     paid: "La fuite se trouve là où la pression est anormalement basse (en rouge)."
   },
   4: {
-    free: "Lisez attentivement le code. Il faut vérifier l'humidité, et si elle est trop élevée, arrêter l'arrosage.",
-    paid: "Les mots manquants sont : 'humidity', '>', 'STOP', 'else', 'ACTIVER'."
-  },
-  5: {
     free: "Le 'Free Cooling' utilise l'air froid extérieur pour refroidir les serveurs sans climatisation.",
     paid: "Le Cercle Arctique offre des températures glaciales toute l'année, idéal pour refroidir naturellement."
   },
-  6: {
+  5: {
     free: "Regardez l'intensité carbone de chaque bloc. Plus elle est basse, plus l'énergie est propre.",
     paid: "Le bloc 1 (00:00 - 06:00) a l'intensité carbone la plus faible (50 gCO2/kWh)."
   },
-  7: {
+  6: {
     free: "Comparez le ratio Précision / Coût environnemental. Le plus gros modèle n'est pas toujours le meilleur.",
     paid: "Le Modèle Spécialisé offre 95% de précision pour un coût très faible. C'est le choix le plus sobre."
   },
-  8: {
+  7: {
     free: "La fabrication d'un serveur neuf pollue énormément. Privilégiez toujours la réparation quand c'est possible.",
     paid: "Seule la RAM est défectueuse. Il suffit de la réparer pour prolonger la durée de vie du serveur."
   },
-  9: {
+  8: {
     free: "La chaleur fatale des serveurs est une ressource précieuse si elle est réutilisée localement.",
     paid: "Connecter le datacenter au réseau de chaleur urbain permet de chauffer les bâtiments voisins."
   },
-  10: {
+  9: {
     free: "Plus il y a de données, plus l'entraînement pollue. Ne gardez que les données strictement nécessaires à la prédiction des sécheresses.",
     paid: "Supprimez les images de chats, l'historique des mèmes et les vidéos virales. Gardez le climat, l'hydrologie et la topographie."
   },
-  11: {
+  10: {
     free: "Une charte éthique doit promouvoir la transparence, la sobriété et le bon sens écologique.",
     paid: "Sélectionnez les clauses 1 (Transparence), 4 (Interdiction des LLMs géants pour des tâches simples) et 5 (Réutilisation de la chaleur)."
+  },
+  11: {
+    free: "Lisez attentivement le code. Il faut vérifier l'humidité, et si elle est trop élevée, arrêter l'arrosage.",
+    paid: "Regardez les mots-clés disponibles. L'opérateur 'or' et l'arrosage à 'aube' sont essentiels."
   },
   12: {
     free: "Trouvez le juste milieu. L'IA doit rester utile sans pour autant détruire nos ressources.",

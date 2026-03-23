@@ -1,70 +1,86 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Map, MapPin, CheckCircle2, Snowflake, Sun, Building2, Trees, Globe2 } from 'lucide-react';
+import { Clock, ArrowRight, Leaf, CheckCircle2, AlertTriangle, Activity } from 'lucide-react';
 import NaiaDialogue from '../components/NaiaDialogue';
 import TechTerm from '../components/TechTerm';
 
 export default function Level5({ isDevMode, onComplete, onScoreUpdate, onMistake }: { isDevMode?: boolean; onComplete: () => void; onScoreUpdate: (points: number, water: number) => void; onMistake?: () => void; key?: string }) {
-  const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
+  const [selectedBlock, setSelectedBlock] = useState<number | null>(null);
   const [showError, setShowError] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
 
-  const locations = [
-    {
-      id: 'desert',
-      name: 'Désert Chaud',
-      icon: Sun,
-      desc: 'Énergie solaire abondante, mais refroidissement très coûteux en eau.',
+  // Simulate a moving time indicator
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime((prev) => (prev + 1) % 24);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const blocks = [
+    { 
+      id: 1, 
+      time: '00:00 - 06:00', 
+      desc: 'Demande faible, forte production éolienne.', 
+      carbon: 'Faible',
+      intensity: 45, // gCO2eq/kWh
+      color: 'text-emerald-500',
+      bg: 'bg-emerald-950/30',
+      border: 'border-emerald-500/50',
+      fill: 'bg-emerald-500',
+      start: 0,
+      end: 6
+    },
+    { 
+      id: 2, 
+      time: '06:00 - 12:00', 
+      desc: 'Demande en hausse, mix énergétique moyen.', 
+      carbon: 'Moyen',
+      intensity: 120,
       color: 'text-yellow-500',
       bg: 'bg-yellow-950/30',
       border: 'border-yellow-500/50',
-      coordinates: { top: '60%', left: '45%' }
+      fill: 'bg-yellow-500',
+      start: 6,
+      end: 12
     },
-    {
-      id: 'tropical',
-      name: 'Zone Tropicale',
-      icon: Trees,
-      desc: 'Humidité élevée, nécessite une déshumidification constante.',
-      color: 'text-green-500',
-      bg: 'bg-green-950/30',
-      border: 'border-green-500/50',
-      coordinates: { top: '50%', left: '75%' }
+    { 
+      id: 3, 
+      time: '12:00 - 18:00', 
+      desc: 'Pic de consommation, centrales à gaz actives.', 
+      carbon: 'Élevé',
+      intensity: 250,
+      color: 'text-red-500',
+      bg: 'bg-red-950/30',
+      border: 'border-red-500/50',
+      fill: 'bg-red-500',
+      start: 12,
+      end: 18
     },
-    {
-      id: 'arctic',
-      name: 'Cercle Arctique',
-      icon: Snowflake,
-      desc: 'Refroidissement naturel par l\'air extérieur (Free Cooling).',
-      color: 'text-blue-400',
-      bg: 'bg-blue-950/30',
-      border: 'border-blue-400/50',
-      coordinates: { top: '20%', left: '50%' }
+    { 
+      id: 4, 
+      time: '18:00 - 24:00', 
+      desc: 'Baisse de la demande, solaire inactif.', 
+      carbon: 'Moyen',
+      intensity: 150,
+      color: 'text-orange-500',
+      bg: 'bg-orange-950/30',
+      border: 'border-orange-500/50',
+      fill: 'bg-orange-500',
+      start: 18,
+      end: 24
     },
-    {
-      id: 'urban',
-      name: 'Mégalopole',
-      icon: Building2,
-      desc: 'Proche des utilisateurs, mais espace limité et chaleur urbaine.',
-      color: 'text-purple-500',
-      bg: 'bg-purple-950/30',
-      border: 'border-purple-500/50',
-      coordinates: { top: '40%', left: '25%' }
-    }
   ];
-
-  const handleSelect = (id: string) => {
-    setSelectedLocation(id);
-    setShowError(false);
-  };
 
   const [hasScored, setHasScored] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
-  const checkAnswer = () => {
-    if (selectedLocation === 'arctic') {
+  const handleSubmit = () => {
+    if (selectedBlock === 1) {
       setIsSuccess(true);
       if (!hasScored) {
         setHasScored(true);
-        onScoreUpdate(150, 60);
+        onScoreUpdate(150, 0); // No water saved directly here, but good for carbon
       }
     } else {
       setShowError(true);
@@ -73,22 +89,25 @@ export default function Level5({ isDevMode, onComplete, onScoreUpdate, onMistake
     }
   };
 
+  // Generate points for the carbon intensity graph
+  const graphPoints = blocks.map(b => `${(b.start / 24) * 100},${100 - (b.intensity / 250) * 100} ${(b.end / 24) * 100},${100 - (b.intensity / 250) * 100}`).join(' ');
+
   return (
     <motion.div
       initial={{ opacity: 0, x: 50 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -50 }}
-      className="sm:bg-slate-900 border-transparent sm:border-emerald-500/30 sm:border px-0 sm:px-6 py-4 sm:py-6 sm:rounded-xl sm:shadow-2xl max-w-4xl mx-auto font-mono relative flex flex-col"
+      className="sm:bg-slate-900 border-transparent sm:border-emerald-500/30 sm:border px-0 sm:px-6 py-4 sm:py-6 sm:rounded-xl sm:shadow-2xl sm:shadow-emerald-900/20 max-w-4xl mx-auto font-mono relative flex flex-col"
     >
       {isDevMode && (
         <div className="absolute top-2 right-2 bg-purple-900/80 text-purple-300 text-xs px-2 py-1 rounded border border-purple-500/50 z-50">
-          Dev Réponses : Cercle Arctique (arctic)
+          Dev Réponses : 00:00 - 06:00 (1)
         </div>
       )}
       <div className="flex items-center gap-3 mb-3 border-b border-emerald-900/50 pb-3">
-        <Map className="w-8 h-8 text-emerald-400" />
+        <Clock className="w-8 h-8 text-emerald-400" />
         <h2 className="text-xl md:text-2xl font-bold text-white uppercase tracking-widest">
-          Niveau 5 : Stratégie d'Implantation
+          Niveau 5 : Optimisation Temporelle
         </h2>
       </div>
 
@@ -96,7 +115,7 @@ export default function Level5({ isDevMode, onComplete, onScoreUpdate, onMistake
         <NaiaDialogue 
           message={
             <>
-              L'emplacement d'un <TechTerm term="Datacenter">data center</TechTerm> est crucial. Le <TechTerm term="Refroidissement" /> représente une part massive de la consommation énergétique et hydrique. Où devrions-nous implanter notre nouveau supercalculateur pour minimiser son impact environnemental, en particulier sur l'eau ?
+              L'entraînement de notre nouveau modèle d'<TechTerm term="IA" /> nécessite 6 heures de calcul intensif continu. Planifiez cet entraînement au moment où l'intensité carbone du réseau électrique est la plus faible pour minimiser nos émissions.
             </>
           }
           emotion="neutral"
@@ -104,103 +123,146 @@ export default function Level5({ isDevMode, onComplete, onScoreUpdate, onMistake
       </div>
 
       <div className="space-y-4 text-slate-300">
-        <div className="flex flex-col lg:flex-row gap-5 mt-5">
-          {/* Interactive Map Area */}
-          <div className="w-full lg:w-3/5 relative bg-slate-950 rounded-xl border border-slate-800 min-h-[400px] flex items-center justify-center">
-            {/* Stylized Map Background */}
-            <div className="absolute inset-0 opacity-20 pointer-events-none">
-              <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                  <pattern id="grid-map" width="20" height="20" patternUnits="userSpaceOnUse">
-                    <path d="M 20 0 L 0 0 0 20" fill="none" stroke="currentColor" strokeWidth="0.5"/>
-                  </pattern>
-                </defs>
-                <rect width="100%" height="100%" fill="url(#grid-map)" />
-              </svg>
-            </div>
+        {/* Visual Carbon Intensity Graph */}
+        <div className="mt-5 p-6 bg-slate-950 rounded-xl border border-slate-800 relative">
+          <div className="flex items-center gap-2 mb-4">
+            <Activity className="w-5 h-5 text-slate-400" />
+            <h3 className="text-sm font-bold uppercase text-slate-400 tracking-widest">Prévision d'Intensité Carbone (24h)</h3>
+          </div>
+          
+          <div className="relative h-32 w-full border-b border-l border-slate-700 mb-6">
+            {/* Y-axis labels */}
+            <div className="absolute -left-8 top-0 text-[10px] text-slate-500">Max</div>
+            <div className="absolute -left-8 bottom-0 text-[10px] text-slate-500">Min</div>
             
-            <Globe2 className="absolute w-full h-full text-slate-800 opacity-30 p-4" />
+            {/* Grid lines */}
+            <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
+              <div className="w-full border-t border-slate-800/50 h-0"></div>
+              <div className="w-full border-t border-slate-800/50 h-0"></div>
+              <div className="w-full border-t border-slate-800/50 h-0"></div>
+            </div>
 
-            {/* Location Markers on Map */}
-            {locations.map((loc) => {
-              const isSelected = selectedLocation === loc.id;
-              const Icon = loc.icon;
-              return (
-                <button
-                  key={`marker-${loc.id}`}
-                  onClick={() => handleSelect(loc.id)}
-                  className="absolute transform -translate-x-1/2 -translate-y-1/2 group"
-                  style={{ top: loc.coordinates.top, left: loc.coordinates.left }}
-                >
-                  <div className={`relative flex items-center justify-center w-14 h-14 rounded-full transition-all duration-300 ${
-                    isSelected ? `${loc.bg} ${loc.border} border-2 scale-125 z-20 shadow-[0_0_20px_rgba(16,185,129,0.4)]` : 'bg-slate-900 border border-slate-700 hover:scale-110 z-10'
-                  }`}>
-                    <Icon className={`w-7 h-7 ${isSelected ? loc.color : 'text-slate-500 group-hover:text-slate-300'}`} />
-                    
-                    {/* Radar ping effect for selected */}
-                    {isSelected && (
-                      <span className="absolute inline-flex h-full w-full rounded-full bg-slate-400 opacity-20"></span>
-                    )}
-                  </div>
-                  
-                  {/* Tooltip on hover */}
-                  {!isSelected && (
-                    <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 bg-slate-900 text-slate-200 text-xs px-3 py-2 rounded-lg border border-slate-700 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-30 shadow-xl font-sans not-italic font-normal tracking-normal">
-                      {loc.name}
-                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 border-8 border-transparent border-b-slate-700"></div>
-                      <div className="absolute bottom-[calc(100%-1px)] left-1/2 -translate-x-1/2 border-8 border-transparent border-b-slate-900"></div>
-                    </div>
-                  )}
-                </button>
-              );
-            })}
-          </div>
+            {/* The Graph Line */}
+            <svg className="absolute inset-0 w-full h-full" preserveAspectRatio="none" viewBox="0 0 100 100">
+              <polyline
+                points={`0,${100 - (blocks[0].intensity/250)*100} ${graphPoints}`}
+                fill="none"
+                stroke="rgba(16, 185, 129, 0.5)"
+                strokeWidth="2"
+                vectorEffect="non-scaling-stroke"
+              />
+              {/* Fill under the graph */}
+              <polygon
+                points={`0,100 0,${100 - (blocks[0].intensity/250)*100} ${graphPoints} 100,100`}
+                fill="url(#gradient)"
+                opacity="0.2"
+              />
+              <defs>
+                <linearGradient id="gradient" x1="0" x2="0" y1="0" y2="1">
+                  <stop offset="0%" stopColor="rgba(16, 185, 129, 1)" />
+                  <stop offset="100%" stopColor="rgba(16, 185, 129, 0)" />
+                </linearGradient>
+              </defs>
+            </svg>
 
-          {/* Location Details List */}
-          <div className="w-full lg:w-2/5 flex flex-col gap-4">
-            {locations.map((loc) => {
-              const Icon = loc.icon;
-              const isSelected = selectedLocation === loc.id;
-              return (
-                <button
-                  key={loc.id}
-                  onClick={() => handleSelect(loc.id)}
-                  className={`relative p-5 rounded-xl border-2 text-left transition-all duration-300 flex items-center gap-4 ${
-                    isSelected 
-                      ? `${loc.bg} ${loc.border} scale-[1.02]` 
-                      : 'bg-slate-950 border-slate-800 hover:border-slate-600'
-                  }`}
-                >
-                  <div className={`p-3 rounded-full ${isSelected ? 'bg-slate-900' : 'bg-slate-900/50'}`}>
-                    <Icon className={`w-8 h-8 ${isSelected ? loc.color : 'text-slate-500'}`} />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className={`font-bold text-lg ${isSelected ? 'text-white' : 'text-slate-300'}`}>{loc.name}</span>
-                      {isSelected && <MapPin className="w-5 h-5 text-white" />}
-                    </div>
-                    <p className="text-sm text-slate-400 leading-tight">{loc.desc}</p>
-                  </div>
-                </button>
-              );
-            })}
+            {/* Current Time Indicator */}
+            <motion.div 
+              className="absolute top-0 bottom-0 w-px bg-blue-500 z-10"
+              animate={{ left: `${(currentTime / 24) * 100}%` }}
+              transition={{ type: 'tween', ease: 'linear', duration: 1 }}
+            >
+              <div className="absolute -top-2 -translate-x-1/2 w-2 h-2 rounded-full bg-blue-400"></div>
+            </motion.div>
+
+            {/* Selected Block Highlight on Graph */}
+            {selectedBlock && (
+              <div 
+                className="absolute top-0 bottom-0 bg-emerald-500/20 border-x border-emerald-500/50 z-0"
+                style={{
+                  left: `${(blocks.find(b => b.id === selectedBlock)!.start / 24) * 100}%`,
+                  width: `${((blocks.find(b => b.id === selectedBlock)!.end - blocks.find(b => b.id === selectedBlock)!.start) / 24) * 100}%`
+                }}
+              ></div>
+            )}
           </div>
+          
+          {/* X-axis labels */}
+          <div className="flex justify-between text-[10px] text-slate-500 px-1">
+            <span>00:00</span>
+            <span>06:00</span>
+            <span>12:00</span>
+            <span>18:00</span>
+            <span>24:00</span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-5">
+          {blocks.map((block) => {
+            const isSelected = selectedBlock === block.id;
+            const widthPercent = (block.intensity / 250) * 100;
+
+            return (
+              <button 
+                key={block.id}
+                onClick={() => { setSelectedBlock(block.id); setShowError(false); }}
+                className={`relative flex flex-col p-4 rounded-lg border-2 transition-all duration-300 text-left ${
+                  isSelected 
+                    ? `bg-slate-800 border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.2)] scale-[1.02] z-10` 
+                    : 'bg-slate-950 border-slate-800 hover:border-slate-600'
+                }`}
+              >
+                <div className="flex justify-between items-center mb-3">
+                  <div className="font-mono font-bold text-lg flex items-center gap-2">
+                    <Clock className={`w-5 h-5 ${isSelected ? 'text-emerald-400' : 'text-slate-500'}`} />
+                    <span className={isSelected ? 'text-emerald-400' : 'text-slate-300'}>{block.time}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Leaf className={`w-4 h-4 ${block.color}`} />
+                    <span className={`text-xs font-bold uppercase ${block.color}`}>
+                      {block.carbon}
+                    </span>
+                  </div>
+                </div>
+                
+                <p className="text-xs text-slate-400 mb-4 h-8">{block.desc}</p>
+                
+                <div className="w-full mt-auto">
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="text-slate-500 uppercase">Intensité</span>
+                    <span className={`font-bold ${block.color}`}>{block.intensity} gCO₂/kWh</span>
+                  </div>
+                  <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+                    <motion.div 
+                      className={`h-full ${block.fill}`}
+                      initial={{ width: 0 }}
+                      animate={{ width: `${widthPercent}%` }}
+                      transition={{ duration: 1, delay: block.id * 0.1 }}
+                    />
+                  </div>
+                </div>
+              </button>
+            );
+          })}
         </div>
 
         {!isSuccess && (
           <div className="flex justify-center mt-5">
             <button
-              onClick={checkAnswer}
-              disabled={!selectedLocation}
-              className={`px-8 py-4 rounded-lg font-bold text-lg transition-all ${
-                !selectedLocation
-                  ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                  : showError
-                  ? 'bg-red-600 text-white animate-shake'
-                  : 'bg-emerald-600 hover:bg-emerald-500 text-white hover:scale-105'
+              onClick={handleSubmit}
+              disabled={selectedBlock === null}
+              className={`px-8 py-3 rounded-lg font-bold transition-all flex items-center gap-2 ${
+                selectedBlock === null 
+                  ? 'bg-slate-800 text-slate-500 cursor-not-allowed' 
+                  : showError 
+                  ? 'bg-red-600 text-white animate-shake' 
+                  : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-[0_0_15px_rgba(16,185,129,0.3)]'
               }`}
             >
-              {showError ? 'MAUVAIS EMPLACEMENT' : 'VALIDER L\'EMPLACEMENT'}
+              {showError ? (
+                <>INTENSITÉ CARBONE TROP ÉLEVÉE <AlertTriangle className="w-5 h-5" /></>
+              ) : (
+                <>LANCER L'ENTRAÎNEMENT <ArrowRight className="w-5 h-5" /></>
+              )}
             </button>
           </div>
         )}
@@ -214,16 +276,16 @@ export default function Level5({ isDevMode, onComplete, onScoreUpdate, onMistake
             >
               <div className="flex items-center gap-2 text-emerald-400 font-bold text-xl mb-4">
                 <CheckCircle2 className="w-6 h-6" />
-                EXCELLENT CHOIX
+                PLANIFICATION OPTIMALE
               </div>
               <p className="text-center mb-6 text-sm">
-                Le "Free Cooling" dans les régions froides permet d'utiliser l'air extérieur pour refroidir les <TechTerm term="Serveur">serveurs</TechTerm> presque toute l'année, réduisant drastiquement la consommation d'énergie et d'eau par rapport aux climatisations classiques.
+                En déplaçant les charges de calcul non urgentes (comme l'entraînement d'un modèle) vers les heures où l'énergie est la plus décarbonée (souvent la nuit avec l'éolien), on peut réduire l'empreinte carbone de l'<TechTerm term="IA" /> de manière significative sans changer le matériel. C'est ce qu'on appelle le "Carbon-Aware Computing".
               </p>
               <button
-                onClick={onComplete}
-                className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-3 rounded-lg font-bold transition-colors shadow-[0_0_20px_rgba(16,185,129,0.4)]"
-              >
-                CONTINUER LE DÉPLOIEMENT
+              onClick={onComplete}
+              className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-3 rounded-lg font-bold transition-colors shadow-[0_0_20px_rgba(16,185,129,0.4)]"
+            >
+                PASSER AU NIVEAU SUIVANT
               </button>
             </motion.div>
           )}

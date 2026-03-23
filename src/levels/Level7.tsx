@@ -1,69 +1,70 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { BrainCircuit, CheckCircle2, AlertTriangle, Zap, Scale, Cpu, Database } from 'lucide-react';
+import { Server, CheckCircle2, AlertTriangle, Wrench, Trash2, Cpu, MemoryStick, HardDrive, Recycle } from 'lucide-react';
 import NaiaDialogue from '../components/NaiaDialogue';
 import TechTerm from '../components/TechTerm';
 
 export default function Level7({ isDevMode, onComplete, onScoreUpdate, onMistake }: { isDevMode?: boolean; onComplete: () => void; onScoreUpdate: (points: number, water: number) => void; onMistake?: () => void; key?: string }) {
-  const [selectedModel, setSelectedModel] = useState<string | null>(null);
+  const [selectedAction, setSelectedAction] = useState<string | null>(null);
   const [showError, setShowError] = useState(false);
+  const [hasScored, setHasScored] = useState(false);
 
-  const models = [
+  const actions = [
     {
-      id: 'llm',
-      name: <><TechTerm term="LLM" /> Généraliste (175B Paramètres)</>,
-      icon: BrainCircuit,
-      desc: 'Modèle massif capable de tout faire. Précision parfaite mais extrêmement lourd.',
-      accuracy: '99.9%',
-      energy: '500 Wh / requête',
-      color: 'text-purple-500',
+      id: 'replace_all',
+      name: 'Remplacer le serveur',
+      icon: Trash2,
+      desc: 'Jeter l\'ancien serveur et en acheter un neuf de dernière génération.',
+      waterCost: '1200 L',
+      color: 'text-purple-400',
       bg: 'bg-purple-950/30',
-      border: 'border-purple-500/50',
-      barWidth: 'w-full',
-      barColor: 'bg-purple-500'
+      border: 'border-purple-500/50'
     },
     {
-      id: 'specialized',
-      name: 'Modèle Spécialisé (1B Paramètres)',
-      icon: Cpu,
-      desc: 'Modèle entraîné spécifiquement pour cette tâche. Excellent compromis.',
-      accuracy: '98.5%',
-      energy: '5 Wh / requête',
-      color: 'text-blue-500',
+      id: 'repair_ram',
+      name: 'Réparer (Changer la RAM)',
+      icon: Wrench,
+      desc: 'Identifier le composant défectueux (RAM) et le remplacer uniquement.',
+      waterCost: '15 L',
+      color: 'text-blue-400',
       bg: 'bg-blue-950/30',
-      border: 'border-blue-500/50',
-      barWidth: 'w-1/4',
-      barColor: 'bg-blue-500'
+      border: 'border-blue-500/50'
     },
     {
-      id: 'heuristic',
-      name: <>{'Règles Heuristiques (Sans '}<TechTerm term="IA" />{')'}</>,
-      icon: Database,
-      desc: 'Filtres classiques basés sur des mots-clés. Très rapide mais moins précis.',
-      accuracy: '85.0%',
-      energy: '0.1 Wh / requête',
-      color: 'text-orange-500',
+      id: 'refurbished',
+      name: 'Serveur Reconditionné',
+      icon: Recycle,
+      desc: 'Acheter une machine d\'occasion pour limiter la fabrication neuve.',
+      waterCost: '180 L',
+      color: 'text-cyan-400',
+      bg: 'bg-cyan-950/30',
+      border: 'border-cyan-500/50'
+    },
+    {
+      id: 'ignore',
+      name: 'Ignorer la panne',
+      icon: AlertTriangle,
+      desc: 'Laisser le serveur tourner au ralenti avec des erreurs.',
+      waterCost: '0 L',
+      color: 'text-orange-400',
       bg: 'bg-orange-950/30',
-      border: 'border-orange-500/50',
-      barWidth: 'w-2',
-      barColor: 'bg-orange-500'
+      border: 'border-orange-500/50'
     }
   ];
 
   const handleSelect = (id: string) => {
-    setSelectedModel(id);
+    setSelectedAction(id);
     setShowError(false);
   };
 
-  const [hasScored, setHasScored] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
   const checkAnswer = () => {
-    if (selectedModel === 'specialized') {
+    if (selectedAction === 'repair_ram') {
       setIsSuccess(true);
       if (!hasScored) {
         setHasScored(true);
-        onScoreUpdate(200, 0); // High score for final level
+        onScoreUpdate(150, 50);
       }
     } else {
       setShowError(true);
@@ -81,13 +82,13 @@ export default function Level7({ isDevMode, onComplete, onScoreUpdate, onMistake
     >
       {isDevMode && (
         <div className="absolute top-2 right-2 bg-purple-900/80 text-purple-300 text-xs px-2 py-1 rounded border border-purple-500/50 z-50">
-          Dev Réponses : Modèle Spécialisé (specialized)
+          Dev Réponses : Réparer (repair_ram)
         </div>
       )}
       <div className="flex items-center gap-3 mb-3 border-b border-emerald-900/50 pb-3">
-        <Scale className="w-8 h-8 text-emerald-400" />
+        <Server className="w-8 h-8 text-emerald-400" />
         <h2 className="text-xl md:text-2xl font-bold text-white uppercase tracking-widest">
-          Niveau 7 : Sobriété Algorithmique
+          Niveau 7 : Cycle de Vie du Matériel
         </h2>
       </div>
 
@@ -95,93 +96,90 @@ export default function Level7({ isDevMode, onComplete, onScoreUpdate, onMistake
         <NaiaDialogue 
           message={
             <>
-              Continuons, Agent. La ville reçoit 10 millions d'emails par jour. Nous devons déployer un système pour filtrer le spam. Utiliser le plus gros modèle d'<TechTerm term="IA" /> consommerait autant d'électricité qu'un quartier entier ! Choisissez l'architecture logicielle offrant le meilleur ratio entre précision et coût environnemental pour cette tâche spécifique.
+              Agent, un de nos <TechTerm term="Serveur">serveurs</TechTerm> d'entraînement <TechTerm term="IA" /> vient de tomber en panne. La fabrication d'un serveur neuf nécessite d'énormes quantités d'eau pure pour nettoyer les puces électroniques. Quelle est la meilleure approche pour notre infrastructure ?
             </>
           }
-          emotion="neutral"
+          emotion="alert"
         />
       </div>
 
       <div className="space-y-4 text-slate-300">
-        <div className="bg-emerald-950/30 border border-emerald-500/50 p-4 rounded-lg">
-          <h3 className="text-emerald-400 font-bold uppercase mb-2">Mission : Filtrage de Spam</h3>
-          <p className="text-sm font-sans mt-2 font-bold text-emerald-300">
-            Choisissez l'architecture logicielle offrant le meilleur ratio entre précision et coût environnemental pour cette tâche spécifique.
-          </p>
-        </div>
+        <div className="flex flex-col lg:flex-row gap-5 mt-5">
+          {/* Server Visualization */}
+          <div className="w-full lg:w-1/2 relative bg-slate-950 rounded-xl border border-slate-800 p-6 flex flex-col items-center justify-center">
+            <div className="w-full max-w-xs space-y-4">
+              <div className="h-12 bg-slate-800 rounded border border-slate-700 flex items-center px-4 gap-4">
+                <Cpu className="w-6 h-6 text-emerald-500" />
+                <div className="flex-1 h-2 bg-emerald-500/20 rounded-full overflow-hidden">
+                  <div className="h-full bg-emerald-500 w-3/4"></div>
+                </div>
+                <span className="text-xs text-emerald-500">OK</span>
+              </div>
+              <div className="h-12 bg-red-900/20 rounded border border-red-500/50 flex items-center px-4 gap-4">
+                <MemoryStick className="w-6 h-6 text-red-500" />
+                <div className="flex-1 h-2 bg-red-500/20 rounded-full overflow-hidden">
+                  <div className="h-full bg-red-500 w-1/4"></div>
+                </div>
+                <span className="text-xs text-red-500 font-bold">ERR</span>
+              </div>
+              <div className="h-12 bg-slate-800 rounded border border-slate-700 flex items-center px-4 gap-4">
+                <HardDrive className="w-6 h-6 text-emerald-500" />
+                <div className="flex-1 h-2 bg-emerald-500/20 rounded-full overflow-hidden">
+                  <div className="h-full bg-emerald-500 w-full"></div>
+                </div>
+                <span className="text-xs text-emerald-500">OK</span>
+              </div>
+            </div>
+            <p className="mt-6 text-sm text-slate-400 text-center">
+              Diagnostic : Défaillance du module mémoire (RAM). Le reste du système est fonctionnel.
+            </p>
+          </div>
 
-        <div className="grid grid-cols-1 gap-4 mt-5">
-          {models.map((model) => {
-            const isSelected = selectedModel === model.id;
-            const Icon = model.icon;
-            
-            return (
-              <button
-                key={model.id}
-                onClick={() => handleSelect(model.id)}
-                className={`relative p-5 rounded-xl border-2 text-left transition-all duration-300 flex flex-col md:flex-row items-start md:items-center gap-6 ${
-                  isSelected 
-                    ? `${model.bg} ${model.border} scale-[1.02] z-10` 
-                    : 'bg-slate-950 border-slate-800 hover:border-slate-600'
-                }`}
-              >
-                <div className={`p-4 rounded-full shrink-0 ${isSelected ? 'bg-slate-900' : 'bg-slate-900/50'}`}>
-                  <Icon className={`w-8 h-8 ${isSelected ? model.color : 'text-slate-500'}`} />
-                </div>
-                
-                <div className="flex-1 w-full">
-                  <h4 className={`font-bold text-lg mb-1 ${isSelected ? 'text-white' : 'text-slate-300'}`}>
-                    {model.name}
-                  </h4>
-                  <p className="text-sm text-slate-400 mb-4">{model.desc}</p>
-                  
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div className="bg-slate-900 p-2 rounded border border-slate-800">
-                      <span className="text-slate-500 uppercase text-xs block mb-1">Précision</span>
-                      <span className="font-bold text-white">{model.accuracy}</span>
-                    </div>
-                    <div className="bg-slate-900 p-2 rounded border border-slate-800">
-                      <span className="text-slate-500 uppercase text-xs block mb-1">Coût Énergétique</span>
-                      <div className="flex items-center gap-2">
-                        <Zap className={`w-4 h-4 ${model.color}`} />
-                        <span className={`font-bold ${model.color}`}>{model.energy}</span>
-                      </div>
+          {/* Actions */}
+          <div className="w-full lg:w-1/2 flex flex-col gap-4">
+            {actions.map((action) => {
+              const Icon = action.icon;
+              const isSelected = selectedAction === action.id;
+              return (
+                <button
+                  key={action.id}
+                  onClick={() => handleSelect(action.id)}
+                  className={`relative p-4 rounded-xl border-2 text-left transition-all duration-300 flex items-center gap-4 ${
+                    isSelected 
+                      ? `${action.bg} ${action.border} scale-[1.02]` 
+                      : 'bg-slate-950 border-slate-800 hover:border-slate-600'
+                  }`}
+                >
+                  <div className={`p-3 rounded-full ${isSelected ? 'bg-slate-900' : 'bg-slate-900/50'}`}>
+                    <Icon className={`w-6 h-6 ${isSelected ? action.color : 'text-slate-500'}`} />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className={`font-bold ${isSelected ? 'text-white' : 'text-slate-300'}`}>{action.name}</h3>
+                    <p className="text-xs text-slate-400 mt-1">{action.desc}</p>
+                    <div className="mt-2 text-xs font-bold text-blue-400">
+                      Coût en eau (fabrication) : {action.waterCost}
                     </div>
                   </div>
-                  
-                  {/* Visual Energy Bar */}
-                  <div className="mt-4">
-                    <div className="flex justify-between text-[10px] text-slate-500 uppercase mb-1">
-                      <span>Empreinte Carbone Relative</span>
-                    </div>
-                    <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                      <div className={`h-full ${model.barColor} ${model.barWidth} transition-all duration-1000`}></div>
-                    </div>
-                  </div>
-                </div>
-              </button>
-            );
-          })}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {!isSuccess && (
           <div className="flex justify-center mt-5">
             <button
               onClick={checkAnswer}
-              disabled={!selectedModel}
-              className={`px-8 py-4 rounded-lg font-bold text-lg transition-all flex items-center gap-2 ${
-                !selectedModel
+              disabled={!selectedAction}
+              className={`px-8 py-4 rounded-lg font-bold text-lg transition-all ${
+                !selectedAction
                   ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
                   : showError
                   ? 'bg-red-600 text-white animate-shake'
                   : 'bg-emerald-600 hover:bg-emerald-500 text-white hover:scale-105'
               }`}
             >
-              {showError ? (
-                <>MAUVAIS COMPROMIS <AlertTriangle className="w-5 h-5" /></>
-              ) : (
-                <>DÉPLOYER LE MODÈLE</>
-              )}
+              {showError ? 'MAUVAISE DÉCISION' : 'EXÉCUTER L\'ACTION'}
             </button>
           </div>
         )}
@@ -194,11 +192,11 @@ export default function Level7({ isDevMode, onComplete, onScoreUpdate, onMistake
               className="flex flex-col items-center mt-5 p-6 bg-emerald-950/30 border border-emerald-500/50 rounded-lg"
             >
               <div className="flex items-center gap-2 text-emerald-400 font-bold text-xl mb-4">
-                <CheckCircle2 className="w-6 h-6" />
-                SOBRIÉTÉ ATTEINTE
+                 <CheckCircle2 className="w-6 h-6" />
+                 RÉPARATION EFFECTUÉE
               </div>
               <p className="text-center mb-6 text-sm">
-                C'est le principe de la "Sobriété Algorithmique" (Green AI). Il ne faut pas utiliser un marteau-pilon pour écraser une mouche. Un modèle spécialisé, beaucoup plus petit, offre une précision presque identique pour une fraction minuscule du coût énergétique d'un <TechTerm term="LLM" /> géant.
+                L'économie circulaire est essentielle. La fabrication des composants électroniques (puces, processeurs) nécessite d'énormes quantités d'eau ultra-pure. En réparant au lieu de remplacer, nous économisons des milliers de litres d'eau virtuelle.
               </p>
               <button
                 onClick={onComplete}

@@ -171,10 +171,17 @@ export default function App() {
   }, []);
 
   // Developer Mode State
-  const [isDevMode, setIsDevMode] = useState(false);
+  const [isDevMode, setIsDevMode] = useState(() => {
+    const saved = localStorage.getItem('hydrosave_devmode');
+    return saved === 'true';
+  });
   const [showDevModal, setShowDevModal] = useState(false);
   const [devPassword, setDevPassword] = useState('');
   const [devError, setDevError] = useState(false);
+
+  useEffect(() => {
+    localStorage.setItem('hydrosave_devmode', isDevMode.toString());
+  }, [isDevMode]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -331,6 +338,8 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-emerald-400 font-mono flex flex-col items-center justify-center p-4 overflow-hidden relative">
+      {/* Decorative background elements */}
+      <Background />
       {/* Success Flash Overlay */}
       <AnimatePresence>
         {isSuccessFlash && (
@@ -353,6 +362,7 @@ export default function App() {
         waterSaved={waterSaved}
         score={score}
         isDevMode={isDevMode}
+        setIsDevMode={setIsDevMode}
         unlockedFreeHints={unlockedFreeHints}
         unlockedPaidHints={unlockedPaidHints}
         setShowDevModal={setShowDevModal}
@@ -572,7 +582,7 @@ export default function App() {
       </AnimatePresence>
 
       <motion.main 
-        className="w-full mt-16 md:mt-20 pb-16 relative z-10"
+        className="w-full mt-16 md:mt-20 pb-16 relative"
         animate={isShaking ? { 
           x: [-10, 10, -10, 10, 0], 
           filter: ["hue-rotate(0deg)", "hue-rotate(90deg)", "hue-rotate(-90deg)", "hue-rotate(0deg)"],
@@ -640,8 +650,7 @@ export default function App() {
         </AnimatePresence>
       </motion.main>
 
-      {/* Decorative background elements */}
-      <Background />
+      {/* Background moved to the top for z-index layering */}
 
       <button 
         onClick={() => setShowDevModal(true)}

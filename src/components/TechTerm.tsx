@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { createPortal } from 'react-dom';
 
 
 const TERMS_DICTIONARY: Record<string, { title: string; definition: string }> = {
@@ -50,9 +51,11 @@ interface TechTermProps {
 export default function TechTerm({ term, children, className = '' }: TechTermProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isDiscovered, setIsDiscovered] = useState(false);
-  const [positionClass, setPositionClass] = useState('left-1/2 -translate-x-1/2');
-  const [arrowClass, setArrowClass] = useState('left-1/2 -translate-x-1/2');
+  
+  // Tracking the precise on-screen coordinates for the portal
+  const [tooltipPos, setTooltipPos] = useState({ top: 0, left: 0, arrowLeft: 144 });
   const spanRef = useRef<HTMLSpanElement>(null);
+  
   const info = TERMS_DICTIONARY[term] || { title: term, definition: 'Terme technique lié à l\'IA ou à l\'écologie.' };
 
   useEffect(() => {
@@ -75,30 +78,47 @@ export default function TechTerm({ term, children, className = '' }: TechTermPro
     return () => window.removeEventListener('discoverTerm', handleDiscovery);
   }, [term]);
 
-  useEffect(() => {
+  const updatePosition = () => {
     if (isHovered && spanRef.current) {
       const rect = spanRef.current.getBoundingClientRect();
       const tooltipWidth = 288; // w-72 = 18rem = 288px
       const halfTooltip = tooltipWidth / 2;
       
-      let newPosClass = 'left-1/2 -translate-x-1/2';
-      let newArrowClass = 'left-1/2 -translate-x-1/2';
+      let targetLeft = rect.left + rect.width / 2;
+      let arrowLeft = halfTooltip; // The arrow points to center of tooltip by default
 
-      // Vérifier le débordement à droite
-      if (rect.left + rect.width / 2 + halfTooltip > window.innerWidth - 20) {
-        newPosClass = 'right-0';
-        // Placer la flèche en fonction de la taille du mot, mais gardée à droite
-        newArrowClass = 'right-[10%]';
+      // Débordement à droite
+      if (targetLeft + halfTooltip > window.innerWidth - 20) {
+        let diff = (targetLeft + halfTooltip) - (window.innerWidth - 20);
+        targetLeft -= diff;
+        arrowLeft += diff; // offset arrow back towards the real word center
       } 
-      // Vérifier le débordement à gauche
-      else if (rect.left + rect.width / 2 - halfTooltip < 20) {
-        newPosClass = 'left-0';
-        newArrowClass = 'left-[10%]';
+      // Débordement à gauche
+      else if (targetLeft - halfTooltip < 20) {
+        let diff = 20 - (targetLeft - halfTooltip);
+        targetLeft += diff;
+        arrowLeft -= diff;
       }
 
-      setPositionClass(newPosClass);
-      setArrowClass(newArrowClass);
+      setTooltipPos({
+        top: rect.top + window.scrollY, // Keep it absolute to the document so it scrolls naturally
+        left: targetLeft,
+        arrowLeft: arrowLeft
+      });
     }
+  };
+
+  useEffect(() => {
+    updatePosition();
+    if (isHovered) {
+      // Passive listener helps smooth scrolling without blocking execution
+      window.addEventListener('scroll', updatePosition, { passive: true });
+      window.addEventListener('resize', updatePosition);
+    }
+    return () => {
+      window.removeEventListener('scroll', updatePosition);
+      window.removeEventListener('resize', updatePosition);
+    };
   }, [isHovered]);
 
   const handleMouseEnter = () => {
@@ -111,7 +131,7 @@ export default function TechTerm({ term, children, className = '' }: TechTermPro
 
   return (
     <span 
-      className={`relative inline-block ${className}`.trim()}
+      className={`relative inline-block ${className} ${isHovered ? 'z-[60]' : ''}`.trim()}
       ref={spanRef}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={() => setIsHovered(false)}
@@ -125,25 +145,46 @@ export default function TechTerm({ term, children, className = '' }: TechTermPro
         {children || term}
       </span>
 
-      <AnimatePresence>
-        {isHovered && (
-          <motion.span
-            initial={{ opacity: 0, y: 10, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 5, scale: 0.95 }}
-            className={`absolute z-[9999] bottom-full ${positionClass} mb-2 w-72 p-4 bg-slate-900 border border-slate-700 rounded-lg pointer-events-none block shadow-2xl not-italic text-left font-normal tracking-normal`}
-          >
-            <span className="text-emerald-400 font-bold text-sm mb-1.5 flex items-center gap-2 normal-case font-sans not-italic tracking-normal">
-              {info.title}
-            </span>
-            <span className="text-slate-200 text-sm leading-relaxed font-sans font-normal block normal-case not-italic tracking-normal">
-              {info.definition}
-            </span>
-            <span className={`absolute top-full ${arrowClass} border-8 border-transparent border-t-slate-700`}></span>
-            <span className={`absolute top-[calc(100%-1px)] ${arrowClass} border-8 border-transparent border-t-slate-900`}></span>
-          </motion.span>
-        )}
-      </AnimatePresence>
+      {/* Render the tooltip at the document body level using a React Portal so it bypasses all z-index stacking context restrictions */}
+      {typeof document !== 'undefined' && createPortal(
+        <AnimatePresence>
+          {isHovered && (
+            <motion.div
+              style={{
+                position: 'absolute',
+                top: tooltipPos.top - 8, // slight margin
+                left: tooltipPos.left,
+                zIndex: 999999, // Super high z-index + Portal guarantees it is strictly above everything including HUD (z-50)
+                pointerEvents: 'none'
+              }}
+              // Using CSS translate to center the tooltip exactly over its dynamic x/y anchor points
+              initial={{ opacity: 0, y: 'calc(-100% + 10px)', x: '-50%', scale: 0.95 }}
+              animate={{ opacity: 1, y: '-100%', x: '-50%', scale: 1 }}
+              exit={{ opacity: 0, y: 'calc(-100% + 5px)', x: '-50%', scale: 0.95 }}
+              transition={{ duration: 0.2 }}
+              className="w-72 p-4 bg-slate-900 border border-slate-700 rounded-lg shadow-2xl block text-left font-normal tracking-normal !fixed"
+            >
+              <span className="text-emerald-400 font-bold text-sm mb-1.5 flex items-center gap-2 normal-case font-sans not-italic tracking-normal">
+                {info.title}
+              </span>
+              <span className="text-slate-200 text-sm leading-relaxed font-sans font-normal block normal-case not-italic tracking-normal">
+                {info.definition}
+              </span>
+              
+              {/* Tooltip arrows dynamically offset */}
+              <span 
+                className="absolute top-full border-8 border-transparent border-t-slate-700 -translate-x-1/2"
+                style={{ left: `${tooltipPos.arrowLeft}px` }}
+              ></span>
+              <span 
+                className="absolute top-[calc(100%-1px)] border-8 border-transparent border-t-slate-900 -translate-x-1/2"
+                style={{ left: `${tooltipPos.arrowLeft}px` }}
+              ></span>
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
     </span>
   );
 }

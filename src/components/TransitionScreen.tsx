@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Terminal, Cpu, ChevronRight } from 'lucide-react';
+import { Terminal, Cpu, ChevronRight, Star } from 'lucide-react';
 import { soundManager } from '../utils/soundManager';
 
 interface TransitionScreenProps {
@@ -109,13 +109,19 @@ export default function TransitionScreen({ level, fact, onTransitionComplete, sc
             transition={{ delay: 0.6 }}
             className="flex flex-col items-center gap-1 mt-2"
           >
-            <span className="text-emerald-500/40 text-[10px] uppercase tracking-widest font-bold">Score Total</span>
-            <div className="text-4xl font-black text-white flex items-center gap-4">
-              <span className="tabular-nums">{displayScore}</span>
+            <span className="text-yellow-500/60 text-[10px] uppercase tracking-widest font-bold">Score Total</span>
+            <div className="text-4xl font-black text-yellow-400 flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Star className="w-8 h-8 fill-yellow-400 text-yellow-400 drop-shadow-[0_0_10px_rgba(250,204,21,0.5)]" />
+                <span className="tabular-nums drop-shadow-[0_0_15px_rgba(250,204,21,0.3)]">{displayScore}</span>
+              </div>
               {pointsGained > 0 && (
                 <div className="flex flex-col items-start">
-                  <span className="text-emerald-400 text-sm font-bold">+{pointsGained}</span>
-                  <span className="text-[8px] text-emerald-500/60 uppercase tracking-tighter">Points gagnés</span>
+                  <div className="flex items-center gap-1 text-yellow-400">
+                    <span className="text-sm font-bold drop-shadow-[0_0_10px_rgba(250,204,21,0.5)]">+{pointsGained}</span>
+                    <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                  </div>
+                  <span className="text-[8px] text-yellow-500/60 uppercase tracking-tighter">Points gagnés</span>
                 </div>
               )}
             </div>

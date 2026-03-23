@@ -188,14 +188,29 @@ export default function BonusLevel({ onComplete, onScoreUpdate, nickname, onFina
       )}
 
       {(isAnalyzing || isFinalizing) && (
-        <div className="flex flex-col items-center justify-center py-20 space-y-5">
-          <div className="relative">
-            <Loader2 className="w-20 h-20 text-emerald-500" />
-            <Sparkles className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 text-yellow-400" />
+        <div className="flex flex-col items-center justify-center py-20 space-y-8">
+          <div className="relative flex items-center justify-center w-32 h-32">
+            {/* Glowing background pulse */}
+            <div className="absolute inset-0 bg-emerald-500/20 rounded-full blur-2xl animate-pulse"></div>
+            
+            {/* Outer spinning ring with glow */}
+            <div className="absolute inset-0 border-t-4 border-b-4 border-emerald-500 rounded-full animate-[spin_2s_linear_infinite] shadow-[0_0_15px_rgba(16,185,129,0.5)]"></div>
+            
+            {/* Inner reverse spinning ring */}
+            <div className="absolute inset-4 border-r-4 border-l-4 border-cyan-400 rounded-full animate-[spin_3s_linear_infinite_reverse] shadow-[0_0_15px_rgba(34,211,238,0.5)]"></div>
+            
+            {/* Center icon that pulses */}
+            <motion.div
+              animate={{ scale: [1, 1.2, 1] }}
+              transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
+              className="relative z-10"
+            >
+              <Sparkles className="w-10 h-10 text-yellow-400 drop-shadow-[0_0_10px_rgba(250,204,21,1)]" />
+            </motion.div>
           </div>
-          <div className="text-center space-y-2">
-            <p className="text-xl font-bold text-emerald-400">{loadingStep}</p>
-            <p className="text-slate-500 text-sm">L'IA de NAÏA traite vos données</p>
+          <div className="text-center space-y-2 z-10">
+            <p className="text-xl font-bold text-emerald-400 drop-shadow-[0_0_5px_rgba(16,185,129,0.8)] animate-pulse">{loadingStep}</p>
+            <p className="text-cyan-400/70 text-sm tracking-widest uppercase">L'IA de NAÏA traite vos données...</p>
           </div>
         </div>
       )}
@@ -390,10 +405,27 @@ export default function BonusLevel({ onComplete, onScoreUpdate, nickname, onFina
                         crossOrigin="anonymous"
                       />
                     ) : (
-                      <div className="flex flex-col items-center text-slate-600">
-                        <Loader2 className="w-12 h-12 mb-2 animate-spin" />
-                        <p className="text-xs">Génération du prototype</p>
-                      </div>
+                        <div className="flex flex-col items-center justify-center h-full w-full">
+                          <div className="relative mb-6">
+                            <div className="absolute inset-0 bg-cyan-500/20 rounded-full blur-xl animate-pulse"></div>
+                            <div className="relative flex items-center justify-center">
+                              <Loader2 className="w-16 h-16 text-cyan-400 animate-[spin_2s_linear_infinite] drop-shadow-[0_0_10px_rgba(34,211,238,0.8)]" />
+                              <motion.div 
+                                animate={{ scale: [1, 1.2, 1] }}
+                                transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
+                                className="absolute"
+                              >
+                                <Sparkles className="w-6 h-6 text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,1)]" />
+                              </motion.div>
+                            </div>
+                          </div>
+                          <p className="text-xs font-bold text-cyan-400 tracking-[0.2em] uppercase animate-pulse">
+                            Génération en cours
+                          </p>
+                          <p className="text-[9px] text-cyan-500/50 mt-2 uppercase tracking-widest">
+                            Initialisation du réseau...
+                          </p>
+                        </div>
                     )}
                     <div className="absolute bottom-4 left-4 right-4 bg-slate-900/80 backdrop-blur-sm p-2 rounded border border-cyan-500/30 text-[10px] text-cyan-400 text-center uppercase tracking-tighter">
                       Prototype matérialisé par NAÏA
