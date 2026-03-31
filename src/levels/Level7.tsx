@@ -96,7 +96,7 @@ export default function Level7({ isDevMode, onComplete, onScoreUpdate, onMistake
         <NaiaDialogue 
           message={
             <>
-              Agent, un de nos <TechTerm term="Serveur">serveurs</TechTerm> d'entraînement <TechTerm term="IA" /> vient de tomber en panne. La fabrication d'un serveur neuf nécessite d'énormes quantités d'eau pure pour nettoyer les puces électroniques. Quelle est la meilleure approche pour notre infrastructure ?
+              Agent, un des <TechTerm term="Serveur">serveurs</TechTerm> d'HYDRA vient de tomber en panne. Son protocole par défaut commande du matériel neuf, ce qui gaspille d'énormes quantités d'eau pure pour fabriquer les puces électroniques. Interceptez la commande et imposez une solution éco-responsable.
             </>
           }
           emotion="alert"

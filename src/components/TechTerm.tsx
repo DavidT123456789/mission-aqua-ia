@@ -47,6 +47,18 @@ const TERMS_DICTIONARY: Record<string, { title: string; definition: string }> = 
   'IA Générative': {
     title: 'IA Générative',
     definition: 'Une technologie d\'IA capable de créer du contenu original (texte, image, son) à partir de données existantes.'
+  },
+  'Mème': {
+    title: 'Mème',
+    definition: 'Une image, une vidéo ou un texte humoristique qui est détourné et partagé massivement sur internet.'
+  },
+  'Topographie': {
+    title: 'Topographie',
+    definition: 'L\'étude des formes du terrain (relief, altitudes). C\'est crucial pour l\'eau car elle coule toujours vers le point le plus bas !'
+  },
+  'Hydrologie': {
+    title: 'Hydrologie',
+    definition: 'La science qui étudie l\'eau sur la Terre, sa circulation, et sa répartition (nappes phréatiques, rivières, etc.).'
   }
 };
 
@@ -63,6 +75,7 @@ export default function TechTerm({ term, children, className = '' }: TechTermPro
   // Tracking the precise on-screen coordinates for the portal
   const [tooltipPos, setTooltipPos] = useState({ top: 0, left: 0, arrowLeft: 144 });
   const spanRef = useRef<HTMLSpanElement>(null);
+  const discoveryTimerRef = useRef<any>(null);
   
   const info = TERMS_DICTIONARY[term] || { title: term, definition: 'Terme technique lié à l\'IA ou à l\'écologie.' };
 
@@ -129,11 +142,30 @@ export default function TechTerm({ term, children, className = '' }: TechTermPro
     };
   }, [isHovered]);
 
+  useEffect(() => {
+    return () => {
+      if (discoveryTimerRef.current) {
+        clearTimeout(discoveryTimerRef.current);
+      }
+    };
+  }, []);
+
   const handleMouseEnter = () => {
     setIsHovered(true);
-    if (!isDiscovered) {
-      window.dispatchEvent(new CustomEvent('discoverTerm', { detail: term }));
-      setIsDiscovered(true);
+    if (!isDiscovered && !discoveryTimerRef.current) {
+      discoveryTimerRef.current = setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('discoverTerm', { detail: term }));
+        setIsDiscovered(true);
+        discoveryTimerRef.current = null;
+      }, 1000); // 1 seconde de délai avant de valider la découverte
+    }
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovered(false);
+    if (discoveryTimerRef.current) {
+      clearTimeout(discoveryTimerRef.current);
+      discoveryTimerRef.current = null;
     }
   };
 
@@ -142,9 +174,9 @@ export default function TechTerm({ term, children, className = '' }: TechTermPro
       className={`relative inline-block ${className} ${isHovered ? 'z-[60]' : ''}`.trim()}
       ref={spanRef}
       onMouseEnter={handleMouseEnter}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseLeave={handleMouseLeave}
       onFocus={handleMouseEnter}
-      onBlur={() => setIsHovered(false)}
+      onBlur={handleMouseLeave}
     >
       <span 
         tabIndex={0}

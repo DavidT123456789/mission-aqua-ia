@@ -96,7 +96,7 @@ export default function Level4({ isDevMode, onComplete, onScoreUpdate, onMistake
         <NaiaDialogue 
           message={
             <>
-              L'emplacement d'un <TechTerm term="Datacenter">data center</TechTerm> est crucial. Le <TechTerm term="Refroidissement" /> représente une part massive de la consommation énergétique et hydrique. Où devrions-nous implanter notre nouveau supercalculateur pour minimiser son impact environnemental, en particulier sur l'eau ?
+              HYDRA s'apprête à construire un nouveau <TechTerm term="Datacenter">data center</TechTerm>. Le <TechTerm term="Refroidissement" /> représente une part massive de sa consommation énergétique et hydrique. Infiltrez son processus de décision et forcez-la à choisir l'emplacement avec le meilleur impact environnemental, en particulier sur l'eau.
             </>
           }
           emotion="neutral"

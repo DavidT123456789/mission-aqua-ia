@@ -36,8 +36,8 @@ export const HINTS: Record<number, { free: string, paid: string }> = {
     paid: "Supprimez les images de chats, l'historique des mèmes et les vidéos virales. Gardez le climat, l'hydrologie et la topographie."
   },
   10: {
-    free: "Une charte éthique doit promouvoir la transparence, la sobriété et le bon sens écologique.",
-    paid: "Sélectionnez les clauses 1 (Transparence), 4 (Interdiction des LLMs géants pour des tâches simples) et 5 (Réutilisation de la chaleur)."
+    free: "Il y a exactement 4 clauses bénéfiques pour l'environnement à sélectionner pour adopter cette loi.",
+    paid: "Coche en priorité la Transparence obligatoire (clause 1) et la Réutilisation de la chaleur fatale (clause 5). Il t'en reste 2 à trouver !"
   },
   11: {
     free: "Lisez attentivement le code. Il faut vérifier l'humidité, et si elle est trop élevée, arrêter l'arrosage.",

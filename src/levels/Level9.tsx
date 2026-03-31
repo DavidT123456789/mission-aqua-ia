@@ -6,12 +6,12 @@ import TechTerm from '../components/TechTerm';
 
 export default function Level9({ isDevMode, onComplete, onScoreUpdate, onMistake }: { isDevMode?: boolean; onComplete: () => void; onScoreUpdate: (points: number, water: number) => void; onMistake?: () => void; key?: string }) {
   const [datasets, setDatasets] = useState([
-    { id: 1, name: 'Images de chats (10 To)', relevant: false, kept: true },
-    { id: 2, name: 'Données climatiques (2 To)', relevant: true, kept: true },
-    { id: 3, name: 'Historique des mèmes (50 To)', relevant: false, kept: true },
-    { id: 4, name: 'Relevés hydrologiques (1 To)', relevant: true, kept: true },
-    { id: 5, name: 'Vidéos virales 2010s (100 To)', relevant: false, kept: true },
-    { id: 6, name: 'Topographie des sols (3 To)', relevant: true, kept: true },
+    { id: 1, text: 'Images de chats', size: 10, relevant: false, kept: true },
+    { id: 2, text: 'Données climatiques', size: 2, relevant: true, kept: true },
+    { id: 3, text: <>Historique des <TechTerm term="Mème">mèmes</TechTerm></>, size: 50, relevant: false, kept: true },
+    { id: 4, text: <>Relevés <TechTerm term="Hydrologie">hydrologiques</TechTerm></>, size: 1, relevant: true, kept: true },
+    { id: 5, text: 'Vidéos virales 2010s', size: 100, relevant: false, kept: true },
+    { id: 6, text: <><TechTerm term="Topographie">Topographie</TechTerm> des sols</>, size: 3, relevant: true, kept: true },
   ]);
 
   const [showError, setShowError] = useState(false);
@@ -37,10 +37,7 @@ export default function Level9({ isDevMode, onComplete, onScoreUpdate, onMistake
   };
 
   const isSuccess = datasets.every(d => d.kept === d.relevant) && hasScored;
-  const totalDataKept = datasets.filter(d => d.kept).reduce((acc, curr) => {
-    const size = parseInt(curr.name.match(/\((\d+) To\)/)?.[1] || '0');
-    return acc + size;
-  }, 0);
+  const totalDataKept = datasets.filter(d => d.kept).reduce((acc, curr) => acc + curr.size, 0);
 
   return (
     <motion.div
@@ -65,7 +62,7 @@ export default function Level9({ isDevMode, onComplete, onScoreUpdate, onMistake
         <NaiaDialogue 
           message={
             <>
-              Pour prédire les sécheresses, je dois être ré-entraînée. Actuellement, on me nourrit avec TOUTES les données d'internet. Plus il y a de données, plus l'entraînement est long, et plus il consomme d'eau et d'électricité. Filtrez mon jeu de données pour ne garder que l'essentiel.
+              Pour reprogrammer HYDRA, nous devons l'entraîner à devenir une <strong>experte sur la gestion de l'eau</strong> pour prédire les sécheresses. Actuellement, on la nourrit avec TOUTES les données d'internet. Plus il y a de données hors-sujet, plus son entraînement est long, et plus elle consomme d'eau et d'électricité pour rien. <strong>Filtrez son jeu de données</strong> pour ne garder que ce qui lui sera absolument utile pour sa nouvelle mission écologique.
             </>
           }
           emotion="alert"
@@ -95,7 +92,7 @@ export default function Level9({ isDevMode, onComplete, onScoreUpdate, onMistake
               <div className="flex items-center gap-3">
                 <Database className={`w-5 h-5 ${!dataset.kept ? 'text-red-500' : 'text-blue-400'}`} />
                 <span className={`text-sm ${!dataset.kept ? 'line-through text-slate-500' : 'text-slate-200'}`}>
-                  {dataset.name}
+                  {dataset.text} <span className="text-slate-400 font-medium">({dataset.size} To)</span>
                 </span>
               </div>
               {!dataset.kept && <Trash2 className="w-4 h-4 text-red-500" />}

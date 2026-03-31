@@ -53,7 +53,7 @@ export default function Level1({ isDevMode, onComplete, onScoreUpdate, onMistake
         <NaiaDialogue 
           message={
             <>
-              Bonjour Agent. Je suis NAÏA. Notre première tâche est d'identifier la source de notre surconsommation d'eau. Regardez ce rapport d'analyse sur la génération d'images par <TechTerm term="IA" />. Calculez la consommation pour une seule image.
+              Bonjour Agent. Je suis NAÏA. Notre première tâche pour stopper HYDRA est de quantifier exactement sa surconsommation d'eau. Regardez ce rapport d'analyse sur la génération d'images par <TechTerm term="IA" />. Calculez la consommation pour une seule image.
             </>
           }
           emotion="neutral"

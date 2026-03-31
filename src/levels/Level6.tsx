@@ -95,7 +95,7 @@ export default function Level6({ isDevMode, onComplete, onScoreUpdate, onMistake
         <NaiaDialogue 
           message={
             <>
-              Continuons, Agent. La ville reçoit 10 millions d'emails par jour. Nous devons déployer un système pour filtrer le spam. Utiliser le plus gros modèle d'<TechTerm term="IA" /> consommerait autant d'électricité qu'un quartier entier ! Choisissez l'architecture logicielle offrant le meilleur ratio entre précision et coût environnemental pour cette tâche spécifique.
+              Continuons, Agent. La ville reçoit 10 millions d'emails par jour. HYDRA alloue actuellement la puissance de son plus gros modèle d'<TechTerm term="IA" /> juste pour filtrer ces spams, une aberration écologique ! Modifiez son architecture logicielle pour lui imposer le modèle offrant le meilleur ratio entre précision et coût environnemental.
             </>
           }
           emotion="neutral"
@@ -106,7 +106,7 @@ export default function Level6({ isDevMode, onComplete, onScoreUpdate, onMistake
         <div className="bg-emerald-950/30 border border-emerald-500/50 p-4 rounded-lg">
           <h3 className="text-emerald-400 font-bold uppercase mb-2">Mission : Filtrage de Spam</h3>
           <p className="text-sm font-sans mt-2 font-bold text-emerald-300">
-            Choisissez l'architecture logicielle offrant le meilleur ratio entre précision et coût environnemental pour cette tâche spécifique.
+            Imposez l'architecture logicielle offrant le meilleur ratio entre précision et coût environnemental pour cette tâche spécifique.
           </p>
         </div>
 

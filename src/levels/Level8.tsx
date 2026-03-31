@@ -96,7 +96,7 @@ export default function Level8({ isDevMode, onComplete, onScoreUpdate, onMistake
         <NaiaDialogue 
           message={
             <>
-              Nos <TechTerm term="Serveur">serveurs</TechTerm> génèrent une quantité massive de chaleur. Actuellement, nous utilisons de l'eau pour les refroidir, puis nous évaporons cette eau chaude. C'est un double gaspillage : d'eau et d'énergie. Comment pouvons-nous transformer ce problème en solution ?
+              Les <TechTerm term="Serveur">serveurs</TechTerm> d'HYDRA génèrent une quantité massive de chaleur. Actuellement, elle évapore des millions de litres d'eau pure pour les refroidir. C'est un double gaspillage : d'eau et d'énergie. Piratez le circuit thermique pour rediriger cette chaleur et la rendre utile à la ville.
             </>
           }
           emotion="neutral"

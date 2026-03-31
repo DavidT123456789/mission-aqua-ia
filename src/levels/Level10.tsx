@@ -9,14 +9,16 @@ export default function Level10({ isDevMode, onComplete, onScoreUpdate, onMistak
   const [showError, setShowError] = useState(false);
   const [hasScored, setHasScored] = useState(false);
 
-  const clauses = [
+  const [shuffledClauses] = useState(() => [
     { id: 1, text: <>Transparence obligatoire sur la consommation d'eau des modèles <TechTerm term="IA" />.</>, good: true },
-    { id: 2, text: 'Priorité absolue à la vitesse de calcul, quel qu\'en soit le coût.', good: false },
-    { id: 3, text: 'Obligation d\'utiliser l\'eau potable pour refroidir les serveurs.', good: false },
+    { id: 2, text: <>Accélération du <TechTerm term="Machine Learning">machine learning</TechTerm> par suppression des quotas d'énergie.</>, good: false },
+    { id: 3, text: <>Refroidissement des <TechTerm term="Serveur">serveurs</TechTerm> autorisé avec l'eau potable du réseau public.</>, good: false },
     { id: 4, text: <>Interdiction d'entraîner des <TechTerm term="LLM">LLMs</TechTerm> géants pour des tâches simples.</>, good: true },
     { id: 5, text: <>Réutilisation obligatoire de la chaleur fatale des <TechTerm term="Datacenter">data centers</TechTerm>.</>, good: true },
-    { id: 6, text: 'Autorisation de construire des centres de données sans étude d\'impact environnemental.', good: false },
-  ];
+    { id: 6, text: <>Exemption d'étude d'impact pour accélérer le déploiement des infrastructures <TechTerm term="Cloud">cloud</TechTerm>.</>, good: false },
+    { id: 7, text: <>Évaluation du coût écologique avant chaque déploiement d'<TechTerm term="Algorithme">algorithme</TechTerm> majeur.</>, good: true },
+    { id: 8, text: <>Soutien inconditionnel au développement massif de l'<TechTerm term="IA Générative">IA générative</TechTerm>.</>, good: false },
+  ].sort(() => Math.random() - 0.5));
 
   const toggleClause = (id: number) => {
     setSelectedClauses(prev => 
@@ -26,7 +28,7 @@ export default function Level10({ isDevMode, onComplete, onScoreUpdate, onMistak
   };
 
   const checkAnswer = () => {
-    const correctClauses = clauses.filter(c => c.good).map(c => c.id);
+    const correctClauses = shuffledClauses.filter(c => c.good).map(c => c.id);
     const isCorrect = selectedClauses.length === correctClauses.length && 
                       selectedClauses.every(id => correctClauses.includes(id));
     
@@ -53,7 +55,7 @@ export default function Level10({ isDevMode, onComplete, onScoreUpdate, onMistak
     >
       {isDevMode && (
         <div className="absolute top-2 right-2 bg-purple-900/80 text-purple-300 text-xs px-2 py-1 rounded border border-purple-500/50 z-50">
-          Dev Réponses : Select clauses 1, 4, 5
+          Dev : Transparence (1), Interdire LLM (4), Chaleur (5), Évaluation (7)
         </div>
       )}
       <div className="flex items-center gap-3 mb-3 border-b border-cyan-900/50 pb-3">
@@ -78,7 +80,7 @@ export default function Level10({ isDevMode, onComplete, onScoreUpdate, onMistak
         <div className="bg-slate-950 p-6 rounded-xl border border-slate-800">
           <h3 className="text-center font-bold text-lg mb-6 uppercase tracking-widest text-slate-400">Projet de Loi - Article 1</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {clauses.map((clause) => (
+            {shuffledClauses.map((clause) => (
               <button
                 key={clause.id}
                 onClick={() => toggleClause(clause.id)}

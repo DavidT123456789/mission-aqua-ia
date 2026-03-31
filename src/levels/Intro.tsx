@@ -38,6 +38,9 @@ export default function Intro({ onStart, hasSavedGame, onLoadGame, onClearSave }
           <p>
             Votre mission : infiltrer le système à travers 12 niveaux de sécurité, stopper l'hémorragie, et accéder à l'Innovation Lab pour reprogrammer HYDRA afin qu'elle nous aide à économiser l'eau et l'énergie au lieu de les gaspiller.
           </p>
+          <p>
+            Pour vous guider dans cette mission d'infiltration, vous serez assisté par <strong className="text-purple-400 font-mono">NAÏA</strong>, votre interface tactique.
+          </p>
           
             <div className="mt-5 p-6 bg-slate-950/50 rounded-xl border border-cyan-500/20 space-y-4">
             <label className="block text-cyan-400 font-mono text-sm uppercase tracking-widest text-center">

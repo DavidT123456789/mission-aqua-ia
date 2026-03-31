@@ -115,7 +115,7 @@ export default function Level5({ isDevMode, onComplete, onScoreUpdate, onMistake
         <NaiaDialogue 
           message={
             <>
-              L'entraînement de notre nouveau modèle d'<TechTerm term="IA" /> nécessite 6 heures de calcul intensif continu. Planifiez cet entraînement au moment où l'intensité carbone du réseau électrique est la plus faible pour minimiser nos émissions.
+              HYDRA a planifié un entraînement massif pour un de ses modèles d'<TechTerm term="IA" /> nécessitant 6 heures de calcul intensif continu. Piratez son calendrier de tâches pour forcer l'exécution au moment où l'intensité carbone du réseau électrique est la plus faible.
             </>
           }
           emotion="neutral"
