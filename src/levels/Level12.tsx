@@ -200,7 +200,7 @@ export default function Level12({ isDevMode, onComplete, onScoreUpdate, onMistak
                     : 'bg-emerald-600 hover:bg-emerald-500 text-white hover:scale-105 shadow-[0_0_20px_rgba(16,185,129,0.3)]'
               }`}
             >
-              {isOverBudget ? 'SÉCHERESSE ÉMINENTE' : 'VERROUILLER LA NOUVELLE MATRICE'}
+              {isOverBudget ? 'SÉCHERESSE IMMINENTE' : 'VERROUILLER LA NOUVELLE MATRICE'}
             </button>
           </div>
         )}

@@ -66,8 +66,9 @@ export default function HUD({
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
-  // Cost logic: First hint is 0, subsequent are 50
-  const hintCost = 50;
+  // Cost logic
+  const freeHintCost = 10;
+  const hintCost = 100;
 
   return (
     <header className="fixed top-0 left-0 right-0 p-3 md:p-4 bg-slate-950 z-50">
@@ -308,19 +309,20 @@ export default function HUD({
                 <div className="relative group">
                   <button 
                     onClick={() => useHint('free')}
-                    disabled={!unlockedFreeHints.includes(level)}
+                    disabled={!unlockedFreeHints.includes(level) && score < freeHintCost}
                     className={`flex items-center gap-1 px-2 py-1 rounded-l-full border-y border-l text-xs font-bold transition-all ${
-                      !unlockedFreeHints.includes(level) 
+                      !unlockedFreeHints.includes(level) && score < freeHintCost
                         ? 'bg-slate-800 border-slate-700 text-slate-500 cursor-not-allowed opacity-50' 
                         : 'bg-emerald-900/30 border-emerald-500/30 text-emerald-400 hover:bg-emerald-800/50'
                     }`}
-                    aria-label="Indice gratuit"
+                    aria-label="Indice"
                   >
                     <HelpCircle className="w-3 h-3" />
-                    <span>GRATUIT</span>
+                    <span>{unlockedFreeHints.includes(level) ? 'GRATUIT' : `-${freeHintCost}`}</span>
+                    {!unlockedFreeHints.includes(level) && <Star className="w-3 h-3" />}
                   </button>
                   <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 hidden group-hover:block w-max bg-slate-900 text-xs text-slate-200 px-2 py-1.5 rounded border border-slate-700 shadow-xl z-[100] pointer-events-none font-sans not-italic font-normal tracking-normal">
-                    {!unlockedFreeHints.includes(level) ? "Débloqué après une erreur" : "Voir l'indice gratuit"}
+                    {unlockedFreeHints.includes(level) ? "Voir l'indice (gratuit après erreur)" : "Acheter un indice"}
                     <div className="absolute bottom-full left-1/2 -translate-x-1/2 border-4 border-transparent border-b-slate-700"></div>
                     <div className="absolute bottom-[calc(100%-1px)] left-1/2 -translate-x-1/2 border-4 border-transparent border-b-slate-900"></div>
                   </div>
@@ -429,15 +431,16 @@ export default function HUD({
               <div className="flex-1 flex items-center">
                 <button 
                   onClick={() => { useHint('free'); setIsMobileMenuOpen(false); }}
-                  disabled={!unlockedFreeHints.includes(level)}
+                  disabled={!unlockedFreeHints.includes(level) && score < freeHintCost}
                   className={`flex-1 flex items-center justify-center gap-1 px-2 py-2 rounded-l-lg border-y border-l text-xs font-bold transition-all ${
-                    !unlockedFreeHints.includes(level) 
+                    !unlockedFreeHints.includes(level) && score < freeHintCost
                       ? 'bg-slate-800 border-slate-700 text-slate-500 opacity-50' 
                       : 'bg-emerald-900/30 border-emerald-500/30 text-emerald-400'
                   }`}
                 >
                   <HelpCircle className="w-4 h-4" />
-                  <span>GRATUIT</span>
+                  <span>{unlockedFreeHints.includes(level) ? 'GRATUIT' : `-${freeHintCost}`}</span>
+                  {!unlockedFreeHints.includes(level) && <Star className="w-4 h-4" />}
                 </button>
                 <button 
                   onClick={() => { useHint('paid'); setIsMobileMenuOpen(false); }}

@@ -41,11 +41,11 @@ export const HINTS: Record<number, { free: string, paid: string }> = {
   },
   11: {
     free: "Lisez attentivement le code. Il faut vérifier l'humidité, et si elle est trop élevée, arrêter l'arrosage.",
-    paid: "Regardez les mots-clés disponibles. L'opérateur 'or' et l'arrosage à 'aube' sont essentiels."
+    paid: "Suivez la logique du programme : d'abord on LIT les données (un capteur et des prévisions), puis on DÉCIDE — si l'humidité dépasse le seuil OU s'il pleut, on n'arrose pas (False). Sinon, on calcule le besoin en eau, on active (True) et on choisit le meilleur moment."
   },
   12: {
     free: "Trouvez le juste milieu. L'IA doit rester utile sans pour autant détruire nos ressources.",
-    paid: "Placez le curseur entre 30 et 45 pour obtenir un équilibre optimal."
+    paid: "Priorisez les missions vitales : la Modélisation Climatique et la Gestion de l'Eau méritent la majorité du budget. Les Vidéos de Chats et le Ciblage Pub ? Réduisez-les au strict minimum."
   },
 };
 

@@ -353,11 +353,19 @@ export default function App() {
 
   const useHint = (type: 'free' | 'paid') => {
     if (type === 'free') {
-      if (!unlockedFreeHints.includes(level)) return; // Should not happen if button is disabled
-      setShowHint(true);
+      if (unlockedFreeHints.includes(level)) {
+        setShowHint(true); // Already unlocked (after mistake or purchase), free to review
+      } else {
+        const cost = 10;
+        if (score >= cost) {
+          setScore(s => Math.max(0, s - cost));
+          setUnlockedFreeHints(prev => [...prev, level]);
+          setShowHint(true);
+        }
+      }
     } else {
       if (!unlockedPaidHints.includes(level)) {
-        const cost = 50;
+        const cost = 100;
         if (score >= cost) {
           setScore(s => Math.max(0, s - cost));
           setUnlockedPaidHints(prev => [...prev, level]);
@@ -447,7 +455,7 @@ export default function App() {
               
               {unlockedFreeHints.includes(level) && (
                 <div className="mb-4">
-                  <h3 className="text-emerald-400 text-sm font-bold uppercase mb-1">Indice Gratuit :</h3>
+                  <h3 className="text-emerald-400 text-sm font-bold uppercase mb-1">Indice :</h3>
                   <p className="text-slate-300 leading-relaxed">
                     {HINTS[level]?.free || "Analysez bien la situation, agent. La réponse est sous vos yeux."}
                   </p>
