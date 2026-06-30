@@ -201,7 +201,7 @@ export default function Level13({ onComplete, onScoreUpdate, nickname, onFinaliz
             <div className="relative z-30 flex flex-col h-full justify-between p-4 sm:p-6">
               <div className="w-full sm:max-w-2xl">
                 <NaiaDialogue 
-                  message="Félicitations Agent, vous avez infiltré le cœur d'HYDRA ! Mais pour la reprogrammer définitivement, nous devons lui injecter un concept d'innovation durable de votre création. Rédigez votre idée pour sauver les ressources en eau. Plus votre concept sera détaillé, plus son brevet sera légendaire !"
+                  message="Agent, vous avez traversé 12 niveaux de sécurité, maîtrisé le refroidissement, colmaté les fuites, optimisé le code et rédigé la charte éthique. HYDRA est sous contrôle. Il est temps de graver votre vision dans son noyau : concevez votre propre innovation pour préserver l'eau. Plus votre concept sera précis et technique, plus votre brevet sera légendaire !"
                   emotion="happy"
                 />
               </div>
