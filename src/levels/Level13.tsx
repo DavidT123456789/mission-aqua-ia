@@ -18,7 +18,7 @@ interface Evaluation {
   feedback: string;
 }
 
-export default function BonusLevel({ onComplete, onScoreUpdate, nickname, onFinalize, isDevMode }: { 
+export default function Level13({ onComplete, onScoreUpdate, nickname, onFinalize, isDevMode }: { 
   onComplete: () => void; 
   onScoreUpdate: (points: number, water: number) => void; 
   nickname: string; 

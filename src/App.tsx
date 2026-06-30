@@ -19,7 +19,7 @@ import Level9 from './levels/Level9';
 import Level10 from './levels/Level10';
 import Level11 from './levels/Level11';
 import Level12 from './levels/Level12';
-import BonusLevel from './levels/BonusLevel';
+import Level13 from './levels/Level13';
 import Outro from './levels/Outro';
 import GameOver from './levels/GameOver';
 import TechTerm from './components/TechTerm';
@@ -673,8 +673,8 @@ export default function App() {
           ) : level === 12 ? (
             <Level12 key="level12" isDevMode={isDevMode} onComplete={nextLevel} onScoreUpdate={handleScoreUpdate} onMistake={handleMistake} />
           ) : level === 13 ? (
-            <BonusLevel 
-              key="bonus" 
+            <Level13 
+              key="level13" 
               onComplete={nextLevel} 
               onScoreUpdate={handleScoreUpdate} 
               nickname={nickname}
