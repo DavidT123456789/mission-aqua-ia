@@ -5,7 +5,7 @@ import confetti from 'canvas-confetti';
 import HUD from './components/HUD';
 import TransitionScreen from './components/TransitionScreen';
 import { soundManager } from './utils/soundManager';
-import { HINTS, FACTS } from './constants';
+import { HINTS, FACTS, LEVEL_NAMES } from './constants';
 import Intro from './levels/Intro';
 import Level1 from './levels/Level1';
 import Level2 from './levels/Level2';
@@ -62,6 +62,16 @@ export default function App() {
   useEffect(() => {
     soundManager.setMuted(isMuted);
   }, [isMuted]);
+
+  useEffect(() => {
+    if (level === 0) {
+      document.title = "Aqua IA - Mission Infiltration";
+    } else if (level === 14) {
+      document.title = "Aqua IA - Mission Réussie !";
+    } else {
+      document.title = `Aqua IA - Énigme ${level} : ${LEVEL_NAMES[level] || `Mission ${level}`}`;
+    }
+  }, [level]);
 
   // Global UI Sounds
   useEffect(() => {

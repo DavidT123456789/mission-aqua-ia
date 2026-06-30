@@ -83,3 +83,21 @@ export const DEV_ANSWERS: Record<number, string> = {
   12: "Total <= 100\nClimat >= 40, Eau >= 40\nDivert. <= 10, Pub <= 10",
   13: "Saisie libre (Bouton d'auto-remplissage)"
 };
+
+export const LEVEL_NAMES: Record<number, string> = {
+  0: "Intro",
+  1: "Le Coût Caché",
+  2: "Refroidissement",
+  3: "Détection de Fuites",
+  4: "Stratégie d'Implantation",
+  5: "Optimisation Temporelle",
+  6: "Sobriété Algorithmique",
+  7: "Cycle de Vie du Matériel",
+  8: "Valorisation Thermique",
+  9: "Hygiène des Données",
+  10: "La Charte Éthique",
+  11: "L'Algorithme d'Arrosage",
+  12: "L'Équilibre Global",
+  13: "L'Innovation Lab",
+  14: "Fin"
+};

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Droplets, Clock, Star, Activity, Heart, Bug, FastForward, HelpCircle, Menu, X, ChevronRight } from 'lucide-react';
-import { DEV_ANSWERS } from '../constants';
+import { DEV_ANSWERS, LEVEL_NAMES } from '../constants';
 
 interface HUDProps {
   level: number;
@@ -403,8 +403,8 @@ export default function HUD({
                   <Activity className="w-4 h-4 text-emerald-400" />
                   <span className="text-emerald-400">{level}/13</span>
                 </div>
-                <div className="absolute top-full right-0 mt-2 hidden group-hover:block w-max bg-slate-900 text-xs text-slate-200 px-2 py-1.5 rounded border border-slate-700 shadow-xl z-[100] pointer-events-none font-sans not-italic font-normal tracking-normal">
-                  Énigme {level}/13
+                <div className="absolute top-full right-0 mt-2 hidden group-hover:block w-max bg-slate-900 text-xs text-slate-200 px-3 py-1.5 rounded border border-slate-700 shadow-xl z-[100] pointer-events-none font-sans not-italic font-normal tracking-normal">
+                  Énigme {level}/13 : {LEVEL_NAMES[level] || 'Laboratoire'}
                   <div className="absolute bottom-full right-6 border-4 border-transparent border-b-slate-700"></div>
                   <div className="absolute bottom-[calc(100%-1px)] right-6 border-4 border-transparent border-b-slate-900"></div>
                 </div>
@@ -521,7 +521,7 @@ export default function HUD({
             >
               {[...Array(15)].map((_, i) => (
                 <option key={i} value={i} className="bg-slate-900 text-slate-100">
-                  {i === 0 ? 'Intro' : i === 13 ? 'Labo (Niveau 13)' : i === 14 ? 'Fin' : `Niveau ${i}`}
+                  {i === 0 ? 'Intro' : i === 14 ? 'Fin' : `${i}. ${LEVEL_NAMES[i] || `Niveau ${i}`}`}
                 </option>
               ))}
             </select>
