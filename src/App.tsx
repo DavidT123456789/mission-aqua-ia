@@ -231,7 +231,7 @@ export default function App() {
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    if (isActive && timeLeft > 0 && lives > 0) {
+    if (isActive && timeLeft > 0 && lives > 0 && level !== 13) {
       interval = setInterval(() => {
         setTimeLeft((time) => {
           if (time <= 1) {
@@ -243,7 +243,7 @@ export default function App() {
       }, 1000);
     }
     return () => clearInterval(interval);
-  }, [isActive, timeLeft, lives]);
+  }, [isActive, timeLeft, lives, level]);
 
   const startGame = (name: string) => {
     setNickname(name);
@@ -307,7 +307,7 @@ export default function App() {
 
   const handleScoreUpdate = (points: number, water: number) => {
     setScore((s) => s + points);
-    setWaterSaved(water);
+    setWaterSaved((prev) => Math.max(prev, water));
     setLastPointsGained(points + levelBonusScore);
   };
 
@@ -682,6 +682,7 @@ export default function App() {
                 setFinalEvaluation(evalData);
                 setFinalImageUrl(imgUrl);
               }}
+              isDevMode={isDevMode}
             />
           ) : level === 14 ? (
             <Outro 

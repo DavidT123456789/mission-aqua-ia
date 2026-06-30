@@ -47,6 +47,10 @@ export const HINTS: Record<number, { free: string, paid: string }> = {
     free: "Trouvez le juste milieu. L'IA doit rester utile sans pour autant détruire nos ressources.",
     paid: "Priorisez les missions vitales : la Modélisation Climatique et la Gestion de l'Eau méritent la majorité du budget. Les Vidéos de Chats et le Ciblage Pub ? Réduisez-les au strict minimum."
   },
+  13: {
+    free: "Définissez un concept innovant en combinant IA, capteurs IoT et recyclage d'eau pour stopper le gaspillage d'HYDRA.",
+    paid: "Détaillez le fonctionnement de votre solution (ex: récupération de chaleur fatale des datacenters pour chauffer des serres d'arrosage en circuit fermé). Plus vous serez précis, plus le brevet sera légendaire !"
+  },
 };
 
 export const FACTS: Record<number, string> = {

@@ -18,7 +18,14 @@ interface Evaluation {
   feedback: string;
 }
 
-export default function BonusLevel({ onComplete, onScoreUpdate, nickname, onFinalize }: { onComplete: () => void; onScoreUpdate: (points: number, water: number) => void; nickname: string; onFinalize?: (evaluation: any, imageUrl: string | null) => void; key?: string }) {
+export default function BonusLevel({ onComplete, onScoreUpdate, nickname, onFinalize, isDevMode }: { 
+  onComplete: () => void; 
+  onScoreUpdate: (points: number, water: number) => void; 
+  nickname: string; 
+  onFinalize?: (evaluation: any, imageUrl: string | null) => void; 
+  isDevMode?: boolean;
+  key?: string 
+}) {
   const [idea, setIdea] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isFinalizing, setIsFinalizing] = useState(false);
@@ -38,6 +45,10 @@ export default function BonusLevel({ onComplete, onScoreUpdate, nickname, onFina
   };
 
   const scoreStyle = evaluation ? getScoreColor(evaluation.score) : null;
+
+  const handleDevAutoFill = () => {
+    setIdea("Un système de refroidissement utilisant des capteurs d'humidité et des circuits fermés d'eau recyclée avec récupération de chaleur fatale pour chauffer les serres agricoles de la ville.");
+  };
 
   const analyzeDraft = async () => {
     if (!idea.trim() || idea.length < 20) return;
@@ -168,7 +179,7 @@ export default function BonusLevel({ onComplete, onScoreUpdate, nickname, onFina
       <div className="flex items-center gap-3 mb-3 border-b border-cyan-900/50 pb-3">
         <Sparkles className="w-8 h-8 text-yellow-400" />
         <h2 className="text-xl md:text-2xl font-bold text-white uppercase tracking-widest">
-          NIVEAU BONUS : L'INNOVATION LAB
+          NIVEAU 13 : L'INNOVATION LAB
         </h2>
       </div>
 
@@ -190,7 +201,7 @@ export default function BonusLevel({ onComplete, onScoreUpdate, nickname, onFina
             <div className="relative z-30 flex flex-col h-full justify-between p-4 sm:p-6">
               <div className="w-full sm:max-w-2xl">
                 <NaiaDialogue 
-                  message="Agent, HYDRA est sous contrôle. Il est temps de passer à l'offensive. Développez votre propre concept d'innovation pour sauver l'eau. Plus votre description sera précise et technique, plus votre score sera élevé. Si vous atteignez 50% d'innovation, je matérialiserai votre prototype !"
+                  message="Félicitations Agent, vous avez infiltré le cœur d'HYDRA ! Mais pour la reprogrammer définitivement, nous devons lui injecter un concept d'innovation durable de votre création. Rédigez votre idée pour sauver les ressources en eau. Plus votre concept sera détaillé, plus son brevet sera légendaire !"
                   emotion="happy"
                 />
               </div>
@@ -210,6 +221,17 @@ export default function BonusLevel({ onComplete, onScoreUpdate, nickname, onFina
               </div>
             </div>
           </div>
+
+          {isDevMode && (
+            <div className="flex justify-start">
+              <button 
+                onClick={handleDevAutoFill}
+                className="bg-purple-900/40 border border-purple-500/50 hover:bg-purple-800/40 text-purple-300 font-bold px-4 py-2 rounded-lg text-xs tracking-wider"
+              >
+                🛠️ (MODE DEV) AUTO-REMPLIR L'IDÉE
+              </button>
+            </div>
+          )}
 
           <div className="relative group mt-6">
             {/* Décoration Terminal */}

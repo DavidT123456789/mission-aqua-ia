@@ -217,13 +217,13 @@ export default function Level12({ isDevMode, onComplete, onScoreUpdate, onMistak
                  MISSION ACCOMPLIE : ÉQUILIBRE RESTAURÉ
               </div>
               <p className="text-center mb-6 text-sm max-w-2xl text-emerald-100">
-                Vous avez parfaitement compris la voie de la <strong>Sobriété Numérique</strong> ! L'Intelligence Artificielle est un outil inestimable pour sauver notre planète, mais chaque calcul a un coût matériel réel. En supprimant nos usages futiles, nous réservons l'eau et l'énergie à ce qui compte vraiment. Le monde est sauvé, Agent.
+                Vous avez parfaitement compris la voie de la <strong>Sobriété Numérique</strong> ! L'Intelligence Artificielle est un outil inestimable pour sauver notre planète, mais chaque calcul a un coût matériel réel. En limitant les usages superflus, nous réservons l'eau et l'énergie à ce qui compte vraiment. Le système est stabilisé, mais il reste une dernière étape critique.
               </p>
               <button
                 onClick={onComplete}
                 className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-3 rounded-lg font-bold transition-all hover:scale-105 shadow-[0_0_20px_rgba(16,185,129,0.4)]"
               >
-                DÉVERROUILLER L'INNOVATION LAB (BONUS)
+                ENTRER DANS L'INNOVATION LAB (NIVEAU FINAL)
               </button>
             </motion.div>
           )}

@@ -512,7 +512,7 @@ export default function HUD({
               >
                 {[...Array(15)].map((_, i) => (
                   <option key={i} value={i} className="bg-slate-900">
-                    {i === 0 ? 'Intro' : i === 13 ? 'Bonus' : i === 14 ? 'Fin' : `Niveau ${i}`}
+                    {i === 0 ? 'Intro' : i === 13 ? 'Labo (Niveau 13)' : i === 14 ? 'Fin' : `Niveau ${i}`}
                   </option>
                 ))}
               </select>
