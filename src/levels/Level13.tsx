@@ -226,9 +226,9 @@ export default function Level13({ onComplete, onScoreUpdate, nickname, onFinaliz
             <div className="flex justify-start">
               <button 
                 onClick={handleDevAutoFill}
-                className="bg-purple-900/40 border border-purple-500/50 hover:bg-purple-800/40 text-purple-300 font-bold px-4 py-2 rounded-lg text-xs tracking-wider"
+                className="bg-indigo-950/60 border border-indigo-500/40 hover:bg-indigo-900/60 text-indigo-300 font-bold px-4 py-2 rounded-lg text-xs tracking-wider"
               >
-                🛠️ (MODE DEV) AUTO-REMPLIR L'IDÉE
+                🛠️ (DÉMO/DEV) AUTO-REMPLIR L'IDÉE
               </button>
             </div>
           )}

@@ -67,3 +67,19 @@ export const FACTS: Record<number, string> = {
   12: "L'IA et le code peuvent aussi aider la planète : des algorithmes d'irrigation intelligente connectés à des capteurs d'humidité permettent de réduire la consommation d'eau agricole jusqu'à 50 % !",
   13: "L'éco-conception d'un logiciel consiste à optimiser son code informatique. Un programme bien optimisé est non seulement plus rapide, mais il peut réduire la consommation d'énergie du serveur de 50 à 90 % !"
 };
+
+export const DEV_ANSWERS: Record<number, string> = {
+  1: "5 (mL)",
+  2: "50 + 75 + 25 (Vannes 1, 2, 4)",
+  3: "Segment C",
+  4: "Cercle Arctique",
+  5: "00:00 - 06:00 (Bloc 1)",
+  6: "Modèle Spécialisé",
+  7: "Réparer (RAM)",
+  8: "Réseau de Chaleur Urbain",
+  9: "Climat, Hydrologie, Topographie",
+  10: "Clauses 1, 4, 5, 7",
+  11: "1:capteur, 2:previsions, 3:seuil, 4:or, 5:False, 6:eau, 7:True, 8:aube",
+  12: "Total <= 100\nClimat >= 40, Eau >= 40\nDivert. <= 10, Pub <= 10",
+  13: "Saisie libre (Bouton d'auto-remplissage)"
+};

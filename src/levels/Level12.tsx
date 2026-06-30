@@ -66,13 +66,7 @@ export default function Level12({ isDevMode, onComplete, onScoreUpdate, onMistak
       exit={{ opacity: 0, x: -50 }}
       className="sm:bg-slate-900 border-transparent sm:border-cyan-500/20 sm:border px-0 sm:px-6 py-4 sm:py-6 sm:rounded-xl max-w-4xl mx-auto font-mono relative flex flex-col"
     >
-      {isDevMode && (
-        <div className="absolute top-2 right-2 bg-purple-900/80 text-purple-300 text-xs px-2 py-1 rounded border border-purple-500/50 z-50 whitespace-pre">
-          Dev Réponses : Total {'<='} 100
-          Climat {'>='} 40, Eau {'>='} 40
-          Divert. {'<='} 10, Pub {'<='} 10
-        </div>
-      )}
+
       <div className="flex items-center gap-3 mb-3 border-b border-cyan-900/50 pb-3">
         <Globe className="w-8 h-8 text-emerald-400" />
         <h2 className="text-xl md:text-2xl font-bold text-white uppercase tracking-widest">

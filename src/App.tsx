@@ -564,12 +564,12 @@ export default function App() {
               initial={{ scale: 0.9, y: 20 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.9, y: 20 }}
-              className="bg-slate-900 border border-purple-500/50 rounded-xl p-6 max-w-sm w-full shadow-[0_0_30px_rgba(168,85,247,0.2)]"
+              className="bg-slate-900 border border-indigo-500/50 rounded-xl p-6 max-w-sm w-full shadow-[0_0_30px_rgba(99,102,241,0.25)]"
             >
               <div className="flex justify-between items-center mb-4">
-                <div className="flex items-center gap-2 text-purple-400 font-bold">
+                <div className="flex items-center gap-2 text-indigo-400 font-bold">
                   <Bug className="w-5 h-5" />
-                  MODE DÉVELOPPEUR
+                  MODE ENSEIGNANT / DEV
                 </div>
                 <button onClick={() => { setShowDevModal(false); setDevError(false); setDevPassword(''); }} className="text-slate-500 hover:text-white">
                   <X className="w-5 h-5" />
@@ -578,7 +578,7 @@ export default function App() {
               {isDevMode ? (
                 <div>
                   <p className="text-slate-300 text-sm mb-6">
-                    Le mode développeur est actuellement activé. Vous pouvez voir les réponses et passer les niveaux.
+                    Le mode enseignant / développeur est actuellement activé. Vous pouvez voir les réponses et passer les niveaux.
                   </p>
                   <button
                     onClick={() => {
@@ -587,7 +587,7 @@ export default function App() {
                     }}
                     className="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-2 rounded-lg transition-colors border border-slate-600"
                   >
-                    DÉSACTIVER LE MODE DEV
+                    DÉSACTIVER LE MODE ENSEIGNANT / DEV
                   </button>
                 </div>
               ) : (
@@ -597,13 +597,13 @@ export default function App() {
                     value={devPassword}
                     onChange={(e) => setDevPassword(e.target.value)}
                     placeholder="Mot de passe..."
-                    className={`w-full bg-slate-950 border ${devError ? 'border-red-500' : 'border-slate-700'} rounded-lg px-4 py-2 text-white focus:outline-none focus:border-purple-500 mb-4`}
+                    className={`w-full bg-slate-950 border ${devError ? 'border-red-500' : 'border-slate-700'} rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-500 mb-4`}
                     autoFocus
                   />
                   {devError && <p className="text-red-500 text-xs mb-4">Mot de passe incorrect.</p>}
                   <button
                     type="submit"
-                    className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-2 rounded-lg transition-colors"
+                    className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 rounded-lg transition-colors"
                   >
                     ACTIVER
                   </button>
@@ -705,10 +705,10 @@ export default function App() {
       <button 
         onClick={() => setShowDevModal(true)}
         className="fixed bottom-2 left-4 z-[60] text-[10px] sm:text-xs font-sans text-emerald-500/30 hover:text-emerald-500/60 transition-all duration-500 bg-transparent border-none p-2 focus:outline-none cursor-default group"
-        aria-label="Mode Développeur"
+        aria-label="Mode Enseignant / Développeur"
       >
         <span className="group-hover:translate-x-1 inline-block transition-transform duration-500">
-          Réalisé par David Trafial
+          Réalisé par la constellation Echo
         </span>
       </button>
     </div>
