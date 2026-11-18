@@ -1,9 +1,19 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Bot } from 'lucide-react';
+import { Bot, FastForward } from 'lucide-react';
 import { motion } from 'motion/react';
 import { soundManager } from '../utils/soundManager';
 
-function TypewriterNode({ content, contentKey }: { content: React.ReactNode, contentKey: string }) {
+function TypewriterNode({
+  content,
+  contentKey,
+  skipRequested,
+  onTypingStateChange
+}: {
+  content: React.ReactNode;
+  contentKey: string;
+  skipRequested: boolean;
+  onTypingStateChange?: (isTyping: boolean) => void;
+}) {
   const [visibleCount, setVisibleCount] = useState(0);
 
   const getLen = (node: any): number => {
@@ -20,12 +30,28 @@ function TypewriterNode({ content, contentKey }: { content: React.ReactNode, con
   const totalLength = useMemo(() => getLen(content), [contentKey]);
 
   useEffect(() => {
+    if (skipRequested) {
+      setVisibleCount(totalLength);
+      onTypingStateChange?.(false);
+      return;
+    }
+  }, [skipRequested, totalLength, onTypingStateChange]);
+
+  useEffect(() => {
+    if (skipRequested) {
+      setVisibleCount(totalLength);
+      onTypingStateChange?.(false);
+      return;
+    }
+
     setVisibleCount(0);
+    onTypingStateChange?.(totalLength > 0);
     let current = 0;
     const interval = setInterval(() => {
       current += 2;
       if (current >= totalLength) {
         setVisibleCount(totalLength);
+        onTypingStateChange?.(false);
         clearInterval(interval);
       } else {
         setVisibleCount(current);
@@ -36,7 +62,7 @@ function TypewriterNode({ content, contentKey }: { content: React.ReactNode, con
       }
     }, 15);
     return () => clearInterval(interval);
-  }, [contentKey, totalLength]);
+  }, [contentKey, totalLength, skipRequested, onTypingStateChange]);
 
   const renderProgressive = (node: any, counter: { val: number }): React.ReactNode => {
     if (counter.val >= visibleCount) {
@@ -113,6 +139,20 @@ export default function NaiaDialogue({ message, emotion = 'neutral' }: { message
     return extractText(message);
   }, [message]);
 
+  const [skipRequested, setSkipRequested] = useState(false);
+  const [isTyping, setIsTyping] = useState(true);
+
+  useEffect(() => {
+    setSkipRequested(false);
+    setIsTyping(true);
+  }, [contentKey]);
+
+  const handleSkip = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSkipRequested(true);
+    setIsTyping(false);
+  };
+
   const getContainerStyles = () => {
     switch (emotion) {
       case 'alert': return 'glass-red';
@@ -130,19 +170,26 @@ export default function NaiaDialogue({ message, emotion = 'neutral' }: { message
   };
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ 
-        type: "spring", 
-        stiffness: 400, 
+      transition={{
+        type: "spring",
+        stiffness: 400,
         damping: 30,
         mass: 0.8,
         delay: 0.15
       }}
+      onClick={() => {
+        if (isTyping) {
+          setSkipRequested(true);
+          setIsTyping(false);
+        }
+      }}
       className={`
         relative w-full rounded-xl p-3
         flex flex-col border
+        ${isTyping ? 'cursor-pointer' : ''}
         ${getContainerStyles()}
       `}
     >
@@ -153,18 +200,37 @@ export default function NaiaDialogue({ message, emotion = 'neutral' }: { message
         </div>
       )}
 
-      <div className="flex items-center gap-2 mb-1.5 w-full">
-        <div className={`p-1.5 rounded-full shrink-0 flex items-center justify-center relative ${getIconColor()}`}>
-          <Bot className="w-3.5 h-3.5" />
+      <div className="flex items-center justify-between gap-2 mb-1.5 w-full">
+        <div className="flex items-center gap-2">
+          <div className={`p-1.5 rounded-full shrink-0 flex items-center justify-center relative ${getIconColor()}`}>
+            <Bot className="w-3.5 h-3.5" />
+          </div>
+          <span className={`font-bold not-italic tracking-[0.2em] uppercase text-[10px] ${emotion === 'alert' ? 'text-red-400 text-glow-purple' : emotion === 'happy' ? 'text-emerald-400 text-glow-emerald' : 'text-purple-400 text-glow-purple'}`}>
+            NAÏA <span className="opacity-50 font-normal ml-1">v2.5</span>
+          </span>
         </div>
-        <span className={`font-bold not-italic tracking-[0.2em] uppercase text-[10px] ${emotion === 'alert' ? 'text-red-400 text-glow-purple' : emotion === 'happy' ? 'text-emerald-400 text-glow-emerald' : 'text-purple-400 text-glow-purple'}`}>
-          NAÏA <span className="opacity-50 font-normal ml-1">v2.5</span>
-        </span>
+
+        {isTyping && (
+          <button
+            type="button"
+            onClick={handleSkip}
+            className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-900/70 hover:bg-slate-800 border border-white/15 text-[10px] font-bold uppercase tracking-wider text-slate-300 hover:text-white transition-colors cursor-pointer shrink-0"
+            aria-label="Passer l'animation du texte"
+          >
+            <span>Passer</span>
+            <FastForward className="w-3 h-3" />
+          </button>
+        )}
       </div>
-      
+
       <div className="text-xs sm:text-sm leading-snug italic w-full">
         <div key={contentKey} className="text-slate-100/90 font-medium">
-          <TypewriterNode content={message} contentKey={contentKey} />
+          <TypewriterNode
+            content={message}
+            contentKey={contentKey}
+            skipRequested={skipRequested}
+            onTypingStateChange={setIsTyping}
+          />
         </div>
       </div>
     </motion.div>

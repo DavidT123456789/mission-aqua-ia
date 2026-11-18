@@ -2,10 +2,12 @@ import { useState } from 'react';
 import { motion } from 'motion/react';
 import { ShieldAlert, Play, RotateCcw, Trash2 } from 'lucide-react';
 import TechTerm from '../components/TechTerm';
+import { LEVEL_NAMES } from '../constants';
 
-export default function Intro({ onStart, hasSavedGame, onLoadGame, onClearSave }: { 
+export default function Intro({ onStart, hasSavedGame, savedGameInfo, onLoadGame, onClearSave }: { 
   onStart: (name: string) => void; 
   hasSavedGame?: boolean;
+  savedGameInfo?: { level: number; score: number; timeLeft: number } | null;
   onLoadGame?: () => void;
   onClearSave?: () => void;
   key?: string 
@@ -30,16 +32,16 @@ export default function Intro({ onStart, hasSavedGame, onLoadGame, onClearSave }
         
         <div className="space-y-4 text-slate-300 text-lg leading-relaxed text-left font-sans">
           <p>
-            Bienvenue, agent. La ville fait face à une crise sans précédent.
+            Bienvenue dans la cellule d'urgence <strong className="text-cyan-400 font-mono">HYDROSAVE</strong>, agent. La ville fait face à une crise sans précédent.
           </p>
           <p>
-            Notre <TechTerm term="IA">intelligence artificielle</TechTerm> centrale, <strong className="text-red-400 font-mono">HYDRA</strong>, consomme toute notre réserve d'eau potable pour refroidir ses immenses <TechTerm term="Serveur">serveurs</TechTerm> de calcul.
+            Le réseau d'<TechTerm term="IA">intelligence artificielle</TechTerm> central, <strong className="text-red-400 font-mono">HYDRA</strong>, tourne sans limite et pompe toute notre réserve d'eau potable pour refroidir ses immenses <TechTerm term="Serveur">serveurs</TechTerm> de calcul.
           </p>
           <p>
-            Votre mission : infiltrer le système à travers 13 niveaux de sécurité, stopper le gaspillage, et reprogrammer HYDRA dans l'Innovation Lab pour qu'elle nous aide à préserver nos ressources au lieu de les épuiser.
+            Votre mission : infiltrer ses 13 niveaux de sécurité, stopper le gaspillage matériel et logiciel, et reprogrammer HYDRA dans l'Innovation Lab pour qu'elle protège nos ressources au lieu de les épuiser.
           </p>
           <p>
-            Pour vous guider dans cette mission d'infiltration, vous serez assisté par <strong className="text-purple-400 font-mono">NAÏA</strong>, votre guide d'assistance tactique.
+            Pour vous guider, vous serez assisté par <strong className="text-purple-400 font-mono">NAÏA</strong>, notre petite <TechTerm term="IA" /> tactique sobre et spécialisée.
           </p>
           
             <div className="mt-5 p-6 bg-slate-950/50 rounded-xl border border-cyan-500/20 space-y-4">
@@ -66,10 +68,17 @@ export default function Intro({ onStart, hasSavedGame, onLoadGame, onClearSave }
             <div className="flex flex-col gap-2">
               <button
                 onClick={onLoadGame}
-                className="flex items-center justify-center gap-2 bg-cyan-600 hover:bg-cyan-500 text-white px-6 py-4 rounded-lg font-bold text-lg transition-all hover:scale-105 active:scale-95 shadow-[0_0_20px_rgba(6,182,212,0.4)]"
+                className="flex flex-col items-center justify-center gap-1 bg-cyan-600 hover:bg-cyan-500 text-white px-6 py-3.5 rounded-lg font-bold transition-all hover:scale-105 active:scale-95 shadow-[0_0_20px_rgba(6,182,212,0.4)]"
               >
-                <RotateCcw className="w-6 h-6" />
-                REPRENDRE LA MISSION
+                <span className="flex items-center gap-2 text-lg">
+                  <RotateCcw className="w-5 h-5" />
+                  REPRENDRE LA MISSION
+                </span>
+                {savedGameInfo && (
+                  <span className="text-xs font-mono font-normal text-cyan-100/90">
+                    Niveau {savedGameInfo.level}/13 — {LEVEL_NAMES[savedGameInfo.level] || `Mission ${savedGameInfo.level}`} ({savedGameInfo.score} pts)
+                  </span>
+                )}
               </button>
               <button
                 onClick={onClearSave}

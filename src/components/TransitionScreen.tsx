@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Terminal, Cpu, ChevronRight, Star, ArrowUpRight } from 'lucide-react';
 import { soundManager } from '../utils/soundManager';
+import { LEVEL_NAMES } from '../constants';
 
 interface TransitionScreenProps {
   level: number;
@@ -29,7 +30,7 @@ export default function TransitionScreen({ level, fact, onTransitionComplete, sc
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsComplete(true);
-    }, 2800);
+    }, 1600);
     return () => clearTimeout(timer);
   }, []);
 
@@ -119,13 +120,22 @@ export default function TransitionScreen({ level, fact, onTransitionComplete, sc
         </motion.div>
         
         <div className="text-center space-y-4 w-full">
-          <div className="space-y-1">
+          <div className="space-y-2">
             <motion.h2 
               variants={itemVariants}
               className="text-5xl md:text-7xl font-black text-white tracking-widest uppercase leading-none block drop-shadow-lg"
             >
               Niveau <span className="text-transparent bg-clip-text bg-gradient-to-b from-cyan-300 to-cyan-600 drop-shadow-[0_0_15px_rgba(34,211,238,0.4)]">{level}</span>
+              <span className="text-2xl md:text-3xl text-slate-400 font-bold ml-2">/ 13</span>
             </motion.h2>
+            {LEVEL_NAMES[level] && (
+              <motion.p
+                variants={itemVariants}
+                className="text-sm md:text-base font-bold text-cyan-300/90 uppercase tracking-[0.18em]"
+              >
+                {LEVEL_NAMES[level]}
+              </motion.p>
+            )}
           </div>
 
           {/* Stats Dashboard */}
@@ -195,11 +205,15 @@ export default function TransitionScreen({ level, fact, onTransitionComplete, sc
 
         <div className="w-full mt-2">
           {!isComplete ? (
-            <div className="flex flex-col items-center gap-6 w-full">
+            <div
+              onClick={() => setIsComplete(true)}
+              className="flex flex-col items-center gap-6 w-full cursor-pointer"
+              title="Cliquer pour passer"
+            >
               <div className="w-full space-y-2">
-                <div className="flex justify-between text-[8px] text-emerald-500/60 font-bold uppercase tracking-widest px-1">
-                  <span>Infecting Local Cache...</span>
-                  <span>SYNC_DATA</span>
+                <div className="flex justify-between text-[9px] text-emerald-500/70 font-bold uppercase tracking-widest px-1">
+                  <span>Synchronisation des protocoles...</span>
+                  <span>CLIQUER POUR PASSER</span>
                 </div>
                 {/* Segmented Loading Bar */}
                 <div className="w-full h-3 bg-slate-950 rounded-full flex gap-1 p-1 border border-white/10 overflow-hidden relative">

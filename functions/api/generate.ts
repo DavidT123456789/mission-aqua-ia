@@ -1,6 +1,8 @@
 import { GoogleGenAI } from "@google/genai";
 
 export async function onRequestPost({ request, env }) {
+  const fallbackImageUrl = "https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=1024&auto=format&fit=crop";
+
   try {
     const { title, description } = await request.json();
     
@@ -10,7 +12,9 @@ export async function onRequestPost({ request, env }) {
 
     const apiKey = env.GEMINI_API_KEY;
     if (!apiKey) {
-      return new Response(JSON.stringify({ error: "Missing API key" }), { status: 500 });
+      return new Response(JSON.stringify({ imageUrl: fallbackImageUrl }), {
+        headers: { "Content-Type": "application/json" }
+      });
     }
 
     const ai = new GoogleGenAI({ apiKey });
@@ -30,17 +34,22 @@ export async function onRequestPost({ request, env }) {
     });
 
     let imageUrl = null;
-    for (const part of imageModel.candidates[0].content.parts) {
-      if (part.inlineData) {
-        imageUrl = `data:image/png;base64,${part.inlineData.data}`;
+    const parts = imageModel.candidates?.[0]?.content?.parts || [];
+    for (const part of parts) {
+      if (part.inlineData?.data) {
+        const mime = part.inlineData.mimeType || 'image/png';
+        imageUrl = `data:${mime};base64,${part.inlineData.data}`;
+        break;
       }
     }
 
-    return new Response(JSON.stringify({ imageUrl }), {
+    return new Response(JSON.stringify({ imageUrl: imageUrl || fallbackImageUrl }), {
         headers: { "Content-Type": "application/json" }
     });
   } catch(error) {
-    console.error(error);
-    return new Response(JSON.stringify({ error: error.message || "Erreur de génération d'image" }), { status: 500 });
+    console.error("Image generation failed, using fallback image:", error);
+    return new Response(JSON.stringify({ imageUrl: fallbackImageUrl }), {
+      headers: { "Content-Type": "application/json" }
+    });
   }
 }

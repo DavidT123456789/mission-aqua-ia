@@ -3,73 +3,124 @@ import { motion, AnimatePresence } from 'motion/react';
 import { BrainCircuit, CheckCircle2, AlertTriangle, Zap, Scale, Cpu, Database } from 'lucide-react';
 import NaiaDialogue from '../components/NaiaDialogue';
 import TechTerm from '../components/TechTerm';
+import { soundManager } from '../utils/soundManager';
+
+type ArchId = 'heuristic' | 'specialized' | 'llm';
+
+interface TaskFlow {
+  id: 'blacklist' | 'tickets' | 'legal';
+  title: string;
+  volumeLabel: string;
+  volumePerDay: number;
+  requirement: string;
+  expected: ArchId;
+}
+
+const ARCHITECTURES: Record<ArchId, {
+  id: ArchId;
+  label: string;
+  shortLabel: string;
+  icon: typeof Cpu;
+  whPerReq: number;
+  strength: string;
+}> = {
+  heuristic: {
+    id: 'heuristic',
+    label: 'Règles Heuristiques (Sans IA)',
+    shortLabel: 'Sans IA (Règles)',
+    icon: Database,
+    whPerReq: 0.001,
+    strength: 'Exactitude sur motifs connus, coût quasi nul'
+  },
+  specialized: {
+    id: 'specialized',
+    label: 'Modèle Spécialisé (1B)',
+    shortLabel: 'Modèle Spécialisé',
+    icon: Cpu,
+    whPerReq: 0.05,
+    strength: 'Classification & tri ciblé à 98,5% de précision'
+  },
+  llm: {
+    id: 'llm',
+    label: 'LLM Généraliste (175B)',
+    shortLabel: 'LLM Généraliste',
+    icon: BrainCircuit,
+    whPerReq: 2.5,
+    strength: 'Raisonnement complexe & synthèse multilingue'
+  }
+};
+
+const TASKS: TaskFlow[] = [
+  {
+    id: 'blacklist',
+    title: '1. Filtrage d\'URLs malveillantes connues',
+    volumeLabel: '10 000 000 req/jour',
+    volumePerDay: 10_000_000,
+    requirement: 'Vérification exacte par mots-clés et liste noire fixe.',
+    expected: 'heuristic'
+  },
+  {
+    id: 'tickets',
+    title: '2. Catégorisation des demandes citoyennes',
+    volumeLabel: '500 000 req/jour',
+    volumePerDay: 500_000,
+    requirement: 'Comprendre des phrases courtes et trier vers 8 services.',
+    expected: 'specialized'
+  },
+  {
+    id: 'legal',
+    title: '3. Synthèse de rapports environnementaux complexes',
+    volumeLabel: '2 000 req/jour',
+    volumePerDay: 2_000,
+    requirement: 'Analyser des documents de 80 pages et rédiger un résumé.',
+    expected: 'llm'
+  }
+];
 
 export default function Level6({ isDevMode, onComplete, onScoreUpdate, onMistake }: { isDevMode?: boolean; onComplete: () => void; onScoreUpdate: (points: number, water: number) => void; onMistake?: () => void; key?: string }) {
-  const [selectedModel, setSelectedModel] = useState<string | null>(null);
-  const [showError, setShowError] = useState(false);
-
-  const models = [
-    {
-      id: 'llm',
-      name: <><TechTerm term="LLM" /> Généraliste (175B Paramètres)</>,
-      icon: BrainCircuit,
-      desc: 'Modèle massif capable de tout faire. Précision parfaite mais extrêmement lourd.',
-      accuracy: '99.9%',
-      energy: '500 Wh / requête',
-      color: 'text-purple-500',
-      bg: 'bg-purple-950/30',
-      border: 'border-purple-500/50',
-      barWidth: 'w-full',
-      barColor: 'bg-purple-500'
-    },
-    {
-      id: 'specialized',
-      name: 'Modèle Spécialisé (1B Paramètres)',
-      icon: Cpu,
-      desc: 'Modèle entraîné spécifiquement pour cette tâche. Excellent compromis.',
-      accuracy: '98.5%',
-      energy: '5 Wh / requête',
-      color: 'text-blue-500',
-      bg: 'bg-blue-950/30',
-      border: 'border-blue-500/50',
-      barWidth: 'w-1/4',
-      barColor: 'bg-blue-500'
-    },
-    {
-      id: 'heuristic',
-      name: <>{'Règles Heuristiques (Sans '}<TechTerm term="IA" />{')'}</>,
-      icon: Database,
-      desc: 'Filtres classiques basés sur des mots-clés. Très rapide mais moins précis.',
-      accuracy: '85.0%',
-      energy: '0.1 Wh / requête',
-      color: 'text-orange-500',
-      bg: 'bg-orange-950/30',
-      border: 'border-orange-500/50',
-      barWidth: 'w-2',
-      barColor: 'bg-orange-500'
-    }
-  ];
-
-  const handleSelect = (id: string) => {
-    setSelectedModel(id);
-    setShowError(false);
-  };
-
+  const [assignments, setAssignments] = useState<Partial<Record<TaskFlow['id'], ArchId>>>({});
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [hasScored, setHasScored] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
+  const allAssigned = TASKS.every(t => Boolean(assignments[t.id]));
+
+  const dailyKwh = TASKS.reduce((sum, task) => {
+    const arch = assignments[task.id];
+    if (!arch) return sum;
+    return sum + (task.volumePerDay * ARCHITECTURES[arch].whPerReq) / 1000;
+  }, 0);
+
+  const handleAssign = (taskId: TaskFlow['id'], archId: ArchId) => {
+    if (isSuccess) return;
+    soundManager.playClick();
+    setAssignments(prev => ({ ...prev, [taskId]: archId }));
+    setErrorMsg(null);
+  };
+
   const checkAnswer = () => {
-    if (selectedModel === 'specialized') {
+    if (!allAssigned) return;
+
+    const isAllCorrect = TASKS.every(t => assignments[t.id] === t.expected);
+    if (isAllCorrect) {
       setIsSuccess(true);
+      setErrorMsg(null);
+      soundManager.playSuccess();
       if (!hasScored) {
         setHasScored(true);
-        onScoreUpdate(200, 0); // High score for final level
+        onScoreUpdate(200, 56);
       }
-    } else {
-      setShowError(true);
-      onMistake?.();
-      setTimeout(() => setShowError(false), 2000);
+      return;
     }
+
+    // Feedback ciblé selon le type d'erreur
+    if (assignments.blacklist !== 'heuristic' || assignments.tickets === 'llm') {
+      setErrorMsg("Surcharge énergétique : vous utilisez une architecture surdimensionnée sur un flux massif.");
+    } else {
+      setErrorMsg("Qualité insuffisante : un outil trop simple échoue à comprendre ou synthétiser ces données.");
+    }
+    onMistake?.();
+    setTimeout(() => setErrorMsg(null), 3500);
   };
 
   return (
@@ -79,7 +130,6 @@ export default function Level6({ isDevMode, onComplete, onScoreUpdate, onMistake
       exit={{ opacity: 0, x: -50 }}
       className="sm:bg-slate-900 border-transparent sm:border-cyan-500/20 sm:border px-0 sm:px-6 py-4 sm:py-6 sm:rounded-xl max-w-4xl mx-auto font-mono relative flex flex-col"
     >
-      
       <div className="flex items-center gap-3 mb-3 border-b border-cyan-900/50 pb-3">
         <Scale className="w-8 h-8 text-emerald-400" />
         <h2 className="text-xl md:text-2xl font-bold text-white uppercase tracking-widest">
@@ -88,10 +138,10 @@ export default function Level6({ isDevMode, onComplete, onScoreUpdate, onMistake
       </div>
 
       <div className="mb-3">
-        <NaiaDialogue 
+        <NaiaDialogue
           message={
             <>
-              Continuons, Agent. La ville reçoit 10 millions d'emails par jour. HYDRA alloue actuellement la puissance de son plus gros modèle d'<TechTerm term="IA" /> juste pour filtrer ces spams, une aberration écologique ! Modifiez son architecture logicielle pour lui imposer le modèle offrant le meilleur ratio entre précision et coût environnemental.
+              Pour les flux municipaux qui restent traités sur place, HYDRA envoie encore toutes ses requêtes vers un énorme <TechTerm term="LLM" />, même pour de simples filtres ! Associez chacun des 3 flux à l'architecture la plus adaptée (à l'image d'une petite IA spécialisée comme moi) afin de rester sous <strong>50 kWh/jour</strong>.
             </>
           }
           emotion="neutral"
@@ -99,85 +149,141 @@ export default function Level6({ isDevMode, onComplete, onScoreUpdate, onMistake
       </div>
 
       <div className="space-y-4 text-slate-300">
-        <div className="bg-emerald-950/30 border border-emerald-500/50 p-4 rounded-lg">
-          <h3 className="text-emerald-400 font-bold uppercase mb-2">Mission : Filtrage de Spam</h3>
-          <p className="text-sm font-sans mt-2 font-bold text-emerald-300">
-            Imposez l'architecture logicielle offrant le meilleur ratio entre précision et coût environnemental pour cette tâche spécifique.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-5">
-          {models.map((model) => {
-            const isSelected = selectedModel === model.id;
-            const Icon = model.icon;
-            
+        {/* Reference Architectures */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          {(Object.values(ARCHITECTURES)).map((arch) => {
+            const Icon = arch.icon;
             return (
-              <button
-                key={model.id}
-                onClick={() => handleSelect(model.id)}
-                className={`relative p-5 rounded-xl border-2 text-center transition-all duration-300 flex flex-col items-center gap-4 ${
-                  isSelected 
-                    ? `${model.bg} ${model.border} scale-[1.02] z-10` 
-                    : 'bg-slate-950 border-slate-800 hover:border-slate-600'
-                }`}
-              >
-                <div className={`p-4 rounded-full shrink-0 ${isSelected ? 'bg-slate-900' : 'bg-slate-900/50'}`}>
-                  <Icon className={`w-8 h-8 ${isSelected ? model.color : 'text-slate-500'}`} />
-                </div>
-                
-                <div className="flex-1 w-full">
-                  <h4 className={`font-bold text-lg mb-1 ${isSelected ? 'text-white' : 'text-slate-300'}`}>
-                    {model.name}
-                  </h4>
-                  <p className="text-sm text-slate-400 mb-4">{model.desc}</p>
-                  
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div className="bg-slate-900 p-2 rounded border border-slate-800">
-                      <span className="text-slate-500 uppercase text-xs block mb-1">Précision</span>
-                      <span className="font-bold text-white">{model.accuracy}</span>
-                    </div>
-                    <div className="bg-slate-900 p-2 rounded border border-slate-800">
-                      <span className="text-slate-500 uppercase text-xs block mb-1">Coût Énergétique</span>
-                      <div className="flex items-center gap-2">
-                        <Zap className={`w-4 h-4 ${model.color}`} />
-                        <span className={`font-bold ${model.color}`}>{model.energy}</span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Visual Energy Bar */}
-                  <div className="mt-4">
-                    <div className="flex justify-between text-[10px] text-slate-500 uppercase mb-1">
-                      <span>Empreinte Carbone Relative</span>
-                    </div>
-                    <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                      <div className={`h-full ${model.barColor} ${model.barWidth} transition-all duration-1000`}></div>
-                    </div>
+              <div key={arch.id} className="bg-slate-950/80 border border-slate-800 rounded-xl p-3.5 flex flex-col gap-1.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-cyan-300 font-bold text-xs">
+                    <Icon className="w-4 h-4 shrink-0" />
+                    <span>{arch.label}</span>
                   </div>
                 </div>
-              </button>
+                <div className="text-[11px] text-slate-400">{arch.strength}</div>
+                <div className="mt-auto pt-1.5 text-[11px] font-bold text-amber-300 flex items-center gap-1">
+                  <Zap className="w-3 h-3" /> {arch.whPerReq} Wh / requête
+                </div>
+              </div>
             );
           })}
         </div>
 
+        {/* Live Energy Budget */}
+        <div className="bg-slate-950 border border-slate-800 rounded-xl p-3.5 space-y-2.5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <span className="text-xs uppercase tracking-wider text-slate-400">
+              Consommation estimée du routage :
+            </span>
+            <span className={`text-lg font-black ${
+              isSuccess
+                ? 'text-emerald-400'
+                : !allAssigned
+                ? 'text-slate-400'
+                : dailyKwh > 50
+                ? 'text-red-400'
+                : 'text-cyan-300'
+            }`}>
+              {dailyKwh.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} kWh / jour
+              <span className="text-xs font-normal text-slate-500 ml-2">(plafond : 50 kWh)</span>
+            </span>
+          </div>
+          <div className="w-full h-3 bg-slate-900 rounded-full border border-slate-800 relative">
+            <div className="w-full h-full rounded-full overflow-hidden">
+              <motion.div
+                className={`h-full rounded-full ${
+                  isSuccess
+                    ? 'bg-emerald-500'
+                    : dailyKwh > 50
+                    ? 'bg-red-500'
+                    : dailyKwh > 0
+                    ? 'bg-cyan-500'
+                    : 'bg-slate-700'
+                }`}
+                initial={{ width: 0 }}
+                animate={{ width: `${Math.min((dailyKwh / 100) * 100, 100)}%` }}
+                transition={{ duration: 0.35 }}
+              />
+            </div>
+            <div
+              className="absolute -top-0.5 -bottom-0.5 w-0.5 bg-amber-400 z-10"
+              style={{ left: '50%' }}
+              title="Plafond : 50 kWh/jour"
+            />
+          </div>
+        </div>
+
+        {/* Routing Tasks */}
+        <div className="space-y-3">
+          {TASKS.map((task) => {
+            const selected = assignments[task.id];
+            return (
+              <div
+                key={task.id}
+                className="bg-slate-950 border border-slate-800 rounded-xl p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4"
+              >
+                <div className="space-y-1 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="font-bold text-sm sm:text-base text-white">{task.title}</h3>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-900 border border-slate-700 text-cyan-300 font-bold">
+                      {task.volumeLabel}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400">{task.requirement}</p>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2 shrink-0">
+                  {(['heuristic', 'specialized', 'llm'] as ArchId[]).map((archId) => {
+                    const arch = ARCHITECTURES[archId];
+                    const isPicked = selected === archId;
+                    return (
+                      <button
+                        key={archId}
+                        type="button"
+                        disabled={isSuccess}
+                        onClick={() => handleAssign(task.id, archId)}
+                        className={`px-2.5 py-2 rounded-lg border text-[11px] font-bold transition-all ${
+                          isPicked
+                            ? 'bg-cyan-950/60 border-cyan-400 text-cyan-200 shadow-[0_0_12px_rgba(34,211,238,0.2)]'
+                            : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-slate-500 hover:text-slate-200'
+                        }`}
+                      >
+                        {arch.shortLabel}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {errorMsg && (
+          <motion.div
+            initial={{ opacity: 0, y: -5 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="p-3 bg-red-950/40 border border-red-500/50 rounded-lg text-red-300 text-xs font-bold flex items-center justify-center gap-2 text-center"
+          >
+            <AlertTriangle className="w-4 h-4 shrink-0 text-red-400" />
+            <span>{errorMsg}</span>
+          </motion.div>
+        )}
+
         {!isSuccess && (
-          <div className="flex justify-center mt-5">
+          <div className="flex justify-center mt-4">
             <button
               onClick={checkAnswer}
-              disabled={!selectedModel}
+              disabled={!allAssigned}
               className={`px-8 py-4 rounded-lg font-bold text-lg transition-all flex items-center gap-2 ${
-                !selectedModel
+                !allAssigned
                   ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                  : showError
+                  : errorMsg
                   ? 'bg-red-600 text-white animate-shake'
                   : 'bg-emerald-600 hover:bg-emerald-500 text-white hover:scale-105'
               }`}
             >
-              {showError ? (
-                <>MAUVAIS COMPROMIS <AlertTriangle className="w-5 h-5" /></>
-              ) : (
-                <>DÉPLOYER LE MODÈLE</>
-              )}
+              DÉPLOYER LE ROUTAGE
             </button>
           </div>
         )}
@@ -191,10 +297,10 @@ export default function Level6({ isDevMode, onComplete, onScoreUpdate, onMistake
             >
               <div className="flex items-center gap-2 text-emerald-400 font-bold text-xl mb-4">
                 <CheckCircle2 className="w-6 h-6" />
-                SOBRIÉTÉ ATTEINTE
+                ROUTAGE SOBRE ACTIVÉ (40 kWh/jour)
               </div>
               <p className="text-center mb-6 text-sm">
-                C'est le principe de la "Sobriété Algorithmique" (Green AI). Il ne faut pas utiliser un marteau-pilon pour écraser une mouche. Un modèle spécialisé, beaucoup plus petit, offre une précision presque identique pour une fraction minuscule du coût énergétique d'un <TechTerm term="LLM" /> géant.
+                C'est la <strong>Sobriété Algorithmique</strong> (Green AI) : sans <TechTerm term="IA" /> quand des règles suffisent, un petit modèle spécialisé pour trier efficacement, et le grand <TechTerm term="LLM" /> réservé aux rares analyses complexes !
               </p>
               <button
                 onClick={onComplete}

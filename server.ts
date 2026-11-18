@@ -25,7 +25,7 @@ async function startServer() {
 
       const apiKey = process.env.GEMINI_API_KEY;
       if (!apiKey) {
-        return res.status(500).json({ error: "API Key mancante" });
+        return res.status(500).json({ error: "Clé API manquante" });
       }
 
       const ai = new GoogleGenAI({ apiKey });
@@ -65,6 +65,7 @@ async function startServer() {
   });
 
   app.post('/api/generate', async (req, res) => {
+    const fallbackImageUrl = "https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=1024&auto=format&fit=crop";
     try {
       const { title, description } = req.body;
       
@@ -72,28 +73,43 @@ async function startServer() {
         return res.status(400).json({ error: "Missing title or description" });
       }
 
-      // Tentative d'utiliser Imagen 3 (modèle natif de génération d'image Google)
-      // Si la clé API n'a pas accès (car compte Free), l'erreur est interceptée 
-      // et renvoie une image 3D technologique générique comme solution de secours stylisée.
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) {
+        console.warn("GEMINI_API_KEY absente, utilisation de l'image de secours.");
+        return res.json({ imageUrl: fallbackImageUrl });
+      }
+
       try {
-        const apiKey = process.env.GEMINI_API_KEY;
         const ai = new GoogleGenAI({ apiKey });
-        const imageModel = await ai.models.generateImages({
-          model: 'imagen-3.0-generate-001',
-          prompt: `A futuristic, high-tech, eco-friendly invention called "${title}". Description: ${description}. Style: 3D render, clean.`,
-          config: { numberOfImages: 1, outputMimeType: 'image/png' }
+        const imageModel = await ai.models.generateContent({
+          model: 'gemini-2.5-flash-image',
+          contents: {
+            parts: [
+              {
+                text: `A futuristic, high-tech, eco-friendly invention called "${title}". Description: ${description}. Style: 3D render, clean, bright, emerald and cyan colors, professional product design, white background, high quality. No text in the image.`,
+              },
+            ],
+          },
         });
-        const base64Image = imageModel.generatedImages[0].image.imageBytes;
-        return res.json({ imageUrl: `data:image/png;base64,${base64Image}` });
+
+        let imageUrl: string | null = null;
+        const parts = imageModel.candidates?.[0]?.content?.parts || [];
+        for (const part of parts) {
+          if (part.inlineData?.data) {
+            const mime = part.inlineData.mimeType || 'image/png';
+            imageUrl = `data:${mime};base64,${part.inlineData.data}`;
+            break;
+          }
+        }
+
+        return res.json({ imageUrl: imageUrl || fallbackImageUrl });
       } catch (genError) {
-        console.warn("Imagen generation failed (probably Free Tier), using aesthetic fallback image.");
-        // Image de secours : un rendu 3D ultra-technologique très esthétique lié à l'eau et aux circuits !
-        const fallbackImageUrl = "https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=1024&auto=format&fit=crop";
+        console.warn("Gemini image generation failed, using fallback image.", genError);
         return res.json({ imageUrl: fallbackImageUrl });
       }
     } catch(error: any) {
       console.error(error);
-      return res.status(500).json({ error: error.message || "Erreur de génération d'image" });
+      return res.json({ imageUrl: fallbackImageUrl });
     }
   });
 

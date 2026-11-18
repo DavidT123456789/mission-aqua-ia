@@ -11,7 +11,7 @@ export async function onRequestPost({ request, env }) {
 
     const apiKey = env.GEMINI_API_KEY;
     if (!apiKey) {
-      return new Response(JSON.stringify({ error: "API Key mancante" }), { status: 500 });
+      return new Response(JSON.stringify({ error: "Clé API manquante" }), { status: 500 });
     }
 
     const ai = new GoogleGenAI({ apiKey });

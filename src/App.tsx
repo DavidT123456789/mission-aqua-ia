@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Terminal, Droplets, Clock, Star, Activity, Heart, Bug, X, FastForward, HelpCircle, Volume2, VolumeX, Lock } from 'lucide-react';
+import { Bug, BookOpen, X, HelpCircle, Lock } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import HUD from './components/HUD';
 import TransitionScreen from './components/TransitionScreen';
@@ -22,14 +22,14 @@ import Level12 from './levels/Level12';
 import Level13 from './levels/Level13';
 import Outro from './levels/Outro';
 import GameOver from './levels/GameOver';
-import TechTerm from './components/TechTerm';
+import { TERMS_DICTIONARY } from './components/TechTerm';
 
 export default function App() {
   const [level, setLevel] = useState(0);
   const [timeLeft, setTimeLeft] = useState(1800); // 30 minutes
   const [isActive, setIsActive] = useState(false);
   const [score, setScore] = useState(0);
-  const [waterSaved, setWaterSaved] = useState(15);
+  const [waterSaved, setWaterSaved] = useState(0);
   const [lives, setLives] = useState(3);
   const [nickname, setNickname] = useState('');
   
@@ -38,8 +38,9 @@ export default function App() {
   const [discoveredTerms, setDiscoveredTerms] = useState<string[]>([]);
 
   // Persistence & Sound State
-  const [isMuted, setIsMuted] = useState(false);
+  const [isMuted, setIsMuted] = useState(() => localStorage.getItem('hydrosave_muted') === 'true');
   const [hasSavedGame, setHasSavedGame] = useState(false);
+  const [savedGameInfo, setSavedGameInfo] = useState<{ level: number; score: number; timeLeft: number } | null>(null);
 
   // Bonus Data for Final Certificate
   const [finalEvaluation, setFinalEvaluation] = useState<any>(null);
@@ -58,9 +59,18 @@ export default function App() {
   const [lastPointsGained, setLastPointsGained] = useState(0);
   const [lastTimeRemaining, setLastTimeRemaining] = useState(0);
   const [levelBonusScore, setLevelBonusScore] = useState(0);
+  const isTransitionPendingRef = useRef(false);
+  const transitionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (transitionTimerRef.current) clearTimeout(transitionTimerRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     soundManager.setMuted(isMuted);
+    localStorage.setItem('hydrosave_muted', isMuted.toString());
   }, [isMuted]);
 
   useEffect(() => {
@@ -69,7 +79,7 @@ export default function App() {
     } else if (level === 14) {
       document.title = "Aqua IA - Mission Réussie !";
     } else {
-      document.title = `Aqua IA - Énigme ${level} : ${LEVEL_NAMES[level] || `Mission ${level}`}`;
+      document.title = `Aqua IA - Niveau ${level}/13 : ${LEVEL_NAMES[level] || `Mission ${level}`}`;
     }
   }, [level]);
 
@@ -118,7 +128,19 @@ export default function App() {
   useEffect(() => {
     const saved = localStorage.getItem('hydrosave_progress');
     if (saved) {
-      setHasSavedGame(true);
+      try {
+        const parsed = JSON.parse(saved);
+        if (typeof parsed?.level === 'number' && parsed.level > 0 && parsed.level < 14) {
+          setHasSavedGame(true);
+          setSavedGameInfo({
+            level: parsed.level,
+            score: parsed.score ?? 0,
+            timeLeft: parsed.timeLeft ?? 1800,
+          });
+        }
+      } catch {
+        localStorage.removeItem('hydrosave_progress');
+      }
     }
     
     const savedLeaderboard = localStorage.getItem('hydrosave_leaderboard');
@@ -141,6 +163,8 @@ export default function App() {
         unlockedPaidHints
       };
       localStorage.setItem('hydrosave_progress', JSON.stringify(state));
+      setHasSavedGame(true);
+      setSavedGameInfo({ level, score, timeLeft });
     }
   }, [level, score, waterSaved, lives, timeLeft, nickname, discoveredTerms, unlockedFreeHints, unlockedPaidHints]);
 
@@ -148,6 +172,7 @@ export default function App() {
     if (level === 14) {
       setIsActive(false); // Arrête le timer
       setHasSavedGame(false);
+      setSavedGameInfo(null);
       localStorage.removeItem('hydrosave_progress');
 
       // Ajout du score au leaderboard de façon résiliente avec garantie d'utilisation des données les plus à jour (sans stale closure)
@@ -176,6 +201,11 @@ export default function App() {
   const loadGame = () => {
     const saved = localStorage.getItem('hydrosave_progress');
     if (saved) {
+      if (transitionTimerRef.current) {
+        clearTimeout(transitionTimerRef.current);
+        transitionTimerRef.current = null;
+      }
+      isTransitionPendingRef.current = false;
       const state = JSON.parse(saved);
       setLevel(state.level);
       setScore(state.score);
@@ -183,7 +213,9 @@ export default function App() {
       setLives(state.lives);
       setTimeLeft(state.timeLeft);
       setNickname(state.nickname);
-      setDiscoveredTerms(state.discoveredTerms || []);
+      const loadedTerms = state.discoveredTerms || [];
+      setDiscoveredTerms(loadedTerms);
+      discoveredTermsRef.current = loadedTerms;
       setUnlockedFreeHints(state.unlockedFreeHints || []);
       setUnlockedPaidHints(state.unlockedPaidHints || []);
       setIsActive(true);
@@ -194,6 +226,7 @@ export default function App() {
   const clearSave = () => {
     localStorage.removeItem('hydrosave_progress');
     setHasSavedGame(false);
+    setSavedGameInfo(null);
   };
 
   const discoveredTermsRef = useRef<string[]>([]);
@@ -255,12 +288,49 @@ export default function App() {
     return () => clearInterval(interval);
   }, [isActive, timeLeft, lives, level]);
 
+  // Close modals on Escape key
+  useEffect(() => {
+    if (!showHint && !showGlossary && !showDevModal) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowHint(false);
+        setShowGlossary(false);
+        setShowDevModal(false);
+        setDevError(false);
+        setDevPassword('');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showHint, showGlossary, showDevModal]);
+
   const startGame = (name: string) => {
+    if (transitionTimerRef.current) {
+      clearTimeout(transitionTimerRef.current);
+      transitionTimerRef.current = null;
+    }
+    isTransitionPendingRef.current = false;
+    setIsTransitioning(false);
+    setPendingLevel(null);
+
+    // Effacer immédiatement toute ancienne sauvegarde pour éviter qu'un niveau ne lise un état obsolète
+    localStorage.removeItem('hydrosave_progress');
+    setHasSavedGame(false);
+
+    // Conserver les points des termes déjà découverts sur l'Intro, mais réinitialiser lors d'un Replay complet
+    const startingFromIntro = level === 0;
+    const initialScore = startingFromIntro ? discoveredTerms.length * 10 : 0;
+    if (!startingFromIntro) {
+      setDiscoveredTerms([]);
+      discoveredTermsRef.current = [];
+      window.dispatchEvent(new CustomEvent('resetDiscoveredTerms'));
+    }
+
     setNickname(name);
     setIsActive(true);
     setLevel(1);
-    setScore(0);
-    setWaterSaved(15);
+    setScore(initialScore);
+    setWaterSaved(0);
     setLives(3);
     setTimeLeft(1800);
     setUnlockedFreeHints([]);
@@ -272,10 +342,13 @@ export default function App() {
   };
 
   const nextLevel = () => {
+    if (isTransitionPendingRef.current || isTransitioning) return;
+    isTransitionPendingRef.current = true;
+
     soundManager.playSuccess();
     setIsSuccessFlash(true);
     setTimeout(() => setIsSuccessFlash(false), 800);
-    
+
     // Trigger confetti
     confetti({
       particleCount: 100,
@@ -284,29 +357,28 @@ export default function App() {
       colors: ['#10b981', '#06b6d4', '#8b5cf6']
     });
 
-    setLevel((l) => {
-      const next = l + 1;
-      if (next === 14) {
-        // L'enregistrement du leaderboard se fera via un useEffect plus robuste
-        return next;
-      }
+    const next = level + 1;
+    if (next === 14) {
+      isTransitionPendingRef.current = false;
+      setLevel(next);
+      return;
+    }
 
-      // Life regeneration every 3 levels
-      if (next % 3 === 0) {
-        setLives(prev => Math.min(3, prev + 1));
-      }
+    // Life regeneration every 3 levels
+    if (next % 3 === 0) {
+      setLives(prev => Math.min(3, prev + 1));
+    }
 
-      setPendingLevel(next);
-      setLastTimeRemaining(timeLeft);
-      // Delay transition to let confetti be seen
-      setTimeout(() => {
-        setIsTransitioning(true);
-      }, 1500);
-      return l; // Keep current level until transition finishes
-    });
+    setPendingLevel(next);
+    setLastTimeRemaining(timeLeft);
+    transitionTimerRef.current = setTimeout(() => {
+      setIsTransitioning(true);
+      transitionTimerRef.current = null;
+    }, 1500);
   };
 
   const handleTransitionComplete = () => {
+    isTransitionPendingRef.current = false;
     setIsTransitioning(false);
     setLevelBonusScore(0);
     if (pendingLevel !== null) {
@@ -316,7 +388,7 @@ export default function App() {
   };
 
   const handleScoreUpdate = (points: number, water: number) => {
-    setScore((s) => s + points);
+    setScore((s) => Math.max(0, s + points));
     setWaterSaved((prev) => Math.max(prev, water));
     setLastPointsGained(points + levelBonusScore);
   };
@@ -357,7 +429,8 @@ export default function App() {
   };
 
   const skipLevelDev = () => {
-    handleScoreUpdate(200, 50); // Give some default points
+    const devWaterByLevel: Record<number, number> = { 1: 0, 2: 28, 3: 35, 4: 42, 5: 49, 6: 56, 7: 63, 8: 70, 9: 76, 10: 82, 11: 88, 12: 94, 13: 100 };
+    handleScoreUpdate(200, devWaterByLevel[level] ?? 50);
     nextLevel();
   };
 
@@ -419,6 +492,7 @@ export default function App() {
         waterSaved={waterSaved}
         score={score}
         isDevMode={isDevMode}
+        isMuted={isMuted}
         setIsDevMode={setIsDevMode}
         unlockedFreeHints={unlockedFreeHints}
         unlockedPaidHints={unlockedPaidHints}
@@ -443,19 +517,31 @@ export default function App() {
           }
         }}
         onGoHome={() => {
+          if (transitionTimerRef.current) {
+            clearTimeout(transitionTimerRef.current);
+            transitionTimerRef.current = null;
+          }
+          isTransitionPendingRef.current = false;
+          setIsTransitioning(false);
+          setPendingLevel(null);
           setIsActive(false);
           setLevel(0);
         }}
+        onToggleMute={() => setIsMuted(m => !m)}
       />
 
       {/* Hint Modal */}
       <AnimatePresence>
         {showHint && (
-          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-950/90">
+          <div
+            onClick={() => setShowHint(false)}
+            className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-950/90"
+          >
             <motion.div 
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
               className="bg-slate-900 border border-yellow-500/50 p-6 rounded-2xl max-w-md w-full"
             >
               <div className="flex items-center gap-3 text-yellow-500 mb-4">
@@ -495,52 +581,49 @@ export default function App() {
       {/* Glossary Modal */}
       <AnimatePresence>
         {showGlossary && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/90">
+          <div
+            onClick={() => setShowGlossary(false)}
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/90"
+          >
             <motion.div 
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
               className="bg-slate-900 border border-emerald-500/50 rounded-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto shadow-[0_0_50px_rgba(16,185,129,0.2)]"
             >
               <div className="flex justify-between items-center sticky top-0 bg-slate-900/95 px-6 py-5 z-20 border-b border-emerald-900/50">
-                <h2 className="text-xl font-bold text-emerald-400 flex items-center gap-2">
-                  <Bug className="w-6 h-6" />
-                  GLOSSAIRE TECHNIQUE
-                </h2>
+                <div className="flex items-center gap-3">
+                  <h2 className="text-xl font-bold text-emerald-400 flex items-center gap-2">
+                    <BookOpen className="w-6 h-6" />
+                    GLOSSAIRE TECHNIQUE
+                  </h2>
+                  <span className="text-xs font-mono bg-emerald-950/60 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded-full">
+                    {discoveredTerms.length}/{Object.keys(TERMS_DICTIONARY).length}
+                  </span>
+                </div>
                 <button onClick={() => setShowGlossary(false)} className="text-slate-400 hover:text-white transition-colors p-2 hover:bg-slate-800 rounded-full">
                   <X className="w-6 h-6" />
                 </button>
               </div>
               
               <div className="grid gap-4 p-6">
-                {[
-                  { term: 'IA', title: 'Intelligence Artificielle', def: 'Programmes informatiques capables de simuler des traits de l\'intelligence humaine.' },
-                  { term: 'LLM', title: 'Large Language Model', def: 'Modèle de langage géant (comme GPT) capable de comprendre et générer du texte.' },
-                  { term: 'Datacenter', title: 'Centre de Données', def: 'Bâtiment rempli de serveurs informatiques. Ils chauffent énormément.' },
-                  { term: 'GPU', title: 'Processeur Graphique', def: 'Puce ultra-puissante utilisée pour entraîner les IA, très gourmande en énergie.' },
-                  { term: 'Refroidissement', title: 'Refroidissement liquide', def: 'Utilisation d\'eau pour absorber la chaleur des serveurs. L\'eau s\'évapore ensuite.' },
-                  { term: 'Cloud', title: 'Le Nuage', def: 'Ensemble des serveurs distants accessibles par Internet. Ce n\'est pas immatériel.' },
-                  { term: 'Algorithme', title: 'Algorithme', def: 'Suite d\'instructions précises données à un ordinateur pour accomplir une tâche.' },
-                  { term: 'Machine Learning', title: 'Apprentissage Automatique', def: 'Technique d\'IA où l\'ordinateur apprend à partir de données.' },
-                  { term: 'Prompt', title: 'Prompt', def: 'Instruction ou texte envoyé à une IA pour obtenir une réponse ou une image.' },
-                  { term: 'IA Générative', title: 'IA Générative', def: 'IA capable de créer du contenu original (texte, image, son) à partir de données existantes.' },
-                  { term: 'Serveur', title: 'Serveur', def: 'Ordinateur puissant qui fournit des services ou des données à d\'autres ordinateurs.' },
-                ].map((item) => {
-                  const isDiscovered = discoveredTerms.includes(item.term) || isDevMode;
+                {Object.entries(TERMS_DICTIONARY).map(([term, item]) => {
+                  const isDiscovered = discoveredTerms.includes(term) || isDevMode;
                   return (
-                    <div key={item.term} className={`border p-4 rounded-xl transition-all ${
+                    <div key={term} className={`border p-4 rounded-xl transition-all ${
                       isDiscovered 
                         ? 'bg-slate-950/50 border-emerald-500/30' 
                         : 'bg-slate-900/20 border-slate-800 opacity-50 grayscale'
                     }`}>
                       <div className="flex justify-between items-start mb-1">
                         <h3 className={`font-bold ${isDiscovered ? 'text-emerald-400' : 'text-slate-600'}`}>
-                          {isDiscovered ? item.title : '???'} ({item.term})
+                          {isDiscovered ? item.title : '???'} ({term})
                         </h3>
                         {!isDiscovered && <Lock className="w-3 h-3 text-slate-700" />}
                       </div>
                       <p className={`text-sm leading-relaxed ${isDiscovered ? 'text-slate-300' : 'text-slate-700 italic'}`}>
-                        {isDiscovered ? item.def : 'Découvrez ce terme dans la simulation pour débloquer sa définition.'}
+                        {isDiscovered ? item.definition : 'Découvrez ce terme dans la simulation pour débloquer sa définition.'}
                       </p>
                     </div>
                   );
@@ -568,12 +651,14 @@ export default function App() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            onClick={() => { setShowDevModal(false); setDevError(false); setDevPassword(''); }}
             className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/90 p-4"
           >
             <motion.div
               initial={{ scale: 0.9, y: 20 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.9, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
               className="bg-slate-900 border border-indigo-500/50 rounded-xl p-6 max-w-sm w-full shadow-[0_0_30px_rgba(99,102,241,0.25)]"
             >
               <div className="flex justify-between items-center mb-4">
@@ -655,6 +740,7 @@ export default function App() {
               key="intro" 
               onStart={startGame} 
               hasSavedGame={hasSavedGame} 
+              savedGameInfo={savedGameInfo}
               onLoadGame={loadGame} 
               onClearSave={clearSave} 
             />
@@ -712,15 +798,17 @@ export default function App() {
 
       {/* Background moved to the top for z-index layering */}
 
-      <button 
-        onClick={() => setShowDevModal(true)}
-        className="fixed bottom-2 left-4 z-[60] text-[10px] sm:text-xs font-sans text-emerald-500/30 hover:text-emerald-500/60 transition-all duration-500 bg-transparent border-none p-2 focus:outline-none cursor-default group"
-        aria-label="Mode Enseignant / Développeur"
-      >
-        <span className="group-hover:translate-x-1 inline-block transition-transform duration-500">
-          Réalisé par la constellation Echo
-        </span>
-      </button>
+      <footer className="w-full max-w-4xl mx-auto flex justify-start relative z-20 mt-2">
+        <button 
+          onClick={() => setShowDevModal(true)}
+          className="text-[10px] sm:text-xs font-sans text-emerald-500/30 hover:text-emerald-500/60 transition-all duration-500 bg-transparent border-none p-2 focus:outline-none cursor-default group"
+          aria-label="Mode Enseignant / Développeur"
+        >
+          <span className="group-hover:translate-x-1 inline-block transition-transform duration-500">
+            Réalisé par la constellation Echo
+          </span>
+        </button>
+      </footer>
     </div>
   );
 }

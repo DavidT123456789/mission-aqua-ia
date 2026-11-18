@@ -3,10 +3,11 @@ import { motion, AnimatePresence } from 'motion/react';
 import { FileText, CheckCircle2, Scale } from 'lucide-react';
 import NaiaDialogue from '../components/NaiaDialogue';
 import TechTerm from '../components/TechTerm';
+import { soundManager } from '../utils/soundManager';
 
 export default function Level10({ isDevMode, onComplete, onScoreUpdate, onMistake }: { isDevMode?: boolean; onComplete: () => void; onScoreUpdate: (points: number, water: number) => void; onMistake?: () => void; key?: string }) {
   const [selectedClauses, setSelectedClauses] = useState<number[]>([]);
-  const [showError, setShowError] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [hasScored, setHasScored] = useState(false);
 
   const [shuffledClauses] = useState(() => [
@@ -20,31 +21,39 @@ export default function Level10({ isDevMode, onComplete, onScoreUpdate, onMistak
     { id: 8, text: <>Soutien inconditionnel au développement massif de l'<TechTerm term="IA Générative">IA générative</TechTerm>.</>, good: false },
   ].sort(() => Math.random() - 0.5));
 
+  const isSuccess = hasScored;
+  const correctClauses = shuffledClauses.filter(c => c.good).map(c => c.id);
+
   const toggleClause = (id: number) => {
+    if (isSuccess) return;
+    soundManager.playClick();
     setSelectedClauses(prev => 
       prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]
     );
-    setShowError(false);
+    setErrorMsg(null);
   };
 
   const checkAnswer = () => {
-    const correctClauses = shuffledClauses.filter(c => c.good).map(c => c.id);
-    const isCorrect = selectedClauses.length === correctClauses.length && 
-                      selectedClauses.every(id => correctClauses.includes(id));
+    const hasBadClause = selectedClauses.some(id => !correctClauses.includes(id));
+    const missingGoodClause = correctClauses.some(id => !selectedClauses.includes(id));
+    const isCorrect = !hasBadClause && !missingGoodClause;
     
     if (isCorrect) {
+      soundManager.playSuccess();
       if (!hasScored) {
         setHasScored(true);
-        onScoreUpdate(200, 50);
+        onScoreUpdate(200, 82);
       }
     } else {
-      setShowError(true);
+      setErrorMsg(
+        hasBadClause
+          ? 'CLAUSES DANGEREUSES DÉTECTÉES'
+          : 'CHARTE INCOMPLÈTE'
+      );
       onMistake?.();
-      setTimeout(() => setShowError(false), 2000);
+      setTimeout(() => setErrorMsg(null), 2500);
     }
   };
-
-  const isSuccess = hasScored;
 
   return (
     <motion.div
@@ -65,7 +74,7 @@ export default function Level10({ isDevMode, onComplete, onScoreUpdate, onMistak
         <NaiaDialogue 
           message={
             <>
-              La technologie ne suffit pas. Pour pérenniser nos efforts, nous devons établir des règles. Rédigez la 'Charte de l'<TechTerm term="IA" /> Responsable' qui sera soumise au gouvernement mondial. Sélectionnez uniquement les clauses bénéfiques pour l'environnement.
+              La technique ne suffit pas : pour empêcher qu'une telle crise ne se reproduise, les autorités de la ville exigent une 'Charte de l'<TechTerm term="IA" /> Responsable' contraignante avant d'autoriser le redémarrage d'HYDRA. Sélectionnez uniquement les clauses bénéfiques pour l'environnement.
             </>
           }
           emotion="neutral"
@@ -74,17 +83,24 @@ export default function Level10({ isDevMode, onComplete, onScoreUpdate, onMistak
 
       <div className="space-y-4 text-slate-300">
         <div className="bg-slate-950 p-6 rounded-xl border border-slate-800">
-          <h3 className="text-center font-bold text-lg mb-6 uppercase tracking-widest text-slate-400">Projet de Loi - Article 1</h3>
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-6">
+            <h3 className="font-bold text-lg uppercase tracking-widest text-slate-400">Charte Municipale - Article 1</h3>
+            <span className="text-xs px-2.5 py-1 rounded-full bg-slate-900 border border-slate-700 text-emerald-400 font-bold">
+              {selectedClauses.length} clause(s) sélectionnée(s)
+            </span>
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {shuffledClauses.map((clause) => (
               <button
                 key={clause.id}
+                type="button"
+                disabled={isSuccess}
                 onClick={() => toggleClause(clause.id)}
                 className={`w-full text-left p-4 rounded-lg border transition-all flex items-start gap-4 ${
                   selectedClauses.includes(clause.id)
                     ? 'bg-emerald-900/30 border-emerald-500 text-emerald-100'
                     : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-slate-500'
-                }`}
+                } ${isSuccess ? 'cursor-default opacity-85' : ''}`}
               >
                 <div className={`w-6 h-6 rounded border flex items-center justify-center shrink-0 mt-0.5 ${
                   selectedClauses.includes(clause.id) ? 'bg-emerald-500 border-emerald-500' : 'border-slate-600'
@@ -101,13 +117,16 @@ export default function Level10({ isDevMode, onComplete, onScoreUpdate, onMistak
           <div className="flex justify-center mt-5">
             <button
               onClick={checkAnswer}
+              disabled={selectedClauses.length === 0}
               className={`px-8 py-4 rounded-lg font-bold text-lg transition-all ${
-                showError
+                selectedClauses.length === 0
+                  ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                  : errorMsg
                   ? 'bg-red-600 text-white animate-shake'
                   : 'bg-emerald-600 hover:bg-emerald-500 text-white hover:scale-105'
               }`}
             >
-              {showError ? 'CLAUSES DANGEREUSES DÉTECTÉES' : 'SOUMETTRE LA LOI'}
+              {errorMsg || 'SOUMETTRE LA CHARTE'}
             </button>
           </div>
         )}
@@ -121,16 +140,16 @@ export default function Level10({ isDevMode, onComplete, onScoreUpdate, onMistak
             >
               <div className="flex items-center gap-2 text-emerald-400 font-bold text-xl mb-4">
                  <Scale className="w-6 h-6" />
-                 LOI ADOPTÉE
+                 CHARTE ADOPTÉE
               </div>
               <p className="text-center mb-6 text-sm">
-                La loi a été votée. La régulation est une étape indispensable. L'innovation technologique doit être encadrée par des politiques publiques fortes pour garantir qu'elle bénéficie à l'humanité sans détruire son écosystème.
+                La charte a été adoptée par la ville. La régulation publique est une étape indispensable : l'innovation technologique doit être encadrée par des règles claires pour garantir qu'elle bénéficie à l'humanité sans détruire son écosystème.
               </p>
               <button
                 onClick={onComplete}
                 className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-3 rounded-lg font-bold transition-colors"
               >
-                DÉPLOYER L'ALGORITHME
+                DÉPLOYER LES NOUVEAUX MODULES
               </button>
             </motion.div>
           )}

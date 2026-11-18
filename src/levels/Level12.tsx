@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Globe, CheckCircle2, Cpu, Droplets, Activity, Film, Target } from 'lucide-react';
+import { Globe, CheckCircle2, Droplets, Activity, Film, Target } from 'lucide-react';
 import NaiaDialogue from '../components/NaiaDialogue';
+import HydraLog from '../components/HydraLog';
 import TechTerm from '../components/TechTerm';
+import { soundManager } from '../utils/soundManager';
 
 export default function Level12({ isDevMode, onComplete, onScoreUpdate, onMistake }: { isDevMode?: boolean; onComplete: () => void; onScoreUpdate: (points: number, water: number) => void; onMistake?: () => void; key?: string }) {
   const [allocations, setAllocations] = useState({
@@ -44,9 +46,10 @@ export default function Level12({ isDevMode, onComplete, onScoreUpdate, onMistak
     }
 
     // Success
+    soundManager.playSuccess();
     if (!hasScored) {
       setHasScored(true);
-      onScoreUpdate(500, 100);
+      onScoreUpdate(500, 94);
     }
   };
 
@@ -74,11 +77,12 @@ export default function Level12({ isDevMode, onComplete, onScoreUpdate, onMistak
         </h2>
       </div>
 
-      <div className="mb-4">
+      <div className="mb-4 space-y-2.5">
+        <HydraLog status="warning" message="Pare-feu contourné. Accès administrateur ouvert sur le répartiteur maître." />
         <NaiaDialogue 
           message={
             <>
-              Agent, nous avons pris le contrôle du répartiteur d'HYDRA ! Vous devez redéfinir la puissance de calcul mondiale. N'oubliez pas : chaque requête nécessite de refroidir des <TechTerm term="Serveur">serveurs</TechTerm> et vide nos réserves. Vous avez <strong>100 Unités d'Eau</strong>. Financez la survie de la planète, supprimez l'artificiel.
+              Le pare-feu est tombé : nous avons enfin accès au répartiteur maître d'HYDRA ! Vous devez maintenant arbitrer sa puissance de calcul mondiale. Même optimisée, chaque requête mobilise de l'énergie et de l'eau à l'échelle du réseau. Vous disposez de <strong>100 Unités d'Eau</strong> : financez l'essentiel pour la planète, coupez le superflu.
             </>
           }
           emotion="alert"
@@ -87,22 +91,42 @@ export default function Level12({ isDevMode, onComplete, onScoreUpdate, onMistak
 
       <div className="space-y-6 text-slate-300">
         
-        {/* Jauge globale budget */}
-        <div className="bg-slate-950 p-4 rounded-xl border border-slate-800">
-          <div className="flex justify-between text-sm font-bold mb-2">
+        {/* Jauge globale budget (empilée par secteur) */}
+        <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2.5">
+          <div className="flex justify-between text-sm font-bold">
             <span className="text-cyan-400 uppercase tracking-wider">Consommation d'eau mondiale (Refroidissement)</span>
             <span className={isOverBudget ? "text-red-500" : "text-emerald-400"}>
               {totalUsed} / {budgetMax} Unités
             </span>
           </div>
-          <div className="h-4 bg-slate-900 rounded-full overflow-hidden border border-slate-700">
-            <motion.div 
-              className={`h-full transition-all duration-300 ${isOverBudget ? 'bg-red-500' : 'bg-cyan-500'}`}
-              style={{ width: `${Math.min(totalUsed, 100)}%` }}
-            />
+          <div className={`h-4 bg-slate-900 rounded-full overflow-hidden border flex ${isOverBudget ? 'border-red-500' : 'border-slate-700'}`}>
+            {[
+              { key: 'climate', value: allocations.climate, color: 'bg-emerald-500', label: 'Climat' },
+              { key: 'water', value: allocations.water, color: 'bg-blue-500', label: 'Réseaux' },
+              { key: 'entertainment', value: allocations.entertainment, color: 'bg-purple-500', label: 'Streaming' },
+              { key: 'ads', value: allocations.ads, color: 'bg-yellow-500', label: 'Pub' }
+            ].map(seg => {
+              const scaleDenom = Math.max(totalUsed, budgetMax);
+              const pct = (seg.value / scaleDenom) * 100;
+              if (seg.value === 0) return null;
+              return (
+                <div
+                  key={seg.key}
+                  className={`h-full ${isOverBudget ? 'bg-red-500/80' : seg.color} transition-all duration-200 border-r border-slate-950/50 last:border-r-0`}
+                  style={{ width: `${pct}%` }}
+                  title={`${seg.label} : ${seg.value} U`}
+                />
+              );
+            })}
+          </div>
+          <div className="flex flex-wrap gap-3 text-[10px] text-slate-400">
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-500" /> Climat ({allocations.climate} U)</span>
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-500" /> Réseaux ({allocations.water} U)</span>
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-purple-500" /> Streaming ({allocations.entertainment} U)</span>
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-yellow-500" /> Pub ({allocations.ads} U)</span>
           </div>
           {isOverBudget && (
-             <p className="text-red-500 text-xs mt-2 font-bold animate-pulse uppercase">⚠️ Surcharge détectée : Les fleuves s'assèchent !</p>
+             <p className="text-red-500 text-xs font-bold animate-pulse uppercase">⚠️ Surcharge détectée : Les fleuves s'assèchent !</p>
           )}
         </div>
 
@@ -144,14 +168,14 @@ export default function Level12({ isDevMode, onComplete, onScoreUpdate, onMistak
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2 text-purple-400">
                 <Film className="w-5 h-5" />
-                <span className="font-bold text-sm">Vidéos de Chats en 8K</span>
+                <span className="font-bold text-sm">Streaming 4K &amp; Filtres IA</span>
               </div>
               <span className="text-slate-400 text-xs">{allocations.entertainment} U</span>
             </div>
             <input type="range" min="0" max="100" step="5" value={allocations.entertainment} disabled={isSuccess}
               onChange={(e) => handleSliderChange('entertainment', Number(e.target.value))}
               className="w-full relative z-10 accent-purple-500" />
-            <p className="text-[10px] text-slate-500 mt-2 uppercase">Génération d'images et flux massifs de divertissement.</p>
+            <p className="text-[10px] text-slate-500 mt-2 uppercase">Flux vidéo ultra-HD et génération d'images récréatives.</p>
           </div>
 
           {/* Ads */}
@@ -186,6 +210,7 @@ export default function Level12({ isDevMode, onComplete, onScoreUpdate, onMistak
           <div className="flex justify-center mt-6">
             <button
               onClick={checkAnswer}
+              disabled={isOverBudget}
               className={`px-8 py-4 rounded-lg font-bold text-lg transition-all ${
                 showErrorAnim
                   ? 'bg-red-600 text-white animate-shake'
@@ -208,7 +233,7 @@ export default function Level12({ isDevMode, onComplete, onScoreUpdate, onMistak
             >
               <div className="flex items-center gap-2 text-emerald-400 font-bold text-xl mb-4">
                  <CheckCircle2 className="w-8 h-8" />
-                 MISSION ACCOMPLIE : ÉQUILIBRE RESTAURÉ
+                 ÉQUILIBRE RESTAURÉ : RÉPARTITEUR VERROUILLÉ
               </div>
               <p className="text-center mb-6 text-sm max-w-2xl text-emerald-100">
                 Vous avez parfaitement compris la voie de la <strong>Sobriété Numérique</strong> ! L'Intelligence Artificielle est un outil inestimable pour sauver notre planète, mais chaque calcul a un coût matériel réel. En limitant les usages superflus, nous réservons l'eau et l'énergie à ce qui compte vraiment. Le système est stabilisé, mais il reste une dernière étape critique.

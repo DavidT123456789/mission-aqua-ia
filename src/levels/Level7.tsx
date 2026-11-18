@@ -1,75 +1,106 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Server, CheckCircle2, AlertTriangle, Wrench, Trash2, Cpu, MemoryStick, HardDrive, Recycle } from 'lucide-react';
+import { Server, CheckCircle2, AlertTriangle, Wrench, Trash2, Cpu, MemoryStick, HardDrive, Recycle, Terminal } from 'lucide-react';
 import NaiaDialogue from '../components/NaiaDialogue';
+import HydraLog from '../components/HydraLog';
 import TechTerm from '../components/TechTerm';
+import { soundManager } from '../utils/soundManager';
+
+type ComponentId = 'cpu' | 'ram' | 'nvme';
+type ActionId = 'replace_all' | 'repair_ram' | 'refurbished';
+type DisposalId = 'trash' | 'weee';
+
+const HARDWARE_LOGS: {
+  id: ComponentId;
+  name: string;
+  icon: typeof Cpu;
+  metrics: { label: string; value: string }[];
+  logLine: string;
+}[] = [
+  {
+    id: 'cpu',
+    name: 'Processeur (CPU)',
+    icon: Cpu,
+    metrics: [
+      { label: 'Temp.', value: '64°C (max 95°C)' },
+      { label: 'Charge', value: '42%' }
+    ],
+    logLine: '[KERNEL] CPU0-15: thermal throttling nominal, 0 machine-check exception.'
+  },
+  {
+    id: 'ram',
+    name: 'Mémoire Vive (RAM ECC)',
+    icon: MemoryStick,
+    metrics: [
+      { label: 'Temp.', value: '49°C (max 85°C)' },
+      { label: 'Parité', value: '4 820 corr./min' }
+    ],
+    logLine: '[EDAC] MC0: uncorrectable page read failure on DIMM_B2 (addr 0x7FF4A0).'
+  },
+  {
+    id: 'nvme',
+    name: 'Disque Stockage (NVMe)',
+    icon: HardDrive,
+    metrics: [
+      { label: 'Santé SMART', value: '96%' },
+      { label: 'Latence I/O', value: '0.4 ms' }
+    ],
+    logLine: '[NVME] nvme0n1: 0 media errors, 0 reallocated sectors.'
+  }
+];
 
 export default function Level7({ isDevMode, onComplete, onScoreUpdate, onMistake }: { isDevMode?: boolean; onComplete: () => void; onScoreUpdate: (points: number, water: number) => void; onMistake?: () => void; key?: string }) {
-  const [selectedAction, setSelectedAction] = useState<string | null>(null);
-  const [showError, setShowError] = useState(false);
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
+  const [selectedComponent, setSelectedComponent] = useState<ComponentId | null>(null);
+  const [selectedAction, setSelectedAction] = useState<ActionId | null>(null);
+  const [selectedDisposal, setSelectedDisposal] = useState<DisposalId | null>(null);
+  const [feedback, setFeedback] = useState<string | null>(null);
   const [hasScored, setHasScored] = useState(false);
 
-  const actions = [
-    {
-      id: 'replace_all',
-      name: 'Remplacer le serveur',
-      icon: Trash2,
-      desc: 'Jeter l\'ancien serveur et en acheter un neuf de dernière génération.',
-      waterCost: '1200 L',
-      color: 'text-purple-400',
-      bg: 'bg-purple-950/30',
-      border: 'border-purple-500/50'
-    },
-    {
-      id: 'repair_ram',
-      name: 'Réparer (Changer la RAM)',
-      icon: Wrench,
-      desc: 'Identifier le composant défectueux (RAM) et le remplacer uniquement.',
-      waterCost: '15 L',
-      color: 'text-blue-400',
-      bg: 'bg-blue-950/30',
-      border: 'border-blue-500/50'
-    },
-    {
-      id: 'refurbished',
-      name: 'Serveur Reconditionné',
-      icon: Recycle,
-      desc: 'Acheter une machine d\'occasion pour limiter la fabrication neuve.',
-      waterCost: '180 L',
-      color: 'text-cyan-400',
-      bg: 'bg-cyan-950/30',
-      border: 'border-cyan-500/50'
-    },
-    {
-      id: 'ignore',
-      name: 'Ignorer la panne',
-      icon: AlertTriangle,
-      desc: 'Laisser le serveur tourner au ralenti avec des erreurs.',
-      waterCost: '0 L',
-      color: 'text-orange-400',
-      bg: 'bg-orange-950/30',
-      border: 'border-orange-500/50'
-    }
-  ];
-
-  const handleSelect = (id: string) => {
-    setSelectedAction(id);
-    setShowError(false);
+  const triggerError = (msg: string) => {
+    setFeedback(msg);
+    onMistake?.();
+    setTimeout(() => setFeedback(null), 3500);
   };
 
-  const [isSuccess, setIsSuccess] = useState(false);
+  const handleValidateStep1 = () => {
+    if (!selectedComponent) return;
+    if (selectedComponent === 'ram') {
+      soundManager.playSuccess();
+      setFeedback(null);
+      setStep(2);
+    } else if (selectedComponent === 'cpu') {
+      triggerError("Le processeur est à 64°C (largement sous la limite de 95°C) et n'a aucune erreur.");
+    } else {
+      triggerError("Le disque NVMe affiche 96% de santé SMART et 0 secteur réalloué : il est sain.");
+    }
+  };
 
-  const checkAnswer = () => {
+  const handleValidateStep2 = () => {
+    if (!selectedAction) return;
     if (selectedAction === 'repair_ram') {
-      setIsSuccess(true);
+      soundManager.playSuccess();
+      setFeedback(null);
+      setStep(3);
+    } else if (selectedAction === 'replace_all') {
+      triggerError("Gaspillage critique (1 200 L d'eau) : le processeur et le stockage fonctionnent encore !");
+    } else {
+      triggerError("Mieux que le neuf, mais changer tout le serveur (180 L) reste superflu pour une seule barrette défaillante.");
+    }
+  };
+
+  const handleValidateStep3 = () => {
+    if (!selectedDisposal) return;
+    if (selectedDisposal === 'weee') {
+      soundManager.playSuccess();
+      setFeedback(null);
+      setStep(4);
       if (!hasScored) {
         setHasScored(true);
-        onScoreUpdate(150, 50);
+        onScoreUpdate(150, 63);
       }
     } else {
-      setShowError(true);
-      onMistake?.();
-      setTimeout(() => setShowError(false), 2000);
+      triggerError("Attention ! Les cartes électroniques incinérées ou enfouies libèrent des métaux lourds dans les nappes d'eau.");
     }
   };
 
@@ -80,119 +111,273 @@ export default function Level7({ isDevMode, onComplete, onScoreUpdate, onMistake
       exit={{ opacity: 0, x: -50 }}
       className="sm:bg-slate-900 border-transparent sm:border-cyan-500/20 sm:border px-0 sm:px-6 py-4 sm:py-6 sm:rounded-xl max-w-4xl mx-auto font-mono relative flex flex-col"
     >
-      
-      <div className="flex items-center gap-3 mb-3 border-b border-cyan-900/50 pb-3">
-        <Server className="w-8 h-8 text-emerald-400" />
-        <h2 className="text-xl md:text-2xl font-bold text-white uppercase tracking-widest">
-          Niveau 7 : Cycle de Vie du Matériel
-        </h2>
+      <div className="flex items-center justify-between gap-3 mb-3 border-b border-cyan-900/50 pb-3">
+        <div className="flex items-center gap-3">
+          <Server className="w-8 h-8 text-emerald-400" />
+          <h2 className="text-xl md:text-2xl font-bold text-white uppercase tracking-widest">
+            Niveau 7 : Cycle de Vie du Matériel
+          </h2>
+        </div>
+        <span className="text-xs px-2.5 py-1 rounded-full bg-slate-950 border border-cyan-500/30 text-cyan-300 shrink-0">
+          Étape {Math.min(step, 3)} / 3
+        </span>
       </div>
 
-      <div className="mb-3">
-        <NaiaDialogue 
+      <div className="mb-4 space-y-2.5">
+        {step === 1 && (
+          <HydraLog status="warning" message="Erreur matérielle sur nœud local. Commande automatique d'un serveur neuf initiée..." />
+        )}
+        <NaiaDialogue
           message={
-            <>
-              Agent, un des <TechTerm term="Serveur">serveurs</TechTerm> d'HYDRA vient de tomber en panne. Son protocole par défaut commande du matériel neuf, ce qui gaspille d'énormes quantités d'eau pure pour fabriquer les puces électroniques. Interceptez la commande et imposez une solution éco-responsable.
-            </>
+            step === 1 ? (
+              <>
+                Un des <TechTerm term="Serveur">serveurs</TechTerm> locaux d'HYDRA remonte des plantages critiques. Par défaut, son protocole commande une machine neuve (1 200 L d'eau pure pour graver les puces !). Analysez d'abord les journaux système pour isoler le composant en panne.
+              </>
+            ) : step === 2 ? (
+              <>
+                Bien vu : seule la barrette mémoire (RAM) génère des erreurs critiques. Choisissez maintenant l'intervention la plus sobre en eau et en matières premières.
+              </>
+            ) : (
+              <>
+                La barrette est remplacée et le serveur redémarre ! Dernière décision : que faire de l'ancien module défectueux pour boucler le cycle de vie ?
+              </>
+            )
           }
-          emotion="alert"
+          emotion={step === 1 ? 'alert' : 'neutral'}
         />
       </div>
 
+      {/* Stepper */}
+      <div className="grid grid-cols-3 gap-2 mb-5 text-[11px]">
+        {[
+          { num: 1, label: '1. Diagnostic Logs' },
+          { num: 2, label: '2. Intervention' },
+          { num: 3, label: '3. Fin de vie DEEE' }
+        ].map(s => (
+          <div
+            key={s.num}
+            className={`px-3 py-2 rounded-lg border text-center font-bold transition-colors ${
+              step > s.num
+                ? 'bg-emerald-950/40 border-emerald-500/50 text-emerald-400'
+                : step === s.num
+                ? 'bg-cyan-950/40 border-cyan-400 text-cyan-300'
+                : 'bg-slate-950/60 border-slate-800 text-slate-600'
+            }`}
+          >
+            {s.label}
+          </div>
+        ))}
+      </div>
+
       <div className="space-y-4 text-slate-300">
-        <div className="flex flex-col lg:flex-row gap-5 mt-5">
-          {/* Server Visualization */}
-          <div className="w-full lg:w-1/2 relative bg-slate-950 rounded-xl border border-slate-800 p-6 flex flex-col items-center justify-center">
-            <div className="w-full max-w-xs space-y-4">
-              <div className="h-12 bg-slate-800 rounded border border-slate-700 flex items-center px-4 gap-4">
-                <Cpu className="w-6 h-6 text-emerald-500" />
-                <div className="flex-1 h-2 bg-emerald-500/20 rounded-full overflow-hidden">
-                  <div className="h-full bg-emerald-500 w-3/4"></div>
-                </div>
-                <span className="text-xs text-emerald-500">OK</span>
-              </div>
-              <div className="h-12 bg-red-900/20 rounded border border-red-500/50 flex items-center px-4 gap-4">
-                <MemoryStick className="w-6 h-6 text-red-500" />
-                <div className="flex-1 h-2 bg-red-500/20 rounded-full overflow-hidden">
-                  <div className="h-full bg-red-500 w-1/4"></div>
-                </div>
-                <span className="text-xs text-red-500 font-bold">ERR</span>
-              </div>
-              <div className="h-12 bg-slate-800 rounded border border-slate-700 flex items-center px-4 gap-4">
-                <HardDrive className="w-6 h-6 text-emerald-500" />
-                <div className="flex-1 h-2 bg-emerald-500/20 rounded-full overflow-hidden">
-                  <div className="h-full bg-emerald-500 w-full"></div>
-                </div>
-                <span className="text-xs text-emerald-500">OK</span>
-              </div>
-            </div>
-            <p className="mt-6 text-sm text-slate-400 text-center">
-              Diagnostic : Défaillance du module mémoire (RAM). Le reste du système est fonctionnel.
+        {step === 1 && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
+            <p className="text-xs text-slate-400 flex items-center gap-2">
+              <Terminal className="w-4 h-4 text-cyan-400" />
+              Inspectez les journaux ci-dessous et sélectionnez le composant défaillant :
             </p>
-          </div>
-
-          {/* Actions */}
-          <div className="w-full lg:w-1/2 grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {actions.map((action) => {
-              const Icon = action.icon;
-              const isSelected = selectedAction === action.id;
-              return (
-                <button
-                  key={action.id}
-                  onClick={() => handleSelect(action.id)}
-                  className={`relative p-4 rounded-xl border-2 text-center transition-all duration-300 flex flex-col items-center gap-3 ${
-                    isSelected 
-                      ? `${action.bg} ${action.border} scale-[1.02]` 
-                      : 'bg-slate-950 border-slate-800 hover:border-slate-600'
-                  }`}
-                >
-                  <div className={`p-3 rounded-full ${isSelected ? 'bg-slate-900' : 'bg-slate-900/50'}`}>
-                    <Icon className={`w-6 h-6 ${isSelected ? action.color : 'text-slate-500'}`} />
-                  </div>
-                  <div className="flex-1 flex flex-col items-center">
-                    <h3 className={`font-bold ${isSelected ? 'text-white' : 'text-slate-300'}`}>{action.name}</h3>
-                    <p className="text-xs text-slate-400 mt-1">{action.desc}</p>
-                    <div className="mt-2 text-[10px] xl:text-xs font-bold text-blue-400">
-                      Coût : {action.waterCost}
+            <div className="grid grid-cols-1 gap-3">
+              {HARDWARE_LOGS.map((comp) => {
+                const Icon = comp.icon;
+                const isSelected = selectedComponent === comp.id;
+                return (
+                  <button
+                    key={comp.id}
+                    type="button"
+                    onClick={() => { soundManager.playClick(); setSelectedComponent(comp.id); setFeedback(null); }}
+                    className={`p-4 rounded-xl border-2 text-left transition-all flex flex-col gap-2 ${
+                      isSelected
+                        ? 'bg-cyan-950/30 border-cyan-400'
+                        : 'bg-slate-950 border-slate-800 hover:border-slate-600'
+                    }`}
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center gap-2.5">
+                        <Icon className={`w-5 h-5 ${isSelected ? 'text-cyan-400' : 'text-slate-400'}`} />
+                        <span className="font-bold text-white text-sm">{comp.name}</span>
+                      </div>
+                      <div className="flex flex-wrap gap-2 text-[11px]">
+                        {comp.metrics.map(m => (
+                          <span key={m.label} className="px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-300">
+                            {m.label} : <strong className="text-white">{m.value}</strong>
+                          </span>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
+                    <div className="text-xs font-mono text-slate-400 bg-slate-900/80 px-3 py-2 rounded border border-slate-800/80">
+                      {comp.logLine}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
 
-        {!isSuccess && (
-          <div className="flex justify-center mt-5">
-            <button
-              onClick={checkAnswer}
-              disabled={!selectedAction}
-              className={`px-8 py-4 rounded-lg font-bold text-lg transition-all ${
-                !selectedAction
-                  ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                  : showError
-                  ? 'bg-red-600 text-white animate-shake'
-                  : 'bg-emerald-600 hover:bg-emerald-500 text-white hover:scale-105'
-              }`}
-            >
-              {showError ? 'MAUVAISE DÉCISION' : 'EXÉCUTER L\'ACTION'}
-            </button>
-          </div>
+            <div className="flex justify-center pt-2">
+              <button
+                onClick={handleValidateStep1}
+                disabled={!selectedComponent}
+                className={`px-8 py-3.5 rounded-lg font-bold transition-all ${
+                  !selectedComponent
+                    ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                    : 'bg-emerald-600 hover:bg-emerald-500 text-white hover:scale-105'
+                }`}
+              >
+                CONFIRMER LE DIAGNOSTIC
+              </button>
+            </div>
+          </motion.div>
+        )}
+
+        {step === 2 && (
+          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {[
+                {
+                  id: 'replace_all' as ActionId,
+                  name: 'Serveur neuf complet',
+                  icon: Trash2,
+                  desc: 'Remplacer toute la machine par le dernier modèle.',
+                  water: '1 200 L d\'eau virtuelle'
+                },
+                {
+                  id: 'repair_ram' as ActionId,
+                  name: 'Remplacer la RAM',
+                  icon: Wrench,
+                  desc: 'Changer uniquement la barrette DIMM_B2 défectueuse.',
+                  water: '15 L d\'eau virtuelle'
+                },
+                {
+                  id: 'refurbished' as ActionId,
+                  name: 'Serveur reconditionné',
+                  icon: Recycle,
+                  desc: 'Changer tout le serveur par un modèle d\'occasion.',
+                  water: '180 L d\'eau virtuelle'
+                }
+              ].map((act) => {
+                const Icon = act.icon;
+                const isSelected = selectedAction === act.id;
+                return (
+                  <button
+                    key={act.id}
+                    type="button"
+                    onClick={() => { soundManager.playClick(); setSelectedAction(act.id); setFeedback(null); }}
+                    className={`p-5 rounded-xl border-2 text-center transition-all flex flex-col items-center gap-3 ${
+                      isSelected
+                        ? 'bg-cyan-950/30 border-cyan-400 scale-[1.02]'
+                        : 'bg-slate-950 border-slate-800 hover:border-slate-600'
+                    }`}
+                  >
+                    <div className="p-3 rounded-full bg-slate-900">
+                      <Icon className={`w-6 h-6 ${isSelected ? 'text-cyan-400' : 'text-slate-400'}`} />
+                    </div>
+                    <h3 className="font-bold text-white text-sm">{act.name}</h3>
+                    <p className="text-xs text-slate-400 flex-1">{act.desc}</p>
+                    <div className="text-xs font-bold text-cyan-300 bg-slate-900 px-3 py-1 rounded-full border border-slate-800">
+                      {act.water}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="flex justify-center pt-2">
+              <button
+                onClick={handleValidateStep2}
+                disabled={!selectedAction}
+                className={`px-8 py-3.5 rounded-lg font-bold transition-all ${
+                  !selectedAction
+                    ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                    : 'bg-emerald-600 hover:bg-emerald-500 text-white hover:scale-105'
+                }`}
+              >
+                EXÉCUTER L'INTERVENTION
+              </button>
+            </div>
+          </motion.div>
+        )}
+
+        {step === 3 && (
+          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {[
+                {
+                  id: 'trash' as DisposalId,
+                  name: 'Déchets classiques',
+                  icon: Trash2,
+                  desc: 'Jeter la barrette RAM hors service avec les ordures courantes pour gagner du temps.'
+                },
+                {
+                  id: 'weee' as DisposalId,
+                  name: 'Filière de recyclage DEEE',
+                  icon: Recycle,
+                  desc: 'Envoyer le composant vers une filière spécialisée pour extraire l\'or, le cuivre et les métaux critiques.'
+                }
+              ].map((opt) => {
+                const Icon = opt.icon;
+                const isSelected = selectedDisposal === opt.id;
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => { soundManager.playClick(); setSelectedDisposal(opt.id); setFeedback(null); }}
+                    className={`p-5 rounded-xl border-2 text-left transition-all flex items-start gap-4 ${
+                      isSelected
+                        ? 'bg-cyan-950/30 border-cyan-400'
+                        : 'bg-slate-950 border-slate-800 hover:border-slate-600'
+                    }`}
+                  >
+                    <div className="p-3 rounded-full bg-slate-900 shrink-0">
+                      <Icon className={`w-6 h-6 ${isSelected ? 'text-cyan-400' : 'text-slate-400'}`} />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-white text-sm mb-1">{opt.name}</h3>
+                      <p className="text-xs text-slate-400 leading-relaxed">{opt.desc}</p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="flex justify-center pt-2">
+              <button
+                onClick={handleValidateStep3}
+                disabled={!selectedDisposal}
+                className={`px-8 py-3.5 rounded-lg font-bold transition-all ${
+                  !selectedDisposal
+                    ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                    : 'bg-emerald-600 hover:bg-emerald-500 text-white hover:scale-105'
+                }`}
+              >
+                CLÔTURER LE TICKET
+              </button>
+            </div>
+          </motion.div>
+        )}
+
+        {feedback && (
+          <motion.div
+            initial={{ opacity: 0, y: -5 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="p-3 bg-red-950/40 border border-red-500/50 rounded-lg text-red-300 text-xs font-bold flex items-center justify-center gap-2 text-center"
+          >
+            <AlertTriangle className="w-4 h-4 shrink-0 text-red-400" />
+            <span>{feedback}</span>
+          </motion.div>
         )}
 
         <AnimatePresence>
-          {isSuccess && (
+          {step === 4 && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               className="flex flex-col items-center mt-5 p-6 bg-emerald-950/30 border border-emerald-500/50 rounded-lg"
             >
               <div className="flex items-center gap-2 text-emerald-400 font-bold text-xl mb-4">
-                 <CheckCircle2 className="w-6 h-6" />
-                 RÉPARATION EFFECTUÉE
+                <CheckCircle2 className="w-6 h-6" />
+                MAINTENANCE CIRCULAIRE VALIDÉE
               </div>
               <p className="text-center mb-6 text-sm">
-                L'économie circulaire est essentielle. La fabrication des composants électroniques (puces, processeurs) nécessite d'énormes quantités d'eau ultra-pure. En réparant au lieu de remplacer, nous économisons des milliers de litres d'eau virtuelle.
+                Plus de 70 % de l'empreinte écologique d'un matériel informatique provient de sa fabrication (dont l'eau ultra-pure nécessaire à la gravure des puces). En ciblant la panne réelle et en recyclant la pièce via les DEEE, vous avez économisé 1 185 litres d'eau virtuelle !
               </p>
               <button
                 onClick={onComplete}

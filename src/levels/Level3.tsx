@@ -3,11 +3,11 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Activity, Search, AlertCircle, CheckCircle2, Waves, Wrench, Droplets, ShieldCheck } from 'lucide-react';
 import NaiaDialogue from '../components/NaiaDialogue';
 import TechTerm from '../components/TechTerm';
+import { soundManager } from '../utils/soundManager';
 
 export default function Level3({ isDevMode, onComplete, onScoreUpdate, onMistake }: { isDevMode?: boolean; onComplete: () => void; onScoreUpdate: (points: number, water: number) => void; onMistake?: () => void; key?: string }) {
   const [selectedSensor, setSelectedSensor] = useState<string | null>(null);
   const [error, setError] = useState(false);
-  const [scanLine, setScanLine] = useState(0);
 
   // Repair phases: 'idle' | 'detecting' | 'repairing' | 'done'
   const [repairPhase, setRepairPhase] = useState<'idle' | 'detecting' | 'repairing' | 'done'>('idle');
@@ -19,15 +19,6 @@ export default function Level3({ isDevMode, onComplete, onScoreUpdate, onMistake
   onScoreUpdateRef.current = onScoreUpdate;
   const hasScoredRef = useRef(hasScored);
   hasScoredRef.current = hasScored;
-
-  // Radar scan effect
-  useEffect(() => {
-    if (repairPhase === 'done') return; // Stop scan when repair is done
-    const interval = setInterval(() => {
-      setScanLine((prev) => (prev + 1) % 100);
-    }, 50);
-    return () => clearInterval(interval);
-  }, [repairPhase]);
 
   // Repair progress animation
   useEffect(() => {
@@ -44,9 +35,10 @@ export default function Level3({ isDevMode, onComplete, onScoreUpdate, onMistake
       if (current >= steps) {
         clearInterval(interval);
         setRepairPhase('done');
+        soundManager.playSuccess();
         if (!hasScoredRef.current) {
           setHasScored(true);
-          onScoreUpdateRef.current(150, 40);
+          onScoreUpdateRef.current(150, 35);
         }
       }
     }, stepTime);
@@ -54,15 +46,16 @@ export default function Level3({ isDevMode, onComplete, onScoreUpdate, onMistake
   }, [repairPhase]);
 
   const sensors = [
-    { id: 'A', pressure: 4.5, status: 'Normal', location: 'Quartier Nord', pos: { top: '20%', left: '30%' } },
-    { id: 'B', pressure: 4.6, status: 'Normal', location: 'Centre-Ville', pos: { top: '40%', left: '50%' } },
-    { id: 'C', pressure: 2.1, status: 'Anomalie', location: 'Zone Industrielle', pos: { top: '70%', left: '70%' } },
-    { id: 'D', pressure: 4.5, status: 'Normal', location: 'Quartier Sud', pos: { top: '80%', left: '30%' } },
-    { id: 'E', pressure: 4.4, status: 'Normal', location: 'Banlieue Est', pos: { top: '30%', left: '80%' } },
+    { id: 'A', pressure: 4.4, nightFlow: 5, status: 'Normal', location: 'Quartier Nord', note: 'Consommation domestique minimale', pos: { top: '20%', left: '30%' } },
+    { id: 'B', pressure: 4.3, nightFlow: 8, status: 'Normal', location: 'Centre-Ville', note: 'Hôpital & boulangeries actifs', pos: { top: '40%', left: '50%' } },
+    { id: 'C', pressure: 3.7, nightFlow: 46, status: 'Anomalie', location: 'Zone Industrielle', note: 'Usines fermées la nuit', pos: { top: '70%', left: '70%' } },
+    { id: 'D', pressure: 4.5, nightFlow: 4, status: 'Normal', location: 'Quartier Sud', note: 'Quartier résidentiel (nuit)', pos: { top: '80%', left: '30%' } },
+    { id: 'E', pressure: 4.2, nightFlow: 6, status: 'Normal', location: 'Banlieue Est', note: 'Commerces & bureaux fermés', pos: { top: '30%', left: '80%' } },
   ];
 
   const handleSelect = (id: string) => {
     if (repairPhase !== 'idle') return;
+    soundManager.playClick();
     setSelectedSensor(id);
     if (id === 'C') {
       setError(false);
@@ -84,7 +77,7 @@ export default function Level3({ isDevMode, onComplete, onScoreUpdate, onMistake
   // Repair status label helper
   const getRepairStatusText = () => {
     if (repairPhase === 'detecting') return 'Analyse de la fuite...';
-    if (repairPhase === 'repairing') return 'Colmatage en cours...';
+    if (repairPhase === 'repairing') return 'Fermeture des vannes de secteur...';
     if (repairPhase === 'done') return 'Fuite isolée avec succès !';
     return '';
   };
@@ -108,7 +101,7 @@ export default function Level3({ isDevMode, onComplete, onScoreUpdate, onMistake
         <NaiaDialogue 
           message={
             <>
-              Le refroidissement est stabilisé, mais mes capteurs indiquent une perte de pression dans le réseau principal. Une fuite est probable. L'<TechTerm term="IA" /> peut analyser des milliers de points de données instantanément. Utilisez le radar pour identifier le capteur qui signale une anomalie.
+              Le refroidissement d'HYDRA est stabilisé, mais les réserves de la ville continuent de baisser : une fuite souterraine aggrave la pénurie ! Heureusement, l'<TechTerm term="IA" /> peut analyser des milliers de points de données instantanément. Utilisez le radar pour identifier et isoler le secteur en anomalie.
             </>
           }
           emotion="neutral"
@@ -119,9 +112,9 @@ export default function Level3({ isDevMode, onComplete, onScoreUpdate, onMistake
         <div className="bg-blue-950/30 border border-blue-500/50 p-4 rounded-lg flex items-start gap-4">
           <Search className="w-6 h-6 text-blue-400 shrink-0 mt-1" />
           <div>
-            <h3 className="text-blue-400 font-bold uppercase mb-2">Analyse du réseau municipal</h3>
+            <h3 className="text-blue-400 font-bold uppercase mb-2">Analyse du réseau municipal (Relevé 03h00)</h3>
             <p className="text-sm font-sans mt-2 font-bold text-emerald-300">
-              Entraînez l'<TechTerm term="IA" /> à détecter les anomalies. Une fuite se traduit par une chute anormale de pression dans les canalisations.
+              Pour éviter les faux positifs, l'<TechTerm term="IA" /> croise deux grandeurs la nuit à 03h00 : une baisse de pression associée à un débit nocturne anormalement élevé révèle une fuite souterraine.
               <span className="block mt-2 text-blue-300">Cliquez sur le capteur présentant une anomalie pour l'isoler.</span>
             </p>
           </div>
@@ -143,29 +136,30 @@ export default function Level3({ isDevMode, onComplete, onScoreUpdate, onMistake
                 </svg>
               </div>
               
-              {/* Radar Sweep Line — fades when repair is active */}
+              {/* Radar Sweep Line — CSS/Motion animation without component re-renders */}
               {!isSuccess && (
-                <>
-                  <div 
-                    className="absolute left-0 right-0 h-0.5 z-10 pointer-events-none transition-colors duration-500"
-                    style={{ 
-                      top: `${scanLine}%`,
-                      backgroundColor: isActive ? 'rgba(245, 158, 11, 0.5)' : 'rgba(16, 185, 129, 0.4)',
+                <motion.div
+                  className="absolute left-0 right-0 h-14 z-10 pointer-events-none"
+                  initial={{ top: '-14%' }}
+                  animate={{ top: '100%' }}
+                  transition={{ duration: 4.5, repeat: Infinity, ease: 'linear' }}
+                >
+                  <div
+                    className="w-full h-full transition-colors duration-500"
+                    style={{
+                      background: isActive
+                        ? 'linear-gradient(to bottom, transparent, rgba(245, 158, 11, 0.10))'
+                        : 'linear-gradient(to bottom, transparent, rgba(16, 185, 129, 0.12))'
+                    }}
+                  />
+                  <div
+                    className="w-full h-0.5 transition-colors duration-500"
+                    style={{
+                      backgroundColor: isActive ? 'rgba(245, 158, 11, 0.55)' : 'rgba(16, 185, 129, 0.45)',
                       boxShadow: isActive ? '0 0 12px rgba(245, 158, 11, 0.6)' : '0 0 10px rgba(16,185,129,0.5)'
                     }}
                   />
-                  <div 
-                    className="absolute left-0 right-0 z-10 pointer-events-none"
-                    style={{ 
-                      top: `${scanLine - 20}%`, 
-                      height: '20%',
-                      background: isActive 
-                        ? 'linear-gradient(to bottom, transparent, rgba(245, 158, 11, 0.08))' 
-                        : 'linear-gradient(to bottom, transparent, rgba(16, 185, 129, 0.1))',
-                      transition: 'background 0.5s'
-                    }}
-                  />
-                </>
+                </motion.div>
               )}
 
               {/* Repair glow overlay on map during active repair */}
@@ -407,7 +401,7 @@ export default function Level3({ isDevMode, onComplete, onScoreUpdate, onMistake
                       {[
                         { label: 'Détection', active: repairPhase === 'detecting', done: repairPhase === 'repairing' || isSuccess },
                         { label: 'Isolation', active: repairPhase === 'repairing' && repairProgress < 50, done: (repairPhase === 'repairing' && repairProgress >= 50) || isSuccess },
-                        { label: 'Colmatage', active: repairPhase === 'repairing' && repairProgress >= 50, done: isSuccess },
+                        { label: 'Fermeture', active: repairPhase === 'repairing' && repairProgress >= 50, done: isSuccess },
                       ].map((step, i) => (
                         <div key={i} className="flex items-center gap-1.5">
                           <div className={`w-2 h-2 rounded-full transition-all duration-300 ${
@@ -479,9 +473,9 @@ export default function Level3({ isDevMode, onComplete, onScoreUpdate, onMistake
                       {isSelected && isAnomaly && !isActive && <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
                     </div>
                     
-                    <div className="w-full">
-                      <div className="flex justify-between text-xs mb-1">
-                        <span className="text-slate-500 uppercase">Pression</span>
+                    <div className="w-full space-y-2">
+                      <div className="flex justify-between text-xs">
+                        <span className="text-slate-500 uppercase">Pression • <span className="normal-case text-slate-400">{sensor.note}</span></span>
                         <span className={`font-bold ${
                           isSelected && !isAnomaly ? 'text-white' : 
                           isAnomaly && isActive ? 'text-amber-300' :
@@ -494,10 +488,27 @@ export default function Level3({ isDevMode, onComplete, onScoreUpdate, onMistake
                             isSelected && !isAnomaly ? 'bg-red-500' : 
                             isAnomaly && isActive ? 'bg-amber-500' :
                             isSelected && isAnomaly ? 'bg-emerald-500' : 
-                            sensor.pressure < 3 ? 'bg-blue-400' : 'bg-blue-600'
+                            'bg-blue-600'
                           }`}
                           initial={{ width: 0 }}
                           animate={{ width: `${pressurePercent}%` }}
+                          transition={{ duration: 0.5 }}
+                        />
+                      </div>
+                      <div className="flex justify-between text-xs pt-0.5">
+                        <span className="text-slate-500 uppercase">Débit nocturne (03h00)</span>
+                        <span className="font-bold text-cyan-300">{sensor.nightFlow} L/min</span>
+                      </div>
+                      <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                        <motion.div
+                          className={`h-full ${
+                            isSelected && !isAnomaly ? 'bg-red-500' :
+                            isAnomaly && isActive ? 'bg-amber-500' :
+                            isSelected && isAnomaly ? 'bg-emerald-500' :
+                            'bg-cyan-500'
+                          }`}
+                          initial={{ width: 0 }}
+                          animate={{ width: `${Math.min((sensor.nightFlow / 50) * 100, 100)}%` }}
                           transition={{ duration: 0.5 }}
                         />
                       </div>
@@ -527,7 +538,7 @@ export default function Level3({ isDevMode, onComplete, onScoreUpdate, onMistake
             animate={{ opacity: 1 }}
             className="text-red-400 text-sm text-center mt-4 font-bold"
           >
-            Erreur d'analyse. Ce capteur indique une pression normale.
+            Erreur d'analyse. Ce secteur présente une pression et un débit nocturne normaux.
           </motion.p>
         )}
 
@@ -544,7 +555,7 @@ export default function Level3({ isDevMode, onComplete, onScoreUpdate, onMistake
                 FUITE ISOLÉE AVEC SUCCÈS
               </div>
               <p className="text-center mb-6 text-sm">
-                L'<TechTerm term="IA" /> a identifié la chute de pression anormale dans la Zone Industrielle. Les équipes d'intervention sont en route. L'<TechTerm term="IA" /> peut analyser des milliers de capteurs en temps réel pour prévenir le gaspillage.
+                L'<TechTerm term="IA" /> a croisé la chute de pression (3,7 bar) avec le débit nocturne anormal (46 L/min alors que les usines sont fermées). Les équipes d'intervention sont en route !
               </p>
               <button
                 onClick={onComplete}

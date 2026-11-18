@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { createPortal } from 'react-dom';
 
 
-const TERMS_DICTIONARY: Record<string, { title: string; definition: string }> = {
+export const TERMS_DICTIONARY: Record<string, { title: string; definition: string }> = {
   'LLM': {
     title: 'Large Language Model',
     definition: 'Un modèle de langage géant (comme GPT) capable de comprendre et générer du texte en imitant le langage humain.'
@@ -37,8 +37,8 @@ const TERMS_DICTIONARY: Record<string, { title: string; definition: string }> = 
     definition: 'L\'ensemble des serveurs distants accessibles par Internet. Ce n\'est pas immatériel : ça utilise de vraies machines physiques.'
   },
   'Refroidissement': {
-    title: 'Refroidissement liquide',
-    definition: 'L\'utilisation d\'eau pour absorber la chaleur des serveurs. Cette eau s\'évapore et disparaît du cycle local.'
+    title: 'Système de refroidissement',
+    definition: 'Dispositif évacuant la chaleur des serveurs : par évaporation d\'eau (très gourmand en eau), climatisation mécanique (gourmande en électricité) ou air extérieur froid (Free Cooling).'
   },
   'Prompt': {
     title: 'Prompt',
@@ -59,6 +59,10 @@ const TERMS_DICTIONARY: Record<string, { title: string; definition: string }> = 
   'Hydrologie': {
     title: 'Hydrologie',
     definition: 'La science qui étudie l\'eau sur la Terre, sa circulation, et sa répartition (nappes phréatiques, rivières, etc.).'
+  },
+  'PUE': {
+    title: 'Power Usage Effectiveness (PUE)',
+    definition: 'Indicateur d\'efficacité énergétique d\'un datacenter (énergie totale du bâtiment ÷ énergie des serveurs). Plus il est proche de 1,0, moins il y a de pertes en climatisation.'
   }
 };
 
@@ -70,88 +74,50 @@ interface TechTermProps {
 
 export default function TechTerm({ term, children, className = '' }: TechTermProps) {
   const [isHovered, setIsHovered] = useState(false);
+  const [isPinned, setIsPinned] = useState(false);
   const [isDiscovered, setIsDiscovered] = useState(false);
-  
+  const isOpen = isHovered || isPinned;
+
   // Tracking the precise on-screen coordinates for the portal
-  const [tooltipPos, setTooltipPos] = useState({ top: 0, left: 0, arrowLeft: 144 });
+  const [tooltipPos, setTooltipPos] = useState({ top: 0, left: 0, arrowLeft: 144, placeBelow: false });
   const spanRef = useRef<HTMLSpanElement>(null);
-  const discoveryTimerRef = useRef<any>(null);
-  
+  const tooltipRef = useRef<HTMLDivElement>(null);
+  const discoveryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const info = TERMS_DICTIONARY[term] || { title: term, definition: 'Terme technique lié à l\'IA ou à l\'écologie.' };
 
   useEffect(() => {
     const saved = localStorage.getItem('hydrosave_progress');
     if (saved) {
-      const state = JSON.parse(saved);
-      const discovered = state.discoveredTerms || [];
-      setIsDiscovered(discovered.includes(term));
+      try {
+        const state = JSON.parse(saved);
+        const discovered = state.discoveredTerms || [];
+        setIsDiscovered(discovered.includes(term));
+      } catch {
+        // ignore corrupted save
+      }
     }
   }, [term]);
 
-  // Listen for global discovery events to update all instances of the same term
+  // Listen for global discovery and reset events to keep all instances in sync
   useEffect(() => {
     const handleDiscovery = (e: any) => {
       if (e.detail === term) {
         setIsDiscovered(true);
       }
     };
+    const handleReset = () => {
+      setIsDiscovered(false);
+    };
     window.addEventListener('discoverTerm', handleDiscovery);
-    return () => window.removeEventListener('discoverTerm', handleDiscovery);
+    window.addEventListener('resetDiscoveredTerms', handleReset);
+    return () => {
+      window.removeEventListener('discoverTerm', handleDiscovery);
+      window.removeEventListener('resetDiscoveredTerms', handleReset);
+    };
   }, [term]);
 
-  const updatePosition = () => {
-    if (isHovered && spanRef.current) {
-      const rect = spanRef.current.getBoundingClientRect();
-      const tooltipWidth = 288; // w-72 = 18rem = 288px
-      const halfTooltip = tooltipWidth / 2;
-      
-      let targetLeft = rect.left + rect.width / 2;
-      let arrowLeft = halfTooltip; // The arrow points to center of tooltip by default
-
-      // Débordement à droite
-      if (targetLeft + halfTooltip > window.innerWidth - 20) {
-        let diff = (targetLeft + halfTooltip) - (window.innerWidth - 20);
-        targetLeft -= diff;
-        arrowLeft += diff; // offset arrow back towards the real word center
-      } 
-      // Débordement à gauche
-      else if (targetLeft - halfTooltip < 20) {
-        let diff = 20 - (targetLeft - halfTooltip);
-        targetLeft += diff;
-        arrowLeft -= diff;
-      }
-
-      setTooltipPos({
-        top: rect.top + window.scrollY, // Keep it absolute to the document so it scrolls naturally
-        left: targetLeft,
-        arrowLeft: arrowLeft
-      });
-    }
-  };
-
-  useEffect(() => {
-    updatePosition();
-    if (isHovered) {
-      // Passive listener helps smooth scrolling without blocking execution
-      window.addEventListener('scroll', updatePosition, { passive: true });
-      window.addEventListener('resize', updatePosition);
-    }
-    return () => {
-      window.removeEventListener('scroll', updatePosition);
-      window.removeEventListener('resize', updatePosition);
-    };
-  }, [isHovered]);
-
-  useEffect(() => {
-    return () => {
-      if (discoveryTimerRef.current) {
-        clearTimeout(discoveryTimerRef.current);
-      }
-    };
-  }, []);
-
-  const handleMouseEnter = () => {
-    setIsHovered(true);
+  const startDiscoveryTimer = () => {
     if (!isDiscovered && !discoveryTimerRef.current) {
       discoveryTimerRef.current = setTimeout(() => {
         window.dispatchEvent(new CustomEvent('discoverTerm', { detail: term }));
@@ -161,25 +127,146 @@ export default function TechTerm({ term, children, className = '' }: TechTermPro
     }
   };
 
-  const handleMouseLeave = () => {
-    setIsHovered(false);
+  const clearDiscoveryTimer = () => {
     if (discoveryTimerRef.current) {
       clearTimeout(discoveryTimerRef.current);
       discoveryTimerRef.current = null;
     }
   };
 
+  const updatePosition = () => {
+    if (isOpen && spanRef.current) {
+      const rect = spanRef.current.getBoundingClientRect();
+      const tooltipWidth = 288; // w-72 = 18rem = 288px
+      const halfTooltip = tooltipWidth / 2;
+
+      let targetLeft = rect.left + rect.width / 2;
+      let arrowLeft = halfTooltip; // The arrow points to center of tooltip by default
+
+      // Débordement à droite
+      if (targetLeft + halfTooltip > window.innerWidth - 20) {
+        const diff = (targetLeft + halfTooltip) - (window.innerWidth - 20);
+        targetLeft -= diff;
+        arrowLeft += diff; // offset arrow back towards the real word center
+      }
+      // Débordement à gauche
+      else if (targetLeft - halfTooltip < 20) {
+        const diff = 20 - (targetLeft - halfTooltip);
+        targetLeft += diff;
+        arrowLeft -= diff;
+      }
+
+      const placeBelow = rect.top < 170;
+
+      setTooltipPos({
+        top: (placeBelow ? rect.bottom : rect.top) + window.scrollY,
+        left: targetLeft,
+        arrowLeft,
+        placeBelow
+      });
+    }
+  };
+
+  useEffect(() => {
+    updatePosition();
+    if (isOpen) {
+      window.addEventListener('scroll', updatePosition, { passive: true });
+      window.addEventListener('resize', updatePosition);
+    }
+    return () => {
+      window.removeEventListener('scroll', updatePosition);
+      window.removeEventListener('resize', updatePosition);
+    };
+  }, [isOpen]);
+
+  // Close pinned tooltip when tapping/clicking outside or pressing Escape
+  useEffect(() => {
+    if (!isPinned) return;
+
+    const handleOutside = (e: PointerEvent) => {
+      const target = e.target as Node;
+      if (spanRef.current?.contains(target) || tooltipRef.current?.contains(target)) {
+        return;
+      }
+      setIsPinned(false);
+      setIsHovered(false);
+      clearDiscoveryTimer();
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsPinned(false);
+        setIsHovered(false);
+        clearDiscoveryTimer();
+      }
+    };
+
+    document.addEventListener('pointerdown', handleOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', handleOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isPinned]);
+
+  useEffect(() => {
+    return () => {
+      clearDiscoveryTimer();
+    };
+  }, []);
+
+  const handleMouseEnter = () => {
+    setIsHovered(true);
+    startDiscoveryTimer();
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovered(false);
+    if (!isPinned) {
+      clearDiscoveryTimer();
+    }
+  };
+
+  const handleClick = (e: React.MouseEvent) => {
+    // Prevent parent interactive elements (e.g. option buttons in L6/L9/L10) from firing
+    e.stopPropagation();
+    e.preventDefault();
+    setIsPinned(prev => {
+      const next = !prev;
+      if (next) {
+        startDiscoveryTimer();
+      } else {
+        setIsHovered(false);
+        clearDiscoveryTimer();
+      }
+      return next;
+    });
+  };
+
   return (
-    <span 
-      className={`relative inline-block ${className} ${isHovered ? 'z-[60]' : ''}`.trim()}
+    <span
+      className={`relative inline-block ${className} ${isOpen ? 'z-[60]' : ''}`.trim()}
       ref={spanRef}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onFocus={handleMouseEnter}
       onBlur={handleMouseLeave}
+      onPointerDown={(e) => e.stopPropagation()}
+      onClick={handleClick}
     >
-      <span 
+      <span
         tabIndex={0}
+        role="button"
+        aria-expanded={isOpen}
+        aria-label={`Définition de ${info.title}`}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            e.stopPropagation();
+            setIsPinned(prev => !prev);
+            startDiscoveryTimer();
+          }
+        }}
         className={`cursor-help border-b border-dotted ${isDiscovered ? 'border-emerald-400 text-emerald-300' : 'border-amber-400 text-amber-300'} hover:text-emerald-200 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:rounded transition-colors inline-flex items-center`}
       >
         {children || term}
@@ -188,38 +275,85 @@ export default function TechTerm({ term, children, className = '' }: TechTermPro
       {/* Render the tooltip at the document body level using a React Portal so it bypasses all z-index stacking context restrictions */}
       {typeof document !== 'undefined' && createPortal(
         <AnimatePresence>
-          {isHovered && (
+          {isOpen && (
             <motion.div
+              ref={tooltipRef}
+              onClick={(e) => e.stopPropagation()}
+              onPointerDown={(e) => e.stopPropagation()}
               style={{
                 position: 'absolute',
-                top: tooltipPos.top - 8, // slight margin
+                top: tooltipPos.placeBelow ? tooltipPos.top + 8 : tooltipPos.top - 8,
                 left: tooltipPos.left,
                 zIndex: 999999, // Super high z-index + Portal guarantees it is strictly above everything including HUD (z-50)
-                pointerEvents: 'none'
+                pointerEvents: isPinned ? 'auto' : 'none'
               }}
-              // Using CSS translate to center the tooltip exactly over its dynamic x/y anchor points
-              initial={{ opacity: 0, y: 'calc(-100% + 10px)', x: '-50%', scale: 0.95 }}
-              animate={{ opacity: 1, y: '-100%', x: '-50%', scale: 1 }}
-              exit={{ opacity: 0, y: 'calc(-100% + 5px)', x: '-50%', scale: 0.95 }}
+              initial={{
+                opacity: 0,
+                y: tooltipPos.placeBelow ? '-10px' : 'calc(-100% + 10px)',
+                x: '-50%',
+                scale: 0.95
+              }}
+              animate={{
+                opacity: 1,
+                y: tooltipPos.placeBelow ? '0%' : '-100%',
+                x: '-50%',
+                scale: 1
+              }}
+              exit={{
+                opacity: 0,
+                y: tooltipPos.placeBelow ? '-5px' : 'calc(-100% + 5px)',
+                x: '-50%',
+                scale: 0.95
+              }}
               transition={{ duration: 0.2 }}
               className="w-72 p-4 bg-slate-900 border border-slate-700 rounded-lg shadow-2xl block text-left font-normal tracking-normal absolute"
             >
-              <span className="text-emerald-400 font-bold text-sm mb-1.5 flex items-center gap-2 normal-case font-sans not-italic tracking-normal">
-                {info.title}
+              <span className="text-emerald-400 font-bold text-sm mb-1.5 flex items-center justify-between gap-2 normal-case font-sans not-italic tracking-normal">
+                <span>{info.title}</span>
+                {isPinned && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsPinned(false);
+                      setIsHovered(false);
+                      clearDiscoveryTimer();
+                    }}
+                    className="text-[10px] text-slate-400 hover:text-white px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 sm:hidden"
+                    aria-label="Fermer la définition"
+                  >
+                    ✕
+                  </button>
+                )}
               </span>
               <span className="text-slate-200 text-sm leading-relaxed font-sans font-normal block normal-case not-italic tracking-normal">
                 {info.definition}
               </span>
-              
+
               {/* Tooltip arrows dynamically offset */}
-              <span 
-                className="absolute top-full border-8 border-transparent border-t-slate-700 -translate-x-1/2"
-                style={{ left: `${tooltipPos.arrowLeft}px` }}
-              ></span>
-              <span 
-                className="absolute top-[calc(100%-1px)] border-8 border-transparent border-t-slate-900 -translate-x-1/2"
-                style={{ left: `${tooltipPos.arrowLeft}px` }}
-              ></span>
+              {tooltipPos.placeBelow ? (
+                <>
+                  <span
+                    className="absolute bottom-full border-8 border-transparent border-b-slate-700 -translate-x-1/2"
+                    style={{ left: `${tooltipPos.arrowLeft}px` }}
+                  ></span>
+                  <span
+                    className="absolute bottom-[calc(100%-1px)] border-8 border-transparent border-b-slate-900 -translate-x-1/2"
+                    style={{ left: `${tooltipPos.arrowLeft}px` }}
+                  ></span>
+                </>
+              ) : (
+                <>
+                  <span
+                    className="absolute top-full border-8 border-transparent border-t-slate-700 -translate-x-1/2"
+                    style={{ left: `${tooltipPos.arrowLeft}px` }}
+                  ></span>
+                  <span
+                    className="absolute top-[calc(100%-1px)] border-8 border-transparent border-t-slate-900 -translate-x-1/2"
+                    style={{ left: `${tooltipPos.arrowLeft}px` }}
+                  ></span>
+                </>
+              )}
             </motion.div>
           )}
         </AnimatePresence>,

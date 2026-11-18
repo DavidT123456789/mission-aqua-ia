@@ -1,76 +1,90 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Flame, CheckCircle2, Home, ArrowRight, Droplets, Leaf } from 'lucide-react';
+import { Flame, CheckCircle2, Home, Droplets, ArrowUp, ArrowDown, AlertTriangle, RefreshCw, Wind } from 'lucide-react';
 import NaiaDialogue from '../components/NaiaDialogue';
 import TechTerm from '../components/TechTerm';
+import { soundManager } from '../utils/soundManager';
+
+interface LoopStep {
+  id: number;
+  label: string;
+  detail: string;
+}
+
+const CORRECT_LOOP_STEPS: LoopStep[] = [
+  { id: 1, label: 'Captage thermique', detail: 'L\'eau froide absorbe la chaleur des serveurs via un échangeur (25°C → 58°C).' },
+  { id: 2, label: 'Acheminement isolé', detail: 'L\'eau réchauffée est pompée vers la boucle urbaine sans contact avec l\'air.' },
+  { id: 3, label: 'Transfert aux logements', detail: 'Un échangeur cède les calories au chauffage et à l\'eau chaude des habitants.' },
+  { id: 4, label: 'Retour en boucle fermée', detail: 'L\'eau refroidie (25°C) revient au datacenter pour un nouveau cycle.' }
+];
+
+// Ordre initial volontairement mélangé (non résolu)
+const INITIAL_LOOP_ORDER: LoopStep[] = [
+  CORRECT_LOOP_STEPS[2],
+  CORRECT_LOOP_STEPS[0],
+  CORRECT_LOOP_STEPS[3],
+  CORRECT_LOOP_STEPS[1]
+];
+
+type OutletId = 'towers' | 'river' | 'district_heating';
+
+const OUTLETS: { id: OutletId; name: string; icon: typeof Flame; loss: string; recovery: string }[] = [
+  { id: 'towers', name: 'Tours d\'évaporation', icon: Wind, loss: 'Évaporation continue', recovery: '0% récupérée' },
+  { id: 'river', name: 'Rejet en rivière', icon: Droplets, loss: 'Réchauffement fluvial', recovery: '0% récupérée' },
+  { id: 'district_heating', name: 'Réseau de chaleur urbain', icon: Home, loss: 'Circuit fermé (≈ 0%)', recovery: '85% valorisée' }
+];
 
 export default function Level8({ isDevMode, onComplete, onScoreUpdate, onMistake }: { isDevMode?: boolean; onComplete: () => void; onScoreUpdate: (points: number, water: number) => void; onMistake?: () => void; key?: string }) {
-  const [selectedPath, setSelectedPath] = useState<string | null>(null);
-  const [showError, setShowError] = useState(false);
+  const [phase, setPhase] = useState<1 | 2>(1);
+  const [steps, setSteps] = useState<LoopStep[]>(INITIAL_LOOP_ORDER);
+  const [selectedOutlet, setSelectedOutlet] = useState<OutletId | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [hasScored, setHasScored] = useState(false);
-
-  const paths = [
-    {
-      id: 'towers',
-      name: 'Tours de Refroidissement',
-      desc: 'Évaporer l\'eau chaude dans l\'atmosphère pour refroidir le système.',
-      waterWaste: 'Élevé',
-      energyRecovery: '0%',
-      color: 'text-cyan-400',
-      bg: 'bg-cyan-950/30',
-      border: 'border-cyan-500/50'
-    },
-    {
-      id: 'river',
-      name: 'Rejet dans la Rivière',
-      desc: 'Rejeter l\'eau chaude directement dans l\'écosystème local.',
-      waterWaste: 'Moyen (Impact Faune)',
-      energyRecovery: '0%',
-      color: 'text-blue-400',
-      bg: 'bg-blue-950/30',
-      border: 'border-blue-500/50'
-    },
-    {
-      id: 'greenhouse',
-      name: 'Serres Agricoles',
-      desc: 'Fournir la chaleur pour la culture maraîchère locale sous serre.',
-      waterWaste: 'Faible',
-      energyRecovery: '40%',
-      color: 'text-emerald-400',
-      bg: 'bg-emerald-950/30',
-      border: 'border-emerald-500/50'
-    },
-    {
-      id: 'district_heating',
-      name: 'Réseau de Chaleur Urbain',
-      desc: 'Rediriger l\'eau chaude pour chauffer les habitations de la ville voisine.',
-      waterWaste: 'Nul (Circuit fermé)',
-      energyRecovery: '85%',
-      color: 'text-orange-400',
-      bg: 'bg-orange-950/30',
-      border: 'border-orange-500/50'
-    }
-  ];
-
-  const handleSelect = (id: string) => {
-    setSelectedPath(id);
-    setShowError(false);
-  };
-
   const [isSuccess, setIsSuccess] = useState(false);
 
+  const moveStep = (index: number, direction: -1 | 1) => {
+    if (isSuccess) return;
+    const target = index + direction;
+    if (target < 0 || target >= steps.length) return;
+    soundManager.playClick();
+    setSteps(prev => {
+      const next = [...prev];
+      [next[index], next[target]] = [next[target], next[index]];
+      return next;
+    });
+    setErrorMsg(null);
+  };
+
+  const validateOutlet = () => {
+    if (!selectedOutlet) return;
+    if (selectedOutlet === 'district_heating') {
+      soundManager.playSuccess();
+      setErrorMsg(null);
+      setPhase(2);
+    } else {
+      setErrorMsg("Ce raccordement gaspille de l'eau ou rejette la chaleur sans la valoriser.");
+      onMistake?.();
+      setTimeout(() => setErrorMsg(null), 3500);
+    }
+  };
+
   const checkAnswer = () => {
-    if (selectedPath === 'district_heating') {
+    const isOrderCorrect = steps.every((s, idx) => s.id === idx + 1);
+
+    if (isOrderCorrect) {
       setIsSuccess(true);
+      setErrorMsg(null);
+      soundManager.playSuccess();
       if (!hasScored) {
         setHasScored(true);
-        onScoreUpdate(200, 80);
+        onScoreUpdate(200, 70);
       }
-    } else {
-      setShowError(true);
-      onMistake?.();
-      setTimeout(() => setShowError(false), 2000);
+      return;
     }
+
+    setErrorMsg("L'ordre des 4 étapes du cycle fermé n'est pas logique. Suivez le trajet de l'eau !");
+    onMistake?.();
+    setTimeout(() => setErrorMsg(null), 3500);
   };
 
   return (
@@ -80,116 +94,166 @@ export default function Level8({ isDevMode, onComplete, onScoreUpdate, onMistake
       exit={{ opacity: 0, x: -50 }}
       className="sm:bg-slate-900 border-transparent sm:border-cyan-500/20 sm:border px-0 sm:px-6 py-4 sm:py-6 sm:rounded-xl max-w-4xl mx-auto font-mono relative flex flex-col"
     >
-      
-      <div className="flex items-center gap-3 mb-3 border-b border-cyan-900/50 pb-3">
-        <Flame className="w-8 h-8 text-emerald-400" />
-        <h2 className="text-xl md:text-2xl font-bold text-white uppercase tracking-widest">
-          Niveau 8 : Valorisation Thermique
-        </h2>
+      <div className="flex items-center justify-between gap-3 mb-3 border-b border-cyan-900/50 pb-3">
+        <div className="flex items-center gap-3">
+          <Flame className="w-8 h-8 text-emerald-400" />
+          <h2 className="text-xl md:text-2xl font-bold text-white uppercase tracking-widest">
+            Niveau 8 : Valorisation Thermique
+          </h2>
+        </div>
+        <span className="text-xs px-2.5 py-1 rounded-full bg-slate-950 border border-cyan-500/30 text-cyan-300 shrink-0">
+          Étape {phase} / 2
+        </span>
       </div>
 
       <div className="mb-3">
-        <NaiaDialogue 
+        <NaiaDialogue
           message={
-            <>
-              Les <TechTerm term="Serveur">serveurs</TechTerm> d'HYDRA génèrent une quantité massive de chaleur. Actuellement, elle évapore des millions de litres d'eau pure pour les refroidir. C'est un double gaspillage : d'eau et d'énergie. Piratez le circuit thermique pour rediriger cette chaleur et la rendre utile à la ville.
-            </>
+            phase === 1 ? (
+              <>
+                Les entraînements lourds sont désormais délocalisés à Luleå, mais les <TechTerm term="Serveur">serveurs</TechTerm> locaux restés en ville pour le temps réel dissipent encore une chaleur immense. Pour supprimer toute évaporation d'eau sur place tout en valorisant cette énergie, choisissez d'abord le bon raccordement de sortie.
+              </>
+            ) : (
+              <>
+                Excellent choix ! Le réseau de chaleur urbain fonctionne en circuit fermé sans évaporation. <strong>Ordonnez maintenant les 4 étapes</strong> de cette boucle thermique grâce aux flèches.
+              </>
+            )
           }
           emotion="neutral"
         />
       </div>
 
-      <div className="space-y-4 text-slate-300">
-        <div className="flex flex-col lg:flex-row gap-5 mt-5">
-          {/* Left: Choice cards */}
-          <div className="w-full lg:w-1/2 grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {paths.map((path) => {
-              const isSelected = selectedPath === path.id;
+      <div className="space-y-5 text-slate-300">
+        {/* Step 1: Outlet choice */}
+        <div className={`bg-slate-950/70 border rounded-xl p-4 transition-opacity ${phase === 2 ? 'border-emerald-500/40 opacity-85' : 'border-slate-800'}`}>
+          <h3 className="text-xs font-bold uppercase tracking-wider text-cyan-400 mb-3">
+            1. Choisissez le raccordement du circuit :
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {OUTLETS.map((outlet) => {
+              const Icon = outlet.icon;
+              const isSelected = selectedOutlet === outlet.id;
               return (
                 <button
-                  key={path.id}
-                  onClick={() => handleSelect(path.id)}
-                  className={`relative flex flex-col p-4 rounded-xl border-2 text-center transition-all duration-300 ${
-                    isSelected 
-                      ? `${path.bg} ${path.border} scale-[1.02] z-10` 
-                      : 'bg-slate-950 border-slate-800 hover:border-slate-600'
-                  }`}
+                  key={outlet.id}
+                  type="button"
+                  disabled={phase === 2 || isSuccess}
+                  onClick={() => { soundManager.playClick(); setSelectedOutlet(outlet.id); setErrorMsg(null); }}
+                  className={`p-3.5 rounded-xl border-2 text-left transition-all flex flex-col gap-2 ${
+                    isSelected
+                      ? phase === 2
+                        ? 'bg-emerald-950/30 border-emerald-400'
+                        : 'bg-cyan-950/30 border-cyan-400'
+                      : 'bg-slate-900/60 border-slate-800 hover:border-slate-600'
+                  } ${phase === 2 ? 'cursor-default' : ''}`}
                 >
-                  <h3 className={`font-bold text-base mb-2 ${isSelected ? 'text-white' : 'text-slate-300'}`}>{path.name}</h3>
-                  <p className="text-xs text-slate-400 mb-4 flex-grow">{path.desc}</p>
-                  
-                  <div className="space-y-2 w-full">
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="text-slate-500">Perte d'eau</span>
-                      <span className={`font-bold ${path.color}`}>{path.waterWaste}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="text-slate-500">Récupération Énergie</span>
-                      <span className={`font-bold ${path.color}`}>{path.energyRecovery}</span>
-                    </div>
+                  <div className="flex items-center gap-2">
+                    <Icon className={`w-5 h-5 ${isSelected ? (phase === 2 ? 'text-emerald-400' : 'text-cyan-400') : 'text-slate-400'}`} />
+                    <span className="font-bold text-sm text-white">{outlet.name}</span>
+                  </div>
+                  <div className="text-[11px] text-slate-400 space-y-0.5">
+                    <div>Eau : <span className="text-slate-200">{outlet.loss}</span></div>
+                    <div>Énergie : <span className="text-slate-200">{outlet.recovery}</span></div>
                   </div>
                 </button>
               );
             })}
           </div>
-
-          {/* Right: Pipeline visual */}
-          <div className="w-full lg:w-1/2 p-6 bg-slate-950 rounded-xl border border-slate-800 flex flex-col items-center justify-center gap-6">
-            <div className="flex flex-col items-center gap-2">
-              <div className="w-20 h-20 bg-slate-800 rounded-lg border border-slate-600 flex items-center justify-center">
-                <Flame className="w-10 h-10 text-orange-500" />
-              </div>
-              <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">Data Center</span>
-            </div>
-            
-            <div className="w-full flex flex-col items-center justify-center relative gap-1">
-              <div className="w-full h-3 bg-slate-800 rounded-full overflow-hidden">
-                {selectedPath && (
-                  <motion.div 
-                    className={`h-full ${selectedPath === 'district_heating' ? 'bg-orange-500' : selectedPath === 'greenhouse' ? 'bg-emerald-500' : selectedPath === 'river' ? 'bg-blue-500' : 'bg-cyan-500'}`}
-                    initial={{ width: 0 }}
-                    animate={{ width: '100%' }}
-                    transition={{ duration: 1 }}
-                  />
-                )}
-              </div>
-              <ArrowRight className={`text-slate-600 w-5 h-5 rotate-90 ${selectedPath ? 'opacity-0' : 'opacity-100'} transition-opacity`} />
-            </div>
-
-            <div className="flex flex-col items-center gap-2">
-              <div className={`w-20 h-20 rounded-lg border flex items-center justify-center transition-colors ${
-                selectedPath === 'district_heating' ? 'bg-orange-900/50 border-orange-500' :
-                selectedPath === 'greenhouse' ? 'bg-emerald-900/50 border-emerald-500' :
-                selectedPath === 'river' ? 'bg-blue-900/50 border-blue-500' :
-                selectedPath === 'towers' ? 'bg-cyan-900/50 border-cyan-500' :
-                'bg-slate-800 border-slate-600'
-              }`}>
-                {selectedPath === 'district_heating' ? <Home className="w-10 h-10 text-orange-400" /> :
-                 selectedPath === 'greenhouse' ? <Leaf className="w-10 h-10 text-emerald-400" /> :
-                 selectedPath === 'river' ? <Droplets className="w-10 h-10 text-blue-400" /> :
-                 <Flame className="w-10 h-10 text-cyan-400" />}
-              </div>
-              <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">
-                {selectedPath === 'district_heating' ? 'Ville' : selectedPath === 'greenhouse' ? 'Serres' : selectedPath === 'river' ? 'Rivière' : 'Atmosphère'}
-              </span>
-            </div>
-          </div>
         </div>
 
+        {/* Step 2: Sortable closed loop sequence (revealed once Step 1 is validated) */}
+        <AnimatePresence>
+          {phase === 2 && (
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-slate-950 border border-slate-800 rounded-xl p-4"
+            >
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-2">
+                  <RefreshCw className="w-4 h-4" />
+                  2. Remettez dans l'ordre les 4 étapes du cycle fermé :
+                </h3>
+              </div>
+
+              <div className="space-y-2.5">
+                {steps.map((stepItem, index) => (
+                  <motion.div
+                    layout
+                    key={stepItem.id}
+                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                    className="p-3.5 rounded-xl bg-slate-900 border border-slate-700 flex items-center justify-between gap-3"
+                  >
+                    <div className="flex items-start gap-3">
+                      <span className="w-7 h-7 rounded-full bg-slate-800 border border-cyan-500/40 text-cyan-300 font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">
+                        {index + 1}
+                      </span>
+                      <div>
+                        <div className="font-bold text-sm text-white">{stepItem.label}</div>
+                        <div className="text-xs text-slate-400 mt-0.5">{stepItem.detail}</div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        type="button"
+                        disabled={index === 0 || isSuccess}
+                        onClick={() => moveStep(index, -1)}
+                        aria-label={`Monter l'étape ${stepItem.label}`}
+                        className={`p-2 rounded-lg border transition-colors ${
+                          index === 0 || isSuccess
+                            ? 'bg-slate-950 border-slate-800 text-slate-700 cursor-not-allowed'
+                            : 'bg-slate-800 border-slate-600 text-slate-200 hover:bg-cyan-900/50 hover:border-cyan-400'
+                        }`}
+                      >
+                        <ArrowUp className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        disabled={index === steps.length - 1 || isSuccess}
+                        onClick={() => moveStep(index, 1)}
+                        aria-label={`Descendre l'étape ${stepItem.label}`}
+                        className={`p-2 rounded-lg border transition-colors ${
+                          index === steps.length - 1 || isSuccess
+                            ? 'bg-slate-950 border-slate-800 text-slate-700 cursor-not-allowed'
+                            : 'bg-slate-800 border-slate-600 text-slate-200 hover:bg-cyan-900/50 hover:border-cyan-400'
+                        }`}
+                      >
+                        <ArrowDown className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {errorMsg && (
+          <motion.div
+            initial={{ opacity: 0, y: -5 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="p-3 bg-red-950/40 border border-red-500/50 rounded-lg text-red-300 text-xs font-bold flex items-center justify-center gap-2 text-center"
+          >
+            <AlertTriangle className="w-4 h-4 shrink-0 text-red-400" />
+            <span>{errorMsg}</span>
+          </motion.div>
+        )}
+
         {!isSuccess && (
-          <div className="flex justify-center mt-5">
+          <div className="flex justify-center mt-4">
             <button
-              onClick={checkAnswer}
-              disabled={!selectedPath}
+              onClick={phase === 1 ? validateOutlet : checkAnswer}
+              disabled={phase === 1 && !selectedOutlet}
               className={`px-8 py-4 rounded-lg font-bold text-lg transition-all ${
-                !selectedPath
+                phase === 1 && !selectedOutlet
                   ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                  : showError
+                  : errorMsg
                   ? 'bg-red-600 text-white animate-shake'
                   : 'bg-emerald-600 hover:bg-emerald-500 text-white hover:scale-105'
               }`}
             >
-              {showError ? 'MAUVAIS CHOIX' : 'ROUTER LA CHALEUR'}
+              {phase === 1 ? 'VALIDER LE RACCORDEMENT' : 'ACTIVER LA BOUCLE THERMIQUE'}
             </button>
           </div>
         )}
@@ -202,11 +266,11 @@ export default function Level8({ isDevMode, onComplete, onScoreUpdate, onMistake
               className="flex flex-col items-center mt-5 p-6 bg-emerald-950/30 border border-emerald-500/50 rounded-lg"
             >
               <div className="flex items-center gap-2 text-emerald-400 font-bold text-xl mb-4">
-                 <CheckCircle2 className="w-6 h-6" />
-                 SYMBIOSE URBAINE ÉTABLIE
+                <CheckCircle2 className="w-6 h-6" />
+                SYMBIOSE URBAINE ÉTABLIE
               </div>
               <p className="text-center mb-6 text-sm">
-                Parfait. En connectant le <TechTerm term="Datacenter">data center</TechTerm> au réseau de chaleur urbain, l'eau chaude circule en circuit fermé. Elle chauffe les maisons, se refroidit, puis revient au data center. Zéro évaporation, zéro gaspillage, et une facture de chauffage réduite pour les habitants !
+                Parfait ! En raccordant le <TechTerm term="Datacenter">data center</TechTerm> au réseau de chaleur urbain en boucle fermée, l'eau chaude chauffe les habitations puis revient refroidie sans aucune évaporation. Zéro gaspillage d'eau et 85% de chaleur valorisée !
               </p>
               <button
                 onClick={onComplete}

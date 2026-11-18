@@ -1,5 +1,15 @@
 @import "tailwindcss";
 
+@layer base {
+  button:not(:disabled) {
+    cursor: pointer;
+  }
+
+  button:disabled {
+    cursor: not-allowed;
+  }
+}
+
 @theme {
   --animate-shake: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
   --animate-float: float 6s ease-in-out infinite;
@@ -21,6 +31,9 @@
 
   --animate-scanline: scanline 10s linear infinite;
   --animate-gradient-x: gradient-x 15s ease infinite;
+  --animate-shimmer: shimmer 1.5s infinite;
+  --animate-scan: scan 2.5s ease-in-out infinite;
+  --animate-pipeFlow: pipeFlow 1s linear infinite;
 
   @keyframes scanline {
     0% { transform: translateY(-100%); }
@@ -30,6 +43,26 @@
   @keyframes gradient-x {
     0%, 100% { background-position: 0% 50%; }
     50% { background-position: 100% 50%; }
+  }
+
+  @keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+
+  @keyframes scan {
+    0% { background-position: -100% 0; }
+    100% { background-position: 200% 0; }
+  }
+
+  @keyframes scan-vertical {
+    0%, 100% { top: 0%; opacity: 0.3; }
+    50% { top: calc(100% - 2px); opacity: 0.9; }
+  }
+
+  @keyframes pipeFlow {
+    0% { stroke-dashoffset: 24; }
+    100% { stroke-dashoffset: 0; }
   }
 }
 
@@ -79,5 +112,34 @@
 
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(16, 185, 129, 0.5);
+}
+
+/* Range sliders: hand cursor on track and thumb */
+input[type="range"]:not(:disabled) {
+  cursor: pointer;
+}
+
+input[type="range"]:not(:disabled)::-webkit-slider-thumb {
+  cursor: grab;
+}
+
+input[type="range"]:not(:disabled)::-moz-range-thumb {
+  cursor: grab;
+}
+
+input[type="range"]:not(:disabled):active,
+input[type="range"]:not(:disabled):active::-webkit-slider-thumb,
+input[type="range"]:not(:disabled):active::-moz-range-thumb {
+  cursor: grabbing;
+}
+
+input[type="range"]:disabled,
+input[type="range"]:disabled::-webkit-slider-thumb,
+input[type="range"]:disabled::-moz-range-thumb {
+  cursor: not-allowed;
+}
+
+input[type="range"]:disabled {
+  opacity: 0.5;
 }
 

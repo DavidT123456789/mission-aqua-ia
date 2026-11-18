@@ -3,21 +3,26 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Database, CheckCircle2, Filter, Trash2 } from 'lucide-react';
 import NaiaDialogue from '../components/NaiaDialogue';
 import TechTerm from '../components/TechTerm';
+import { soundManager } from '../utils/soundManager';
 
 export default function Level9({ isDevMode, onComplete, onScoreUpdate, onMistake }: { isDevMode?: boolean; onComplete: () => void; onScoreUpdate: (points: number, water: number) => void; onMistake?: () => void; key?: string }) {
   const [datasets, setDatasets] = useState([
-    { id: 1, text: 'Images de chats', size: 10, relevant: false, kept: true },
-    { id: 2, text: 'Données climatiques', size: 2, relevant: true, kept: true },
-    { id: 3, text: <>Historique des <TechTerm term="Mème">mèmes</TechTerm></>, size: 50, relevant: false, kept: true },
-    { id: 4, text: <>Relevés <TechTerm term="Hydrologie">hydrologiques</TechTerm></>, size: 1, relevant: true, kept: true },
-    { id: 5, text: 'Vidéos virales 2010s', size: 100, relevant: false, kept: true },
-    { id: 6, text: <><TechTerm term="Topographie">Topographie</TechTerm> des sols</>, size: 3, relevant: true, kept: true },
+    { id: 1, text: 'Logs publicitaires des applis météo', size: 45, relevant: false, kept: true },
+    { id: 2, text: 'Données climatiques historiques', size: 35, relevant: true, kept: true },
+    { id: 3, text: <>Archives de <TechTerm term="Mème">mèmes</TechTerm> & vidéos virales</>, size: 80, relevant: false, kept: true },
+    { id: 4, text: <>Relevés <TechTerm term="Hydrologie">hydrologiques</TechTerm></>, size: 15, relevant: true, kept: true },
+    { id: 5, text: 'Trafic routier en temps réel', size: 35, relevant: false, kept: true },
+    { id: 6, text: <><TechTerm term="Topographie">Topographie</TechTerm> des sols</>, size: 20, relevant: true, kept: true },
   ]);
 
   const [showError, setShowError] = useState(false);
   const [hasScored, setHasScored] = useState(false);
 
+  const isSuccess = hasScored;
+
   const toggleDataset = (id: number) => {
+    if (isSuccess) return;
+    soundManager.playClick();
     setDatasets(datasets.map(d => d.id === id ? { ...d, kept: !d.kept } : d));
     setShowError(false);
   };
@@ -25,9 +30,10 @@ export default function Level9({ isDevMode, onComplete, onScoreUpdate, onMistake
   const checkAnswer = () => {
     const isCorrect = datasets.every(d => d.kept === d.relevant);
     if (isCorrect) {
+      soundManager.playSuccess();
       if (!hasScored) {
         setHasScored(true);
-        onScoreUpdate(200, 40);
+        onScoreUpdate(200, 76);
       }
     } else {
       setShowError(true);
@@ -36,7 +42,6 @@ export default function Level9({ isDevMode, onComplete, onScoreUpdate, onMistake
     }
   };
 
-  const isSuccess = datasets.every(d => d.kept === d.relevant) && hasScored;
   const totalDataKept = datasets.filter(d => d.kept).reduce((acc, curr) => acc + curr.size, 0);
 
   return (
@@ -58,7 +63,7 @@ export default function Level9({ isDevMode, onComplete, onScoreUpdate, onMistake
         <NaiaDialogue 
           message={
             <>
-              Pour reprogrammer HYDRA, nous devons l'entraîner à devenir une <strong>experte sur la gestion de l'eau</strong> pour prédire les sécheresses. Actuellement, on la nourrit avec TOUTES les données d'internet. Plus il y a de données hors-sujet, plus son entraînement est long, et plus elle consomme d'eau et d'électricité pour rien. <strong>Filtrez son jeu de données</strong> pour ne garder que ce qui lui sera absolument utile pour sa nouvelle mission écologique.
+              L'infrastructure d'HYDRA est assainie ! Nous pouvons maintenant la reprogrammer pour en faire une <strong>experte de la gestion de l'eau</strong> capable de prédire les sécheresses. Actuellement, on la nourrit avec TOUTES les données d'internet : plus il y a de données hors-sujet, plus son entraînement consomme d'eau et d'électricité pour rien. <strong>Filtrez son jeu de données</strong> pour ne garder que l'essentiel.
             </>
           }
           emotion="alert"
@@ -70,7 +75,7 @@ export default function Level9({ isDevMode, onComplete, onScoreUpdate, onMistake
           <p className="text-sm">Sélectionnez les jeux de données à <strong className="text-red-400">supprimer</strong> de l'entraînement :</p>
           <div className="text-right">
             <span className="text-xs text-slate-500 block">Volume total à traiter</span>
-            <span className={`text-2xl font-bold ${totalDataKept > 10 ? 'text-red-400' : 'text-emerald-400'}`}>{totalDataKept} To</span>
+            <span className={`text-2xl font-bold ${isSuccess ? 'text-emerald-400' : 'text-cyan-300'}`}>{totalDataKept} To</span>
           </div>
         </div>
 
@@ -78,20 +83,30 @@ export default function Level9({ isDevMode, onComplete, onScoreUpdate, onMistake
           {datasets.map((dataset) => (
             <button
               key={dataset.id}
+              type="button"
+              disabled={isSuccess}
               onClick={() => toggleDataset(dataset.id)}
-              className={`p-4 rounded-lg border-2 flex justify-between items-center transition-all ${
+              className={`p-4 rounded-lg border-2 flex justify-between items-center gap-2 transition-all text-left ${
                 !dataset.kept 
-                  ? 'bg-red-950/20 border-red-500/30 opacity-50' 
+                  ? 'bg-red-950/20 border-red-500/30 opacity-60' 
                   : 'bg-slate-800 border-slate-600 hover:border-emerald-500/50'
-              }`}
+              } ${isSuccess ? 'cursor-default' : ''}`}
             >
               <div className="flex items-center gap-3">
-                <Database className={`w-5 h-5 ${!dataset.kept ? 'text-red-500' : 'text-blue-400'}`} />
+                <Database className={`w-5 h-5 shrink-0 ${!dataset.kept ? 'text-red-500' : 'text-blue-400'}`} />
                 <span className={`text-sm ${!dataset.kept ? 'line-through text-slate-500' : 'text-slate-200'}`}>
                   {dataset.text} <span className="text-slate-400 font-medium">({dataset.size} To)</span>
                 </span>
               </div>
-              {!dataset.kept && <Trash2 className="w-4 h-4 text-red-500" />}
+              {!dataset.kept ? (
+                <span className="flex items-center gap-1 text-[10px] font-bold uppercase text-red-400 shrink-0">
+                  <Trash2 className="w-3.5 h-3.5" /> Supprimé
+                </span>
+              ) : (
+                <span className="text-[10px] font-bold uppercase text-emerald-400/80 shrink-0">
+                  Conservé
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -123,7 +138,7 @@ export default function Level9({ isDevMode, onComplete, onScoreUpdate, onMistake
                  DONNÉES OPTIMISÉES
               </div>
               <p className="text-center mb-6 text-sm">
-                En supprimant 160 To de données inutiles, l'entraînement prendra 95% de temps en moins. La qualité des données (Data Quality) est souvent plus importante que la quantité pour obtenir une <TechTerm term="IA" /> performante et écologique.
+                En supprimant 160 To de données inutiles (passant de 230 To à 70 To), l'entraînement prendra 70% de temps en moins. La qualité des données (Data Quality) est souvent plus importante que la quantité pour obtenir une <TechTerm term="IA" /> performante et écologique.
               </p>
               <button
                 onClick={onComplete}

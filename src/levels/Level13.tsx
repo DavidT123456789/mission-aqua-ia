@@ -1,10 +1,9 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Sparkles, Send, CheckCircle2, Lightbulb, Zap, ShieldCheck, Image as ImageIcon, Loader2, Droplets, Bot, RotateCcw, Lock, Activity, Download } from 'lucide-react';
-import html2canvas from 'html2canvas';
-import { GoogleGenAI } from "@google/genai";
+import { Sparkles, Send, CheckCircle2, Lightbulb, Zap, Droplets, Bot, RotateCcw, Lock, Activity, Loader2 } from 'lucide-react';
 import NaiaDialogue from '../components/NaiaDialogue';
-import TechTerm from '../components/TechTerm';
+import HydraLog from '../components/HydraLog';
+import { soundManager } from '../utils/soundManager';
 
 interface Evaluation {
   title: string;
@@ -36,7 +35,7 @@ export default function Level13({ onComplete, onScoreUpdate, nickname, onFinaliz
   const [error, setError] = useState<string | null>(null);
   const [loadingStep, setLoadingStep] = useState('');
   const [imageGenError, setImageGenError] = useState(false);
-  const dossierRef = useRef<HTMLDivElement>(null);
+  const [awardedLabPoints, setAwardedLabPoints] = useState(0);
 
   const getScoreColor = (score: number) => {
     if (score < 50) return { text: 'text-amber-500', border: 'border-amber-500/30', bg: 'bg-amber-500/10', label: 'BRONZE' };
@@ -51,8 +50,10 @@ export default function Level13({ onComplete, onScoreUpdate, nickname, onFinaliz
   };
 
   const analyzeDraft = async () => {
-    if (!idea.trim() || idea.length < 20) return;
+    const trimmedIdea = idea.trim();
+    if (trimmedIdea.length < 20) return;
 
+    soundManager.playClick();
     setIsAnalyzing(true);
     setError(null);
     setLoadingStep('Analyse préliminaire de votre concept');
@@ -63,7 +64,7 @@ export default function Level13({ onComplete, onScoreUpdate, nickname, onFinaliz
       const resp = await fetch('/api/evaluate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ idea })
+        body: JSON.stringify({ idea: trimmedIdea })
       });
 
       if (!resp.ok) {
@@ -82,7 +83,7 @@ export default function Level13({ onComplete, onScoreUpdate, nickname, onFinaliz
       // Permet à l'élève de finir la mission même si l'API est temporairement bloquée.
       setEvaluation({
         title: "Concept Expérimental (Mode Secours)",
-        description: idea,
+        description: trimmedIdea,
         impact: "7",
         feasibility: "7",
         precision: "6",
@@ -99,12 +100,17 @@ export default function Level13({ onComplete, onScoreUpdate, nickname, onFinaliz
   const finalizeProject = async () => {
     if (!evaluation) return;
 
+    soundManager.playSuccess();
     setIsFinalizing(true);
     setLoadingStep('Génération du brevet officiel et du prototype');
     setPatentNumber(`FR-${Math.floor(100000 + Math.random() * 900000)}`);
 
-    // On passe directement à l'écran final pour voir le spinner dans la carte image
-    onScoreUpdate(evaluation.score * 5, 100);
+    const earnedPoints = evaluation.score * 5;
+    setAwardedLabPoints(earnedPoints);
+    onScoreUpdate(earnedPoints, 100);
+    // Transmettre immédiatement l'évaluation au parent pour éviter qu'un clic rapide sur "TERMINER LA MISSION" ne perde le brevet
+    if (onFinalize) onFinalize(evaluation, null);
+
     setStatus('final');
     setIsFinalizing(false);
 
@@ -131,41 +137,16 @@ export default function Level13({ onComplete, onScoreUpdate, nickname, onFinaliz
           } else {
             console.warn("L'image n'est pas revenue correctement.");
             setImageGenError(true);
-            if (onFinalize) onFinalize(evaluation, null);
           }
         } else {
           console.warn("Image generation failed (non-ok response).");
           setImageGenError(true);
-          if (onFinalize) onFinalize(evaluation, null);
         }
       } catch (genErr) {
         console.error("Fetch error during image generation:", genErr);
         await new Promise(resolve => setTimeout(resolve, 2000));
         setImageGenError(true);
-        if (onFinalize) onFinalize(evaluation, null);
       }
-    } else {
-      if (onFinalize) onFinalize(evaluation, null);
-    }
-  };
-
-  const downloadDossier = async () => {
-    if (!dossierRef.current) return;
-    
-    try {
-      const canvas = await html2canvas(dossierRef.current, {
-        backgroundColor: '#020617', // slate-950
-        scale: 2,
-        useCORS: true,
-        logging: false
-      });
-      
-      const link = document.createElement('a');
-      link.download = `AquaIA_Dossier_${nickname}_${evaluation?.title.replace(/\s+/g, '_')}.png`;
-      link.href = canvas.toDataURL('image/png');
-      link.click();
-    } catch (err) {
-      console.error('Download failed:', err);
     }
   };
 
@@ -199,9 +180,10 @@ export default function Level13({ onComplete, onScoreUpdate, nickname, onFinaliz
             <div className="absolute inset-0 bg-[linear-gradient(transparent_1px,rgba(13,148,136,0.1)_1px)] bg-[length:100%_4px] pointer-events-none z-20"></div>
             
             <div className="relative z-30 flex flex-col h-full justify-between p-4 sm:p-6">
-              <div className="w-full sm:max-w-2xl">
+              <div className="w-full sm:max-w-2xl space-y-2.5">
+                <HydraLog status="synced" message="Mode Symbiose activé. Noyau ouvert à l'éco-innovation." />
                 <NaiaDialogue 
-                  message="Agent, vous avez traversé 12 niveaux de sécurité, maîtrisé le refroidissement, colmaté les fuites, optimisé le code et rédigé la charte éthique. HYDRA est sous contrôle. Il est temps de graver votre vision dans son noyau : concevez votre propre innovation pour préserver l'eau. Plus votre concept sera précis et technique, plus votre brevet sera légendaire !"
+                  message="Agent, vous avez franchi les 12 niveaux de sécurité et repris le contrôle d'HYDRA. Au niveau 1, nous avions mesuré qu'une simple image gaspillait 12 mL d'eau. Maintenant que le système tourne en sobriété et en circuit fermé, nous pouvons utiliser l'IA générative à bon escient : concevez votre propre innovation pour préserver l'eau, et matérialisons son prototype dans le noyau d'HYDRA !"
                   emotion="happy"
                 />
               </div>
@@ -247,28 +229,28 @@ export default function Level13({ onComplete, onScoreUpdate, nickname, onFinaliz
               className="block w-full h-48 relative z-20 bg-slate-950/80 backdrop-blur-md border-2 border-slate-800 rounded-xl p-5 pt-8 text-emerald-100 placeholder:text-slate-600 focus:outline-none focus:border-emerald-500 focus:bg-slate-950/90 transition-all resize-none shadow-inner font-sans"
             />
 
-            <div className={`absolute bottom-4 right-4 text-xs font-mono bg-slate-900 px-3 py-1.5 rounded border z-30 transition-colors ${idea.length < 20 ? 'text-red-400 border-red-900/50' : 'text-emerald-500 border-emerald-900/50'}`}>
-              <span className={idea.length < 20 ? 'animate-pulse' : ''}>{idea.length}</span> / 20 caractères min.
+            <div className={`absolute bottom-4 right-4 text-xs font-mono bg-slate-900 px-3 py-1.5 rounded border z-30 transition-colors ${idea.trim().length < 20 ? 'text-red-400 border-red-900/50' : 'text-emerald-500 border-emerald-900/50'}`}>
+              <span className={idea.trim().length < 20 ? 'animate-pulse' : ''}>{idea.trim().length}</span> / 20 caractères min.
             </div>
           </div>
 
           <div className="flex justify-center pt-2">
             <button
               onClick={analyzeDraft}
-              disabled={!idea.trim() || idea.length < 20}
+              disabled={idea.trim().length < 20}
               className={`relative flex items-center gap-3 px-8 py-4 rounded-xl font-black tracking-widest sm:text-lg transition-all overflow-hidden group ${
-                !idea.trim() || idea.length < 20
+                idea.trim().length < 20
                   ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'
                   : 'bg-emerald-600 text-white hover:scale-[1.02] active:scale-[0.98] border border-emerald-400 shadow-[0_0_30px_rgba(16,185,129,0.3)] hover:shadow-[0_0_50px_rgba(16,185,129,0.5)]'
               }`}
             >
-              {idea.length >= 20 && (
+              {idea.trim().length >= 20 && (
                 <>
                   <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(255,255,255,0.2)_50%,transparent_75%)] bg-[length:250%_250%,100%_100%] animate-[scan_2s_ease-in-out_infinite] pointer-events-none"></div>
                   <div className="absolute -inset-1 bg-gradient-to-r from-emerald-400 via-cyan-400 to-emerald-400 opacity-20 group-hover:opacity-40 blur-lg transition-opacity duration-500"></div>
                 </>
               )}
-              <Send className={`w-5 h-5 relative z-10 ${idea.length >= 20 ? 'group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform' : ''}`} />
+              <Send className={`w-5 h-5 relative z-10 ${idea.trim().length >= 20 ? 'group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform' : ''}`} />
               <span className="relative z-10">ANALYSER MON CONCEPT</span>
             </button>
           </div>
@@ -419,7 +401,7 @@ export default function Level13({ onComplete, onScoreUpdate, nickname, onFinaliz
           animate={{ opacity: 1, scale: 1 }}
           className="space-y-5"
         >
-          <div ref={dossierRef} className="p-4 rounded-3xl bg-slate-950 border border-cyan-500/20">
+          <div className="p-4 rounded-3xl bg-slate-950 border border-cyan-500/20">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               {/* Patent Card */}
               <div className="bg-slate-950 border-2 border-emerald-500/30 rounded-2xl p-6 relative">
@@ -491,7 +473,7 @@ export default function Level13({ onComplete, onScoreUpdate, nickname, onFinaliz
               <div className="bg-slate-950 border-2 border-emerald-500/20 rounded-2xl p-2 flex flex-col items-center justify-center min-h-[300px] relative overflow-hidden group">
                 {/* Effet Scanner UI arrière-plan */}
                 <div className="absolute inset-0 bg-[linear-gradient(transparent_40%,rgba(16,185,129,0.05)_50%,transparent_60%)] bg-[length:100%_4px] pointer-events-none z-20"></div>
-                <div className="absolute inset-0 w-full h-[2px] bg-emerald-500/30 blur-[1px] animate-[scan_3s_ease-in-out_infinite] z-20 pointer-events-none"></div>
+                <div className="absolute inset-x-0 w-full h-[2px] bg-emerald-500/30 blur-[1px] animate-[scan-vertical_3s_ease-in-out_infinite] z-20 pointer-events-none"></div>
 
                 {evaluation.score >= 50 ? (
                   <>
@@ -561,8 +543,10 @@ export default function Level13({ onComplete, onScoreUpdate, nickname, onFinaliz
           <div className="flex flex-col sm:flex-row justify-center gap-4">
             <button
               onClick={() => {
-                // Penalty for re-opening the lab after finalization
-                onScoreUpdate(-250, 0);
+                soundManager.playClick();
+                // Retire le gain du brevet précédent + pénalité de -250 pts (empêche le farm infini)
+                onScoreUpdate(-(awardedLabPoints + 250), 0);
+                setAwardedLabPoints(0);
                 setStatus('input');
                 setEvaluation(null);
                 setGeneratedImageUrl(null);

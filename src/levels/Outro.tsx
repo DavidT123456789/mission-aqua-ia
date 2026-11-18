@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import { Trophy, Droplets, RotateCcw, Star, Award, Clock, Download, ShieldCheck, Zap, Bot } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import TechTerm from '../components/TechTerm';
+import NaiaDialogue from '../components/NaiaDialogue';
 
 interface Evaluation {
   title: string;
@@ -29,6 +30,7 @@ export default function Outro({ timeLeft, score, waterSaved, onRestart, nickname
 }) {
   const certificateRef = useRef<HTMLDivElement>(null);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
   const [safeImageUrl, setSafeImageUrl] = useState<string | null>(null);
 
   useEffect(() => {
@@ -37,7 +39,7 @@ export default function Outro({ timeLeft, score, waterSaved, onRestart, nickname
         setSafeImageUrl(imageUrl);
         return;
       }
-      // Précharger l'image en base64 pour contourner les blocages CORS agressifs de html2canvas
+      // Précharger l'image en base64 pour éviter les blocages CORS lors de l'export html-to-image
       fetch(imageUrl, { mode: 'cors' })
         .then(res => res.blob())
         .then(blob => {
@@ -47,10 +49,12 @@ export default function Outro({ timeLeft, score, waterSaved, onRestart, nickname
         })
         .catch(err => {
           console.error("Impossible de précharger l'image en Base64:", err);
-          setSafeImageUrl(imageUrl); // Fallback mais risqué pour html2canvas
+          setSafeImageUrl(imageUrl); // Fallback si le serveur distant autorise le CORS
         });
     }
   }, [imageUrl]);
+
+  const currentYear = new Date().getFullYear();
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
@@ -61,10 +65,10 @@ export default function Outro({ timeLeft, score, waterSaved, onRestart, nickname
   const timeTaken = 1800 - timeLeft;
 
   const getGrade = () => {
-    if (score >= 1000) return { title: 'COMMANDANT SUPRÊME', icon: <Star className="w-8 h-8 text-yellow-400" />, color: 'text-yellow-400', hex: '#facc15', bg: 'bg-yellow-400/10', border: 'border-yellow-500/50' };
-    if (score >= 800) return { title: 'EXPERT HYDROSAVE', icon: <Droplets className="w-8 h-8 text-cyan-400" />, color: 'text-cyan-400', hex: '#22d3ee', bg: 'bg-cyan-400/10', border: 'border-cyan-500/50' };
-    if (score >= 600) return { title: 'AGENT SENIOR', icon: <Award className="w-8 h-8 text-emerald-400" />, color: 'text-emerald-400', hex: '#34d399', bg: 'bg-emerald-400/10', border: 'border-emerald-500/50' };
-    if (score >= 400) return { title: 'AGENT CONFIRMÉ', icon: <ShieldCheck className="w-8 h-8 text-slate-300" />, color: 'text-slate-300', hex: '#cbd5e1', bg: 'bg-slate-300/10', border: 'border-slate-500/50' };
+    if (score >= 2750) return { title: 'COMMANDANT SUPRÊME', icon: <Star className="w-8 h-8 text-yellow-400" />, color: 'text-yellow-400', hex: '#facc15', bg: 'bg-yellow-400/10', border: 'border-yellow-500/50' };
+    if (score >= 2450) return { title: 'EXPERT HYDROSAVE', icon: <Droplets className="w-8 h-8 text-cyan-400" />, color: 'text-cyan-400', hex: '#22d3ee', bg: 'bg-cyan-400/10', border: 'border-cyan-500/50' };
+    if (score >= 2150) return { title: 'AGENT SENIOR', icon: <Award className="w-8 h-8 text-emerald-400" />, color: 'text-emerald-400', hex: '#34d399', bg: 'bg-emerald-400/10', border: 'border-emerald-500/50' };
+    if (score >= 1800) return { title: 'AGENT CONFIRMÉ', icon: <ShieldCheck className="w-8 h-8 text-slate-300" />, color: 'text-slate-300', hex: '#cbd5e1', bg: 'bg-slate-300/10', border: 'border-slate-500/50' };
     return { title: 'AGENT JUNIOR', icon: <Zap className="w-8 h-8 text-orange-400" />, color: 'text-orange-400', hex: '#fb923c', bg: 'bg-orange-400/10', border: 'border-orange-500/50' };
   };
 
@@ -73,25 +77,25 @@ export default function Outro({ timeLeft, score, waterSaved, onRestart, nickname
   const downloadFullCertificate = async () => {
     if (!certificateRef.current || isDownloading) return;
     setIsDownloading(true);
-    
-    const element = certificateRef.current;
-    
+    setDownloadError(null);
+
     try {
       await new Promise(resolve => setTimeout(resolve, 300));
-      
+
       const dataUrl = await toPng(certificateRef.current, {
         pixelRatio: 2,
         backgroundColor: '#020617',
         width: 794,
         height: 1123,
       });
-      
+
       const link = document.createElement('a');
-      link.download = `DOSSIER_AQUA_IA_${nickname.toUpperCase()}.png`;
+      link.download = `DOSSIER_AQUA_IA_${(nickname || 'AGENT').toUpperCase()}.png`;
       link.href = dataUrl;
       link.click();
     } catch (err) {
       console.error("Erreur lors du téléchargement du certificat:", err);
+      setDownloadError("Impossible de générer le PNG sur ce navigateur. Vous pouvez faire une capture d'écran de votre certificat ci-dessus.");
     } finally {
       setIsDownloading(false);
     }
@@ -147,9 +151,16 @@ export default function Outro({ timeLeft, score, waterSaved, onRestart, nickname
       <motion.h1 variants={itemVariants} className="text-4xl md:text-5xl font-black text-white mb-2 uppercase tracking-[0.2em] drop-shadow-sm">
         Mission Accomplie !
       </motion.h1>
-      <motion.p variants={itemVariants} className="text-emerald-400/80 font-mono text-sm tracking-widest mb-8">
+      <motion.p variants={itemVariants} className="text-emerald-400/80 font-mono text-sm tracking-widest mb-6">
         OPÉRATION "HYDROSAVE" TERMINÉE AVEC SUCCÈS
       </motion.p>
+
+      <motion.div variants={itemVariants} className="max-w-2xl mx-auto mb-8 text-left">
+        <NaiaDialogue
+          message={`Félicitations, agent ${nickname || 'Anonyme'} ! Les réserves d'eau potable de la ville remontent déjà. Désormais encadrée par la charte municipale et basculée en mode Symbiose, HYDRA protège nos réseaux hydriques au lieu de les épuiser.`}
+          emotion="happy"
+        />
+      </motion.div>
       
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-2xl mx-auto mb-10">
         {[
@@ -179,7 +190,7 @@ export default function Outro({ timeLeft, score, waterSaved, onRestart, nickname
         <div className="absolute bottom-0 left-0 w-32 h-32 bg-cyan-500/5 rounded-full blur-3xl -ml-16 -mb-16" />
         
         <div className="relative z-10">
-          <h3 className="text-emerald-500 font-mono font-bold text-xs tracking-[0.3em] mb-4 opacity-70">SOCIÉTÉ HYDROSAVE - CERTIFICAT OFFICIEL</h3>
+          <h3 className="text-emerald-500 font-mono font-bold text-xs tracking-[0.3em] mb-4 opacity-70">OPÉRATION HYDROSAVE - CERTIFICAT OFFICIEL</h3>
           
           <div className="flex flex-col items-center mb-6">
             <div className="text-slate-400 text-xs uppercase tracking-widest mb-2 font-mono">Agent de liaison</div>
@@ -199,6 +210,46 @@ export default function Outro({ timeLeft, score, waterSaved, onRestart, nickname
           </div>
         </div>
       </motion.div>
+
+      {evaluation && (
+        <motion.div
+          variants={itemVariants}
+          className="max-w-xl mx-auto mb-8 bg-slate-950/70 border border-cyan-500/30 rounded-2xl p-5 text-left"
+        >
+          <div className="flex items-center justify-between gap-2 mb-3">
+            <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-[0.2em] flex items-center gap-1.5">
+              <Zap className="w-3.5 h-3.5 text-yellow-400" /> Prototype Innovation Lab
+            </span>
+            <span className="text-xs font-black text-yellow-400 bg-yellow-500/10 border border-yellow-500/30 px-2.5 py-0.5 rounded-full">
+              {evaluation.score}%
+            </span>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-4 items-center">
+            {(safeImageUrl || imageUrl) && (
+              <img
+                src={safeImageUrl || imageUrl || ''}
+                alt={evaluation.title}
+                className="w-full sm:w-36 h-36 object-cover rounded-xl border border-cyan-500/20 shrink-0"
+                crossOrigin="anonymous"
+                referrerPolicy="no-referrer"
+              />
+            )}
+            <div className="space-y-2 flex-1 min-w-0">
+              <h4 className="font-black text-white text-lg truncate">{evaluation.title}</h4>
+              <p className="text-xs text-slate-300 italic line-clamp-3">"{evaluation.description}"</p>
+              <div className="flex flex-wrap gap-2 text-[11px]">
+                <span className="px-2 py-0.5 rounded bg-emerald-950/60 border border-emerald-500/30 text-emerald-300 font-bold">
+                  {evaluation.waterSaved} L/an économisés
+                </span>
+                <span className="px-2 py-0.5 rounded bg-slate-900 border border-slate-700 text-slate-300">
+                  Impact {evaluation.impact}/10
+                </span>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      )}
 
       {leaderboard && leaderboard.length > 0 && (
         <div className="max-w-xl mx-auto mb-5 bg-slate-950/50 border border-slate-800 rounded-xl p-4">
@@ -247,6 +298,12 @@ export default function Outro({ timeLeft, score, waterSaved, onRestart, nickname
         </button>
       </motion.div>
 
+      {downloadError && (
+        <p className="text-xs text-red-400 bg-red-950/40 border border-red-500/40 rounded-lg px-4 py-2.5 mb-6 max-w-xl mx-auto">
+          {downloadError}
+        </p>
+      )}
+
       <motion.div variants={itemVariants} className="space-y-4 text-left bg-slate-950/80 backdrop-blur-md p-8 rounded-2xl border border-slate-800/50 font-sans text-slate-300 shadow-inner">
         <p className="text-xl font-black text-white border-b border-slate-800 pb-4 mb-6 flex items-center gap-3">
           <Bot className="w-6 h-6 text-emerald-500" />
@@ -258,7 +315,7 @@ export default function Outro({ timeLeft, score, waterSaved, onRestart, nickname
             <div className="w-10 h-10 rounded-xl bg-red-400/10 border border-red-400/20 flex items-center justify-center shrink-0 text-red-400 font-black shadow-sm">1</div>
             <div>
               <p className="font-bold text-white text-lg">L'<TechTerm term="IA" /> a une empreinte écologique</p>
-              <p className="text-sm mt-2 leading-relaxed opacity-80">Les <TechTerm term="Datacenter">datacenters</TechTerm> consomment énormément d'au pour le <TechTerm term="Refroidissement" /> et d'électricité. Chaque requête a un coût réel.</p>
+              <p className="text-sm mt-2 leading-relaxed opacity-80">Les <TechTerm term="Datacenter">datacenters</TechTerm> consomment énormément d'eau pour le <TechTerm term="Refroidissement" /> et d'électricité. Chaque requête a un coût réel.</p>
             </div>
           </div>
           
@@ -312,7 +369,7 @@ export default function Outro({ timeLeft, score, waterSaved, onRestart, nickname
                    <ShieldCheck className="w-12 h-12 text-emerald-400 drop-shadow-[0_0_15px_rgba(52,211,153,0.5)]" />
                    <h1 className="text-4xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">RAPPORT DE MISSION</h1>
                 </div>
-                <p className="text-emerald-500/70 font-mono text-sm tracking-[0.2em] font-bold uppercase ml-[3.75rem]">AQUA-IA / HYDROSAVE_2024</p>
+                <p className="text-emerald-500/70 font-mono text-sm tracking-[0.2em] font-bold uppercase ml-[3.75rem]">AQUA-IA / HYDROSAVE_{currentYear}</p>
               </div>
             </div>
 
@@ -438,8 +495,8 @@ export default function Outro({ timeLeft, score, waterSaved, onRestart, nickname
             {/* Footer */}
             <div className="mt-6 pt-6 border-t border-slate-800 flex justify-between items-end relative">
               <div className="text-[10px] text-slate-500 font-mono">
-                GÉNÉRÉ PAR SYSTÈME // NAÏA-OS V1.4<br />
-                © 2024 Aqua-IA Education Program
+                GÉNÉRÉ PAR SYSTÈME // NAÏA v2.5<br />
+                © {currentYear} Aqua-IA Education Program
               </div>
               
               <div className="w-32 h-32 absolute left-1/2 -translate-x-1/2 -bottom-4 opacity-10 pointer-events-none">

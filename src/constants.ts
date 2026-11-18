@@ -1,43 +1,43 @@
 export const HINTS: Record<number, { free: string, paid: string }> = {
   1: {
-    free: "L'IA générative consomme beaucoup d'eau. Regardez le rapport d'analyse.",
-    paid: "Divise la consommation totale (500 mL) par le nombre d'images (100) pour trouver la consommation d'une seule image."
+    free: "Pensez à convertir les litres en millilitres (1 L = 1 000 mL) avant de diviser par le nombre d'images.",
+    paid: "18 L = 18 000 mL. Divisez 18 000 mL par 1 500 images pour trouver la consommation d'une seule image."
   },
   2: {
-    free: "Le système requiert exactement 150 L/s. Additionnez les débits des vannes.",
-    paid: "Cherche une combinaison de 3 vannes qui fait exactement 150 L/s. Par exemple : 50 + 75 + ... ?"
+    free: "Le système requiert exactement 135 L/s. Additionnez les débits des vannes que vous gardez ouvertes.",
+    paid: "Il faut une combinaison de 3 vannes qui fait 135 L/s : par exemple 65 + 45 + 25 (ou 45 + 75 + 15)."
   },
   3: {
-    free: "Une pression normale est de 4.5 bar. Cherchez l'anomalie.",
-    paid: "La fuite se trouve là où la pression est anormalement basse (en rouge)."
+    free: "À 03h00 du matin, les activités sont à l'arrêt : cherchez le secteur où le débit reste anormalement élevé avec une pression plus faible.",
+    paid: "Le capteur C (Zone Industrielle) a une pression qui chute à 3,7 bar et un débit nocturne de 46 L/min."
   },
   4: {
-    free: "Le 'Free Cooling' utilise l'air froid extérieur pour refroidir les serveurs sans climatisation.",
-    paid: "Le Cercle Arctique offre des températures glaciales toute l'année, idéal pour refroidir naturellement."
+    free: "Vérifiez les 3 critères du cahier des charges : Eau < 100 L/MWh, PUE < 1.15 et Latence ≤ 40 ms une fois le système de refroidissement sélectionné.",
+    paid: "Choisissez Luleå (Subarctique, 2°C, 45 L/MWh, PUE 1.08, 28 ms) et couplez-le au système de Free Cooling (Air extérieur)."
   },
   5: {
-    free: "Regardez l'intensité carbone de chaque bloc. Plus elle est basse, plus l'énergie est propre.",
-    paid: "Le bloc 1 (00:00 - 06:00) a l'intensité carbone la plus faible (50 gCO2/kWh)."
+    free: "Observez la courbe 24h : les centrales à gaz tournent à plein régime en journée et en soirée, tandis que l'éolien domine la nuit.",
+    paid: "Glissez le curseur de départ sur 00:00 (40 gCO₂/kWh) ou 01:00 (45 gCO₂/kWh) pour rester sous le seuil de 55 gCO₂/kWh."
   },
   6: {
-    free: "Comparez le ratio Précision / Coût environnemental. Le plus gros modèle n'est pas toujours le meilleur.",
-    paid: "Le Modèle Spécialisé offre 95% de précision pour un coût très faible. C'est le choix le plus sobre."
+    free: "N'utilisez l'IA générative géante que lorsque le raisonnement complexe l'exige. Des règles simples suffisent pour une liste noire !",
+    paid: "1. URLs connues → Sans IA (Règles) | 2. Tickets citoyens → Modèle Spécialisé (1B) | 3. Rapports 80 pages → LLM Généraliste (175B)."
   },
   7: {
-    free: "La fabrication d'un serveur neuf pollue énormément. Privilégiez toujours la réparation quand c'est possible.",
-    paid: "Seule la RAM est défectueuse. Il suffit de la réparer pour prolonger la durée de vie du serveur."
+    free: "Étape 1 : lisez les journaux système pour repérer le seul composant qui remonte des erreurs matérielles (EDAC / parité). Ensuite, réparez au plus sobre et recyclez.",
+    paid: "Étape 1 : Mémoire Vive (RAM ECC). Étape 2 : Remplacer la RAM (15 L). Étape 3 : Filière de recyclage DEEE."
   },
   8: {
-    free: "La chaleur fatale des serveurs est une ressource précieuse si elle est réutilisée localement.",
-    paid: "Connecter le datacenter au réseau de chaleur urbain permet de chauffer les bâtiments voisins."
+    free: "Pour éviter toute évaporation d'eau, il faut un circuit fermé raccordé à un besoin de chauffage local, en suivant le trajet logique de la chaleur.",
+    paid: "Raccordement : Réseau de chaleur urbain. Ordre : 1. Captage thermique → 2. Acheminement isolé → 3. Transfert aux logements → 4. Retour en boucle fermée."
   },
   9: {
     free: "Plus il y a de données, plus l'entraînement pollue. Ne gardez que les données strictement nécessaires à la prédiction des sécheresses.",
-    paid: "Supprimez les images de chats, l'historique des mèmes et les vidéos virales. Gardez le climat, l'hydrologie et la topographie."
+    paid: "Supprimez les logs publicitaires, les mèmes/vidéos virales et le trafic routier. Gardez le climat, l'hydrologie et la topographie."
   },
   10: {
-    free: "Il y a exactement 4 clauses bénéfiques pour l'environnement à sélectionner pour adopter cette loi.",
-    paid: "Coche en priorité la Transparence obligatoire (clause 1) et la Réutilisation de la chaleur fatale (clause 5). Il t'en reste 2 à trouver !"
+    free: "Il y a exactement 4 clauses bénéfiques pour l'environnement à sélectionner pour adopter cette charte.",
+    paid: "Coche en priorité la Transparence obligatoire sur l'eau et la Réutilisation de la chaleur fatale. Il t'en reste 2 à trouver !"
   },
   11: {
     free: "Lisez attentivement le code. Il faut vérifier l'humidité, et si elle est trop élevée, arrêter l'arrosage.",
@@ -45,40 +45,40 @@ export const HINTS: Record<number, { free: string, paid: string }> = {
   },
   12: {
     free: "Trouvez le juste milieu. L'IA doit rester utile sans pour autant détruire nos ressources.",
-    paid: "Priorisez les missions vitales : la Modélisation Climatique et la Gestion de l'Eau méritent la majorité du budget. Les Vidéos de Chats et le Ciblage Pub ? Réduisez-les au strict minimum."
+    paid: "Priorisez les missions vitales : la Modélisation Climatique et la Gestion des Réseaux méritent la majorité du budget. Le Streaming 4K & Filtres IA et le Ciblage Publicitaire ? Réduisez-les au strict minimum."
   },
   13: {
-    free: "Définissez un concept innovant en combinant IA, capteurs IoT et recyclage d'eau pour stopper le gaspillage d'HYDRA.",
+    free: "Définissez un concept innovant en combinant IA, capteurs IoT et recyclage d'eau pour préserver durablement nos ressources.",
     paid: "Détaillez le fonctionnement de votre solution (ex: récupération de chaleur fatale des datacenters pour chauffer des serres d'arrosage en circuit fermé). Plus vous serez précis, plus le brevet sera légendaire !"
   },
 };
 
 export const FACTS: Record<number, string> = {
-  2: "La génération d'images demande beaucoup de calculs. Une intelligence artificielle générative peut consommer environ un demi-litre d'eau douce (pour le refroidissement des serveurs) rien que pour créer 100 images !",
+  2: "Une requête IA consomme peu d'eau prise isolément (quelques gouttes directement pour refroidir les serveurs, et jusqu'à quelques millilitres en comptant l'eau nécessaire à la production d'électricité). C'est l'effet volume — des milliards de requêtes par jour — qui pèse sur les ressources !",
   3: "Pour acheminer l'eau potable dans nos villes, il faut des millions de kilomètres de tuyaux. Une gestion intelligente de la pression diminue la contrainte sur ces conduites et permet d'éviter les ruptures.",
-  4: "En France, on estime qu'environ 20 % de l'eau potable produite est perdue à cause des fuites dans les réseaux de distribution (données de l'Observatoire, 2021). C'est 1 litre sur 5 qui n'arrive jamais au robinet !",
+  4: "En France, environ 20 % de l'eau potable produite est perdue à cause des fuites dans les réseaux de distribution (données SISPEA / Office français de la biodiversité). C'est 1 litre sur 5 qui n'arrive jamais au robinet !",
   5: "Le 'Free Cooling' est une technique astucieuse qui utilise l'air extérieur (souvent dans les régions très froides) pour refroidir les serveurs, évitant ainsi d'utiliser de l'eau ou de puissantes climatisations.",
-  6: "L'intensité carbone représente la quantité de CO2 émise pour produire l'électricité. Planifier les gros calculs d'IA la nuit permet souvent de profiter d'une électricité 'plus verte'.",
-  7: "Entraîner un immense Modèle de Langage (LLM) peut émettre autant de CO2 que 5 voitures sur toute leur vie. Un 'Petit Modèle Spécialisé' (SLM) est souvent tout aussi performant, pour un coût écologique infime.",
-  8: "La fabrication du matériel informatique représente plus de 70 % de son empreinte carbone totale. Réparer la pièce défectueuse (comme la RAM) plutôt que de tout jeter est l'acte numérique le plus écologique.",
+  6: "L'intensité carbone représente la quantité de CO2 émise pour produire l'électricité. Planifier les gros calculs d'IA la nuit permet souvent de profiter d'une électricité plus décarbonée.",
+  7: "Entraîner un grand Modèle de Langage (LLM) émet de dizaines à des centaines de tonnes de CO2 selon sa taille. Un 'Petit Modèle Spécialisé' (SLM) est souvent tout aussi performant sur une tâche précise, pour un coût écologique infime.",
+  8: "Selon l'ADEME et l'Arcep, la fabrication représente 60 à 80 % de l'empreinte carbone de nos appareils (smartphones, PC) et une part majeure pour les serveurs alimentés par une électricité décarbonée. Réparer plutôt que jeter est le premier geste de sobriété.",
   9: "La 'chaleur fatale' (ou chaleur perdue) générée par les serveurs informatiques peut être récupérée ! Plusieurs villes l'utilisent déjà pour chauffer des éco-quartiers ou des piscines municipales.",
   10: "Le stockage de 'données mortes' (fichiers inutilisés, doublons) encombre d'immenses serveurs fonctionnant en permanence. Filtrer et supprimer les données inutiles est la base de la sobriété numérique.",
-  11: "L'empreinte carbone du secteur numérique mondial représente près de 4 % des émissions globales de gaz à effet de serre, dépassant celle de l'aviation civile (avant COVID). Les chartes éthiques deviennent vitales.",
+  11: "L'empreinte carbone du secteur numérique mondial représente environ 3,5 à 4 % des émissions globales de gaz à effet de serre (~4,4 % en France selon l'ADEME/Arcep), dépassant celle de l'aviation civile. Les chartes éthiques deviennent vitales.",
   12: "L'IA et le code peuvent aussi aider la planète : des algorithmes d'irrigation intelligente connectés à des capteurs d'humidité permettent de réduire la consommation d'eau agricole jusqu'à 50 % !",
-  13: "L'éco-conception d'un logiciel consiste à optimiser son code informatique. Un programme bien optimisé est non seulement plus rapide, mais il peut réduire la consommation d'énergie du serveur de 50 à 90 % !"
+  13: "La sobriété numérique ne consiste pas à renoncer au progrès, mais à réserver l'eau et la puissance de calcul aux usages essentiels — climat, santé, gestion des ressources — tout en stimulant l'éco-innovation !"
 };
 
 export const DEV_ANSWERS: Record<number, string> = {
-  1: "5 (mL)",
-  2: "50 + 75 + 25 (Vannes 1, 2, 4)",
+  1: "12 (mL)",
+  2: "65 + 45 + 25 = 135 (ou 45 + 75 + 15)",
   3: "Segment C",
-  4: "Cercle Arctique",
-  5: "00:00 - 06:00 (Bloc 1)",
-  6: "Modèle Spécialisé",
-  7: "Réparer (RAM)",
-  8: "Réseau de Chaleur Urbain",
+  4: "Luleå + Free Cooling",
+  5: "Départ 00:00 ou 01:00",
+  6: "1:Règles, 2:Spécialisé, 3:LLM",
+  7: "1:RAM → 2:Changer RAM → 3:DEEE",
+  8: "Réseau urbain\nOrdre : Captage → Acheminement → Transfert → Retour",
   9: "Climat, Hydrologie, Topographie",
-  10: "Clauses 1, 4, 5, 7",
+  10: "Transparence eau, Interdiction LLMs géants, Chaleur fatale, Coût écologique",
   11: "1:capteur, 2:previsions, 3:seuil, 4:or, 5:False, 6:eau, 7:True, 8:aube",
   12: "Total <= 100\nClimat >= 40, Eau >= 40\nDivert. <= 10, Pub <= 10",
   13: "Saisie libre (Bouton d'auto-remplissage)"

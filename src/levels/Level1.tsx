@@ -15,18 +15,18 @@ export default function Level1({ isDevMode, onComplete, onScoreUpdate, onMistake
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (waterAmount === 5) {
+    if (waterAmount <= 0 || isSuccess) return;
+    if (waterAmount === 12) {
       setIsSuccess(true);
       soundManager.playSuccess();
       if (!hasScored) {
         setHasScored(true);
-        onScoreUpdate(100, 20);
+        onScoreUpdate(100, 0);
       }
     } else {
       setShowError(true);
       onMistake?.();
       setTimeout(() => setShowError(false), 2000);
-      setWaterAmount(0);
     }
   };
 
@@ -45,11 +45,11 @@ export default function Level1({ isDevMode, onComplete, onScoreUpdate, onMistake
         </h2>
       </div>
 
-      <div className="mb-3">
+              <div className="mb-3">
         <NaiaDialogue 
           message={
             <>
-              Bonjour Agent. Je suis NAÏA. Notre première tâche pour stopper HYDRA est de quantifier exactement sa surconsommation d'eau. Regardez ce rapport d'analyse sur la génération d'images par <TechTerm term="IA" />. Calculez la consommation pour une seule image.
+              Bonjour Agent. Je suis NAÏA. Notre première tâche pour stopper HYDRA est de quantifier sa consommation d'eau (refroidissement et production d'électricité). Analysez ce relevé sur la génération d'images haute définition par <TechTerm term="IA" /> et calculez l'empreinte d'une seule image.
             </>
           }
           emotion="neutral"
@@ -85,8 +85,8 @@ export default function Level1({ isDevMode, onComplete, onScoreUpdate, onMistake
                   </div>
                   <div className="text-center space-y-0.5">
                     <span className="text-[10px] text-blue-400/60 font-bold uppercase tracking-tighter">Volume Production</span>
-                    <span className="font-black text-white text-xl block tracking-tight">100 IMAGES</span>
-                    <span className="text-[9px] text-slate-500 uppercase font-bold">Générées / Session</span>
+                    <span className="font-black text-white text-xl block tracking-tight">1 500 IMAGES</span>
+                    <span className="text-[9px] text-slate-500 uppercase font-bold">Générées en HD / Session</span>
                   </div>
                 </motion.div>
 
@@ -109,19 +109,17 @@ export default function Level1({ isDevMode, onComplete, onScoreUpdate, onMistake
                     </div>
                   </div>
                   <div className="text-center space-y-0.5">
-                    <span className="text-[10px] text-emerald-400/60 font-bold uppercase tracking-tighter">Consommation Totale</span>
-                    <span className="font-black text-white text-xl block tracking-tight">500mL D'EAU</span>
+                    <span className="text-[10px] text-emerald-400/60 font-bold uppercase tracking-tighter">Empreinte Totale</span>
+                    <span className="font-black text-white text-xl block tracking-tight">18 LITRES D'EAU</span>
                     <span className="text-[10px] text-slate-400 font-bold block italic opacity-80">
-                      (≈ 1 petite bouteille)
+                      (≈ 18 bouteilles d'1 L)
                     </span>
                     <span className="text-[9px] text-slate-500 font-bold flex items-center justify-center gap-1 mt-1">
-                      <TechTerm term="Refroidissement" />
+                      <TechTerm term="Refroidissement" /> + électricité
                     </span>
                   </div>
                 </motion.div>
               </div>
-              
-              <div className="mt-4 border-t border-emerald-500/10"></div>
             </div>
           </div>
 
@@ -132,7 +130,7 @@ export default function Level1({ isDevMode, onComplete, onScoreUpdate, onMistake
                 Question de sécurité :
               </p>
               <p className="text-slate-300 mt-2">
-                Combien de millilitres (mL) d'eau sont "bus" par le <TechTerm term="Datacenter" /> pour générer <strong className="text-white">1 seule image</strong> ?
+                Combien de millilitres (mL) d'eau sont consommés par le <TechTerm term="Datacenter" /> pour générer <strong className="text-white">1 seule image</strong> ?
               </p>
             </div>
 
@@ -144,7 +142,7 @@ export default function Level1({ isDevMode, onComplete, onScoreUpdate, onMistake
                     onChange={setWaterAmount}
                     unit="ml"
                     min={0}
-                    max={100}
+                    max={999}
                   />
                 </div>
                 
@@ -177,7 +175,7 @@ export default function Level1({ isDevMode, onComplete, onScoreUpdate, onMistake
                     ACCÈS AUTORISÉ
                   </div>
                   <p className="text-center text-sm text-emerald-100/80 mb-6">
-                    Exactement. 5 mL par image. Cela semble peu, mais multiplié par des milliards de requêtes, l'impact sur les ressources en eau est colossal.
+                    Exactement : 18 000 mL ÷ 1 500 = 12 mL par image HD (eau directe de refroidissement et indirecte des centrales électriques). Multiplié par des milliards de requêtes, l'impact devient colossal ! Vous avez mesuré la fuite, passons à l'action sur le circuit d'HYDRA.
                   </p>
                   <button
                     onClick={onComplete}

@@ -1,5 +1,5 @@
+import React from 'react';
 import { Plus, Minus } from 'lucide-react';
-import { motion } from 'motion/react';
 import { soundManager } from '../utils/soundManager';
 
 interface NumberInputProps {
@@ -26,6 +26,18 @@ export default function NumberInput({ value, onChange, min = 0, max = 9999, step
     }
   };
 
+  const handleDirectInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value;
+    if (raw === '') {
+      onChange(min);
+      return;
+    }
+    const parsed = parseInt(raw, 10);
+    if (!Number.isNaN(parsed)) {
+      onChange(Math.max(min, Math.min(max, parsed)));
+    }
+  };
+
   return (
     <div className="flex flex-col items-center gap-4">
       <div className="relative flex items-center bg-slate-900/80 border-2 border-emerald-500/30 rounded-2xl p-2 shadow-[0_0_20px_rgba(16,185,129,0.1)] group hover:border-emerald-500/50 transition-all">
@@ -39,15 +51,18 @@ export default function NumberInput({ value, onChange, min = 0, max = 9999, step
           <Minus className="w-6 h-6" />
         </button>
 
-        <div className="flex flex-col items-center px-8 min-w-[120px]">
-          <motion.span 
-            key={value}
-            initial={{ y: 5, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            className="text-4xl font-bold text-emerald-100 tabular-nums"
-          >
-            {value}
-          </motion.span>
+        <div className="flex flex-col items-center px-4 min-w-[120px]">
+          <input
+            type="number"
+            inputMode="numeric"
+            min={min}
+            max={max}
+            step={step}
+            value={value}
+            onChange={handleDirectInput}
+            aria-label={unit ? `Valeur en ${unit}` : 'Valeur numérique'}
+            className="w-24 bg-transparent text-center text-4xl font-bold text-emerald-100 tabular-nums focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+          />
           {unit && <span className="text-xs text-emerald-500/60 font-bold uppercase tracking-widest">{unit}</span>}
         </div>
 
