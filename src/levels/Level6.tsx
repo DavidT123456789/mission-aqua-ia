@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { BrainCircuit, CheckCircle2, AlertTriangle, Zap, Scale, Cpu, Database } from 'lucide-react';
+import { BrainCircuit, CheckCircle2, AlertTriangle, Zap, Scale, Cpu, Database, Target } from 'lucide-react';
 import NaiaDialogue from '../components/NaiaDialogue';
 import TechTerm from '../components/TechTerm';
 import { soundManager } from '../utils/soundManager';
@@ -77,19 +77,37 @@ const TASKS: TaskFlow[] = [
   }
 ];
 
+const QUALITY_MATRIX: Record<TaskFlow['id'], Record<ArchId, number>> = {
+  blacklist: { heuristic: 100, specialized: 97, llm: 96 },
+  tickets: { heuristic: 52, specialized: 98, llm: 99 },
+  legal: { heuristic: 18, specialized: 58, llm: 97 }
+};
+
+const TARGET_MIN_QUALITY = 95;
+
 export default function Level6({ isDevMode, onComplete, onScoreUpdate, onMistake }: { isDevMode?: boolean; onComplete: () => void; onScoreUpdate: (points: number, water: number) => void; onMistake?: () => void; key?: string }) {
   const [assignments, setAssignments] = useState<Partial<Record<TaskFlow['id'], ArchId>>>({});
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [hasScored, setHasScored] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
-  const allAssigned = TASKS.every(t => Boolean(assignments[t.id]));
+  const assignedTasks = TASKS.filter(t => Boolean(assignments[t.id]));
+  const allAssigned = assignedTasks.length === TASKS.length;
 
   const dailyKwh = TASKS.reduce((sum, task) => {
     const arch = assignments[task.id];
     if (!arch) return sum;
     return sum + (task.volumePerDay * ARCHITECTURES[arch].whPerReq) / 1000;
   }, 0);
+
+  const avgQuality = assignedTasks.length > 0
+    ? Math.round(
+        assignedTasks.reduce((sum, task) => {
+          const arch = assignments[task.id]!;
+          return sum + QUALITY_MATRIX[task.id][arch];
+        }, 0) / assignedTasks.length
+      )
+    : 0;
 
   const handleAssign = (taskId: TaskFlow['id'], archId: ArchId) => {
     if (isSuccess) return;
@@ -141,7 +159,7 @@ export default function Level6({ isDevMode, onComplete, onScoreUpdate, onMistake
         <NaiaDialogue
           message={
             <>
-              Pour les flux municipaux qui restent traités sur place, HYDRA envoie encore toutes ses requêtes vers un énorme <TechTerm term="LLM" />, même pour de simples filtres ! Associez chacun des 3 flux à l'architecture la plus adaptée (à l'image d'une petite IA spécialisée comme moi) afin de rester sous <strong>50 kWh/jour</strong>.
+              Pour les flux municipaux qui restent traités sur place, HYDRA envoie encore toutes ses requêtes vers un énorme <TechTerm term="LLM" />, même pour de simples filtres ! Associez chacun des 3 flux à l'architecture la plus adaptée afin de rester sous <strong>50 kWh/jour</strong> tout en gardant au moins <strong>{TARGET_MIN_QUALITY} % de qualité</strong>.
             </>
           }
           emotion="neutral"
@@ -170,47 +188,92 @@ export default function Level6({ isDevMode, onComplete, onScoreUpdate, onMistake
           })}
         </div>
 
-        {/* Live Energy Budget */}
-        <div className="bg-slate-950 border border-slate-800 rounded-xl p-3.5 space-y-2.5">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <span className="text-xs uppercase tracking-wider text-slate-400">
-              Consommation estimée du routage :
-            </span>
-            <span className={`text-lg font-black ${
-              isSuccess
-                ? 'text-emerald-400'
-                : !allAssigned
-                ? 'text-slate-400'
-                : dailyKwh > 50
-                ? 'text-red-400'
-                : 'text-cyan-300'
-            }`}>
-              {dailyKwh.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} kWh / jour
-              <span className="text-xs font-normal text-slate-500 ml-2">(plafond : 50 kWh)</span>
-            </span>
-          </div>
-          <div className="w-full h-3 bg-slate-900 rounded-full border border-slate-800 relative">
-            <div className="w-full h-full rounded-full overflow-hidden">
-              <motion.div
-                className={`h-full rounded-full ${
-                  isSuccess
-                    ? 'bg-emerald-500'
-                    : dailyKwh > 50
-                    ? 'bg-red-500'
-                    : dailyKwh > 0
-                    ? 'bg-cyan-500'
-                    : 'bg-slate-700'
-                }`}
-                initial={{ width: 0 }}
-                animate={{ width: `${Math.min((dailyKwh / 100) * 100, 100)}%` }}
-                transition={{ duration: 0.35 }}
+        {/* Live Energy & Quality Gauges */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="bg-slate-950 border border-slate-800 rounded-xl p-3.5 space-y-2.5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="text-xs uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                <Zap className="w-3.5 h-3.5 text-amber-400" /> Consommation estimée
+              </span>
+              <span className={`text-base sm:text-lg font-black ${
+                isSuccess
+                  ? 'text-emerald-400'
+                  : assignedTasks.length === 0
+                  ? 'text-slate-400'
+                  : dailyKwh > 50
+                  ? 'text-red-400'
+                  : 'text-cyan-300'
+              }`}>
+                {dailyKwh.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} kWh/j
+                <span className="text-[11px] font-normal text-slate-500 ml-1.5">(max 50)</span>
+              </span>
+            </div>
+            <div className="w-full h-3 bg-slate-900 rounded-full border border-slate-800 relative">
+              <div className="w-full h-full rounded-full overflow-hidden">
+                <motion.div
+                  className={`h-full rounded-full ${
+                    isSuccess
+                      ? 'bg-emerald-500'
+                      : dailyKwh > 50
+                      ? 'bg-red-500'
+                      : dailyKwh > 0
+                      ? 'bg-cyan-500'
+                      : 'bg-slate-700'
+                  }`}
+                  initial={{ width: 0 }}
+                  animate={{ width: `${Math.min((dailyKwh / 100) * 100, 100)}%` }}
+                  transition={{ duration: 0.35 }}
+                />
+              </div>
+              <div
+                className="absolute -top-0.5 -bottom-0.5 w-0.5 bg-amber-400 z-10"
+                style={{ left: '50%' }}
+                title="Plafond : 50 kWh/jour"
               />
             </div>
-            <div
-              className="absolute -top-0.5 -bottom-0.5 w-0.5 bg-amber-400 z-10"
-              style={{ left: '50%' }}
-              title="Plafond : 50 kWh/jour"
-            />
+          </div>
+
+          <div className="bg-slate-950 border border-slate-800 rounded-xl p-3.5 space-y-2.5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="text-xs uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                <Target className="w-3.5 h-3.5 text-emerald-400" /> Précision / Qualité
+              </span>
+              <span className={`text-base sm:text-lg font-black ${
+                isSuccess
+                  ? 'text-emerald-400'
+                  : assignedTasks.length === 0
+                  ? 'text-slate-400'
+                  : avgQuality < TARGET_MIN_QUALITY
+                  ? 'text-red-400'
+                  : 'text-cyan-300'
+              }`}>
+                {assignedTasks.length === 0 ? '--' : `${avgQuality} %`}
+                <span className="text-[11px] font-normal text-slate-500 ml-1.5">(min {TARGET_MIN_QUALITY} %)</span>
+              </span>
+            </div>
+            <div className="w-full h-3 bg-slate-900 rounded-full border border-slate-800 relative">
+              <div className="w-full h-full rounded-full overflow-hidden">
+                <motion.div
+                  className={`h-full rounded-full ${
+                    isSuccess
+                      ? 'bg-emerald-500'
+                      : assignedTasks.length === 0
+                      ? 'bg-slate-700'
+                      : avgQuality < TARGET_MIN_QUALITY
+                      ? 'bg-red-500'
+                      : 'bg-cyan-500'
+                  }`}
+                  initial={{ width: 0 }}
+                  animate={{ width: `${avgQuality}%` }}
+                  transition={{ duration: 0.35 }}
+                />
+              </div>
+              <div
+                className="absolute -top-0.5 -bottom-0.5 w-0.5 bg-amber-400 z-10"
+                style={{ left: `${TARGET_MIN_QUALITY}%` }}
+                title={`Seuil minimum : ${TARGET_MIN_QUALITY} %`}
+              />
+            </div>
           </div>
         </div>
 

@@ -7,15 +7,15 @@ import { soundManager } from '../utils/soundManager';
 
 export default function Level9({ isDevMode, onComplete, onScoreUpdate, onMistake }: { isDevMode?: boolean; onComplete: () => void; onScoreUpdate: (points: number, water: number) => void; onMistake?: () => void; key?: string }) {
   const [datasets, setDatasets] = useState([
-    { id: 1, text: 'Logs publicitaires des applis météo', size: 45, relevant: false, kept: true },
-    { id: 2, text: 'Données climatiques historiques', size: 35, relevant: true, kept: true },
-    { id: 3, text: <>Archives de <TechTerm term="Mème">mèmes</TechTerm> & vidéos virales</>, size: 80, relevant: false, kept: true },
-    { id: 4, text: <>Relevés <TechTerm term="Hydrologie">hydrologiques</TechTerm></>, size: 15, relevant: true, kept: true },
-    { id: 5, text: 'Trafic routier en temps réel', size: 35, relevant: false, kept: true },
+    { id: 1, text: 'Traces GPS & pubs des applis météo', size: 45, relevant: false, kept: true },
+    { id: 2, text: 'Données climatiques historiques (1995-2020)', size: 35, relevant: true, kept: true },
+    { id: 3, text: 'Vidéos HD non compressées de rivières', size: 80, relevant: false, kept: true },
+    { id: 4, text: <>Séries numériques de débits (<TechTerm term="Hydrologie">hydrologie</TechTerm>)</>, size: 15, relevant: true, kept: true },
+    { id: 5, text: 'Doublons d\'archives météo (1995-2020)', size: 35, relevant: false, kept: true },
     { id: 6, text: <><TechTerm term="Topographie">Topographie</TechTerm> des sols</>, size: 20, relevant: true, kept: true },
   ]);
 
-  const [showError, setShowError] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [hasScored, setHasScored] = useState(false);
 
   const isSuccess = hasScored;
@@ -24,21 +24,34 @@ export default function Level9({ isDevMode, onComplete, onScoreUpdate, onMistake
     if (isSuccess) return;
     soundManager.playClick();
     setDatasets(datasets.map(d => d.id === id ? { ...d, kept: !d.kept } : d));
-    setShowError(false);
+    setErrorMsg(null);
   };
 
   const checkAnswer = () => {
     const isCorrect = datasets.every(d => d.kept === d.relevant);
     if (isCorrect) {
       soundManager.playSuccess();
+      setErrorMsg(null);
       if (!hasScored) {
         setHasScored(true);
         onScoreUpdate(200, 76);
       }
     } else {
-      setShowError(true);
+      const deletedUseful = datasets.some(d => d.relevant && !d.kept);
+      const keptDuplicate = datasets.find(d => d.id === 5)?.kept;
+      const keptVideo = datasets.find(d => d.id === 3)?.kept;
+
+      if (deletedUseful) {
+        setErrorMsg("Attention : vous avez supprimé des données scientifiques indispensables !");
+      } else if (keptDuplicate) {
+        setErrorMsg("Doublons détectés : les archives 1995-2020 sont déjà présentes en données propres !");
+      } else if (keptVideo) {
+        setErrorMsg("Format trop lourd : les vidéos HD de rivières (80 To) sont inutiles quand on a les séries numériques de débits !");
+      } else {
+        setErrorMsg("Données hors-sujet conservées : les traces publicitaires polluent l'entraînement.");
+      }
       onMistake?.();
-      setTimeout(() => setShowError(false), 2000);
+      setTimeout(() => setErrorMsg(null), 3500);
     }
   };
 
@@ -63,7 +76,7 @@ export default function Level9({ isDevMode, onComplete, onScoreUpdate, onMistake
         <NaiaDialogue 
           message={
             <>
-              L'infrastructure d'HYDRA est assainie ! Nous pouvons maintenant la reprogrammer pour en faire une <strong>experte de la gestion de l'eau</strong> capable de prédire les sécheresses. Actuellement, on la nourrit avec TOUTES les données d'internet : plus il y a de données hors-sujet, plus son entraînement consomme d'eau et d'électricité pour rien. <strong>Filtrez son jeu de données</strong> pour ne garder que l'essentiel.
+              L'infrastructure d'HYDRA est assainie ! Nous devons maintenant l'entraîner à <strong>prédire les sécheresses</strong>. Au-delà des <TechTerm term="Mème">mèmes</TechTerm> ou vidéos virales évidentes, les bases brutes cachent de vrais pièges (doublons, vidéos non compressées, traces publicitaires) qui gaspillent eau et électricité. <strong>Filtrez son jeu de données</strong> pour ne garder que l'essentiel.
             </>
           }
           emotion="alert"
@@ -111,17 +124,27 @@ export default function Level9({ isDevMode, onComplete, onScoreUpdate, onMistake
           ))}
         </div>
 
+        {errorMsg && (
+          <motion.div
+            initial={{ opacity: 0, y: -5 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="p-3 bg-red-950/40 border border-red-500/50 rounded-lg text-red-300 text-xs font-bold text-center"
+          >
+            {errorMsg}
+          </motion.div>
+        )}
+
         {!isSuccess && (
           <div className="flex justify-center mt-5">
             <button
               onClick={checkAnswer}
               className={`px-8 py-4 rounded-lg font-bold text-lg transition-all ${
-                showError
+                errorMsg
                   ? 'bg-red-600 text-white animate-shake'
                   : 'bg-emerald-600 hover:bg-emerald-500 text-white hover:scale-105'
               }`}
             >
-              {showError ? 'DONNÉES INUTILES DÉTECTÉES' : 'LANCER L\'ENTRAÎNEMENT'}
+              LANCER L'ENTRAÎNEMENT
             </button>
           </div>
         )}

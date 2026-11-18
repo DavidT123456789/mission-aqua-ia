@@ -7,7 +7,8 @@ import { soundManager } from '../utils/soundManager';
 
 export default function Level3({ isDevMode, onComplete, onScoreUpdate, onMistake }: { isDevMode?: boolean; onComplete: () => void; onScoreUpdate: (points: number, water: number) => void; onMistake?: () => void; key?: string }) {
   const [selectedSensor, setSelectedSensor] = useState<string | null>(null);
-  const [error, setError] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const errorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Repair phases: 'idle' | 'detecting' | 'repairing' | 'done'
   const [repairPhase, setRepairPhase] = useState<'idle' | 'detecting' | 'repairing' | 'done'>('idle');
@@ -47,7 +48,7 @@ export default function Level3({ isDevMode, onComplete, onScoreUpdate, onMistake
 
   const sensors = [
     { id: 'A', pressure: 4.4, nightFlow: 5, status: 'Normal', location: 'Quartier Nord', note: 'Consommation domestique minimale', pos: { top: '20%', left: '30%' } },
-    { id: 'B', pressure: 4.3, nightFlow: 8, status: 'Normal', location: 'Centre-Ville', note: 'Hôpital & boulangeries actifs', pos: { top: '40%', left: '50%' } },
+    { id: 'B', pressure: 4.3, nightFlow: 26, status: 'Faux positif', location: 'Centre-Ville', note: 'Nettoyage voirie & hôpital programmés', pos: { top: '40%', left: '50%' } },
     { id: 'C', pressure: 3.7, nightFlow: 46, status: 'Anomalie', location: 'Zone Industrielle', note: 'Usines fermées la nuit', pos: { top: '70%', left: '70%' } },
     { id: 'D', pressure: 4.5, nightFlow: 4, status: 'Normal', location: 'Quartier Sud', note: 'Quartier résidentiel (nuit)', pos: { top: '80%', left: '30%' } },
     { id: 'E', pressure: 4.2, nightFlow: 6, status: 'Normal', location: 'Banlieue Est', note: 'Commerces & bureaux fermés', pos: { top: '30%', left: '80%' } },
@@ -55,19 +56,27 @@ export default function Level3({ isDevMode, onComplete, onScoreUpdate, onMistake
 
   const handleSelect = (id: string) => {
     if (repairPhase !== 'idle') return;
+    if (errorTimerRef.current) {
+      clearTimeout(errorTimerRef.current);
+      errorTimerRef.current = null;
+    }
     soundManager.playClick();
     setSelectedSensor(id);
     if (id === 'C') {
-      setError(false);
+      setErrorMsg(null);
       setRepairPhase('detecting');
       // After detection phase, start repair
       setTimeout(() => {
         setRepairPhase('repairing');
       }, 1200);
     } else {
-      setError(true);
+      setErrorMsg(
+        id === 'B'
+          ? "Faux positif ! Le débit nocturne est modéré (26 L/min pour le nettoyage programmé), mais la pression reste normale (4,3 bar) : ce n'est pas une fuite."
+          : "Erreur d'analyse. Ce secteur présente une pression et un débit nocturne normaux."
+      );
       onMistake?.();
-      setTimeout(() => setError(false), 1500);
+      errorTimerRef.current = setTimeout(() => setErrorMsg(null), 2800);
     }
   };
 
@@ -532,13 +541,13 @@ export default function Level3({ isDevMode, onComplete, onScoreUpdate, onMistake
           </div>
         </div>
 
-        {error && (
+        {errorMsg && (
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="text-red-400 text-sm text-center mt-4 font-bold"
+            className="text-red-400 text-sm text-center mt-4 font-bold bg-red-950/30 border border-red-500/40 rounded-lg p-3"
           >
-            Erreur d'analyse. Ce secteur présente une pression et un débit nocturne normaux.
+            {errorMsg}
           </motion.p>
         )}
 

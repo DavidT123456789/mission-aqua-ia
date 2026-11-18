@@ -1,3 +1,6 @@
+export const MISSION_DURATION_MINUTES = 40;
+export const MISSION_DURATION_SECONDS = MISSION_DURATION_MINUTES * 60;
+
 export const HINTS: Record<number, { free: string, paid: string }> = {
   1: {
     free: "Pensez à convertir les litres en millilitres (1 L = 1 000 mL) avant de diviser par le nombre d'images.",
@@ -8,7 +11,7 @@ export const HINTS: Record<number, { free: string, paid: string }> = {
     paid: "Il faut une combinaison de 3 vannes qui fait 135 L/s : par exemple 65 + 45 + 25 (ou 45 + 75 + 15)."
   },
   3: {
-    free: "À 03h00 du matin, les activités sont à l'arrêt : cherchez le secteur où le débit reste anormalement élevé avec une pression plus faible.",
+    free: "À 03h00 du matin, un secteur actif (nettoyage) garde une pression normale : cherchez celui où le débit reste anormalement élevé ET la pression chute.",
     paid: "Le capteur C (Zone Industrielle) a une pression qui chute à 3,7 bar et un débit nocturne de 46 L/min."
   },
   4: {
@@ -32,11 +35,11 @@ export const HINTS: Record<number, { free: string, paid: string }> = {
     paid: "Raccordement : Réseau de chaleur urbain. Ordre : 1. Captage thermique → 2. Acheminement isolé → 3. Transfert aux logements → 4. Retour en boucle fermée."
   },
   9: {
-    free: "Plus il y a de données, plus l'entraînement pollue. Ne gardez que les données strictement nécessaires à la prédiction des sécheresses.",
-    paid: "Supprimez les logs publicitaires, les mèmes/vidéos virales et le trafic routier. Gardez le climat, l'hydrologie et la topographie."
+    free: "Plus il y a de données, plus l'entraînement pollue. Supprimez les doublons, les vidéos lourdes et les traces publicitaires pour ne garder que les séries scientifiques utiles.",
+    paid: "Supprimez les traces GPS/pubs, les vidéos HD de rivières et les doublons 1995-2020. Gardez les données climatiques, les séries numériques d'hydrologie et la topographie."
   },
   10: {
-    free: "Il y a exactement 4 clauses bénéfiques pour l'environnement à sélectionner pour adopter cette charte.",
+    free: "Il y a exactement 4 clauses réellement contraignantes pour protéger l'eau locale. Méfiez-vous du greenwashing (compensation ailleurs, labels auto-déclarés) !",
     paid: "Coche en priorité la Transparence obligatoire sur l'eau et la Réutilisation de la chaleur fatale. Il t'en reste 2 à trouver !"
   },
   11: {

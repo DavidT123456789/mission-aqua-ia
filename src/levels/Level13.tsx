@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Sparkles, Send, CheckCircle2, Lightbulb, Zap, Droplets, Bot, RotateCcw, Lock, Activity, Loader2 } from 'lucide-react';
 import NaiaDialogue from '../components/NaiaDialogue';
 import HydraLog from '../components/HydraLog';
+import TechTerm from '../components/TechTerm';
 import { soundManager } from '../utils/soundManager';
 
 interface Evaluation {
@@ -183,7 +184,11 @@ export default function Level13({ onComplete, onScoreUpdate, nickname, onFinaliz
               <div className="w-full sm:max-w-2xl space-y-2.5">
                 <HydraLog status="synced" message="Mode Symbiose activé. Noyau ouvert à l'éco-innovation." />
                 <NaiaDialogue 
-                  message="Agent, vous avez franchi les 12 niveaux de sécurité et repris le contrôle d'HYDRA. Au niveau 1, nous avions mesuré qu'une simple image gaspillait 12 mL d'eau. Maintenant que le système tourne en sobriété et en circuit fermé, nous pouvons utiliser l'IA générative à bon escient : concevez votre propre innovation pour préserver l'eau, et matérialisons son prototype dans le noyau d'HYDRA !"
+                  message={
+                    <>
+                      Agent, vous avez franchi les 12 niveaux de sécurité et repris le contrôle d'HYDRA. Au niveau 1, nous avions mesuré qu'une simple image gaspillait 12 mL d'eau. Maintenant que le système tourne en sobriété et en circuit fermé, nous pouvons utiliser l'IA générative à bon escient : rédigez un <TechTerm term="Prompt">prompt</TechTerm> précis dès le premier essai pour limiter les relances, concevez votre propre innovation pour préserver l'eau, et matérialisons son prototype dans le noyau d'HYDRA !
+                    </>
+                  }
                   emotion="happy"
                 />
               </div>

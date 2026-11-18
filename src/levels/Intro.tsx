@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion } from 'motion/react';
 import { ShieldAlert, Play, RotateCcw, Trash2 } from 'lucide-react';
 import TechTerm from '../components/TechTerm';
-import { LEVEL_NAMES } from '../constants';
+import { LEVEL_NAMES, MISSION_DURATION_MINUTES } from '../constants';
 
 export default function Intro({ onStart, hasSavedGame, savedGameInfo, onLoadGame, onClearSave }: { 
   onStart: (name: string) => void; 
@@ -67,7 +67,7 @@ export default function Intro({ onStart, hasSavedGame, savedGameInfo, onLoadGame
             </div>
 
             <p className="text-emerald-400 font-mono font-bold text-center text-sm sm:text-base pt-1">
-              Vous avez 30 minutes. Bonne chance.
+              Vous avez {MISSION_DURATION_MINUTES} minutes. Bonne chance.
             </p>
           </div>
 

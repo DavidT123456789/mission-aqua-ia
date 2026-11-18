@@ -12,13 +12,13 @@ export default function Level10({ isDevMode, onComplete, onScoreUpdate, onMistak
 
   const [shuffledClauses] = useState(() => [
     { id: 1, text: <>Transparence obligatoire sur la consommation d'eau des modèles <TechTerm term="IA" />.</>, good: true },
-    { id: 2, text: <>Accélération du <TechTerm term="Machine Learning">machine learning</TechTerm> par suppression des quotas d'énergie.</>, good: false },
+    { id: 2, text: <>Compenser le pompage local pour le <TechTerm term="Machine Learning">machine learning</TechTerm> en plantant des arbres dans un autre pays.</>, good: false },
     { id: 3, text: <>Refroidissement des <TechTerm term="Serveur">serveurs</TechTerm> autorisé avec l'eau potable du réseau public.</>, good: false },
     { id: 4, text: <>Interdiction d'entraîner des <TechTerm term="LLM">LLMs</TechTerm> géants pour des tâches simples.</>, good: true },
     { id: 5, text: <>Réutilisation obligatoire de la chaleur fatale des <TechTerm term="Datacenter">data centers</TechTerm>.</>, good: true },
     { id: 6, text: <>Exemption d'étude d'impact pour accélérer le déploiement des infrastructures <TechTerm term="Cloud">cloud</TechTerm>.</>, good: false },
     { id: 7, text: <>Évaluation du coût écologique avant chaque déploiement d'<TechTerm term="Algorithme">algorithme</TechTerm> majeur.</>, good: true },
-    { id: 8, text: <>Soutien inconditionnel au développement massif de l'<TechTerm term="IA Générative">IA générative</TechTerm>.</>, good: false },
+    { id: 8, text: <>Remplacer les quotas d'eau de l'<TechTerm term="IA Générative">IA générative</TechTerm> par un label « Éco-IA » auto-déclaré sans contrôle.</>, good: false },
   ].sort(() => Math.random() - 0.5));
 
   const isSuccess = hasScored;
@@ -45,13 +45,16 @@ export default function Level10({ isDevMode, onComplete, onScoreUpdate, onMistak
         onScoreUpdate(200, 82);
       }
     } else {
+      const hasGreenwashing = selectedClauses.includes(2) || selectedClauses.includes(8);
       setErrorMsg(
-        hasBadClause
+        hasGreenwashing
+          ? 'PIÈGE DE GREENWASHING DÉTECTÉ : cela ne protège pas nos nappes locales !'
+          : hasBadClause
           ? 'CLAUSES DANGEREUSES DÉTECTÉES'
           : 'CHARTE INCOMPLÈTE'
       );
       onMistake?.();
-      setTimeout(() => setErrorMsg(null), 2500);
+      setTimeout(() => setErrorMsg(null), 3000);
     }
   };
 
@@ -143,7 +146,7 @@ export default function Level10({ isDevMode, onComplete, onScoreUpdate, onMistak
                  CHARTE ADOPTÉE
               </div>
               <p className="text-center mb-6 text-sm">
-                La charte a été adoptée par la ville. La régulation publique est une étape indispensable : l'innovation technologique doit être encadrée par des règles claires pour garantir qu'elle bénéficie à l'humanité sans détruire son écosystème.
+                La charte est adoptée ! Vous avez su déjouer les faux-semblants du <strong>greenwashing</strong> (compensation à l'étranger, labels auto-déclarés) pour imposer des règles locales réelles et mesurables.
               </p>
               <button
                 onClick={onComplete}

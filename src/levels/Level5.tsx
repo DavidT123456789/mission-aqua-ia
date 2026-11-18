@@ -1,4 +1,4 @@
-import { useState, useRef, type PointerEvent } from 'react';
+import { useState, useRef, useEffect, type PointerEvent } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Clock, ArrowRight, Leaf, CheckCircle2, AlertTriangle, Activity, Zap } from 'lucide-react';
 import NaiaDialogue from '../components/NaiaDialogue';
@@ -23,8 +23,24 @@ export default function Level5({ isDevMode, onComplete, onScoreUpdate, onMistake
   const [hasScored, setHasScored] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [isDraggingChart, setIsDraggingChart] = useState(false);
+  const [isSlidingRange, setIsSlidingRange] = useState(false);
   const chartRef = useRef<HTMLDivElement>(null);
   const dragGrabOffsetRef = useRef<number | null>(null);
+  const isAdjusting = isDraggingChart || isSlidingRange;
+
+  // Garantit que le relâchement de la souris en dehors de la barre du slider remet bien isSlidingRange à false
+  useEffect(() => {
+    if (!isSlidingRange) return;
+    const stopSliding = () => setIsSlidingRange(false);
+    window.addEventListener('pointerup', stopSliding);
+    window.addEventListener('pointercancel', stopSliding);
+    window.addEventListener('keyup', stopSliding);
+    return () => {
+      window.removeEventListener('pointerup', stopSliding);
+      window.removeEventListener('pointercancel', stopSliding);
+      window.removeEventListener('keyup', stopSliding);
+    };
+  }, [isSlidingRange]);
 
   const getHourFromClientX = (clientX: number): number | null => {
     const rect = chartRef.current?.getBoundingClientRect();
@@ -250,6 +266,16 @@ export default function Level5({ isDevMode, onComplete, onScoreUpdate, onMistake
               step={1}
               disabled={isSuccess}
               value={startHour}
+              onPointerDown={() => setIsSlidingRange(true)}
+              onPointerUp={() => setIsSlidingRange(false)}
+              onPointerCancel={() => setIsSlidingRange(false)}
+              onKeyDown={(e) => {
+                if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End', 'PageUp', 'PageDown'].includes(e.key)) {
+                  setIsSlidingRange(true);
+                }
+              }}
+              onKeyUp={() => setIsSlidingRange(false)}
+              onBlur={() => setIsSlidingRange(false)}
               onChange={(e) => {
                 setStartHour(Number(e.target.value));
                 setShowError(false);
@@ -265,26 +291,40 @@ export default function Level5({ isDevMode, onComplete, onScoreUpdate, onMistake
           </div>
         </div>
 
-        {/* Live Telemetry Cards */}
+        {/* Live Telemetry Cards (masked while dragging/sliding to avoid blind visual trial-and-error) */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 flex flex-col items-center text-center">
             <span className="text-[10px] uppercase text-slate-500 tracking-wider mb-1">Intensité Moyenne</span>
-            <span className={`text-2xl font-black transition-colors ${
-              isSuccess ? 'text-emerald-400' : showError ? 'text-red-400' : 'text-white'
-            }`}>{avgIntensity} <span className="text-xs font-normal text-slate-400">gCO₂/kWh</span></span>
+            {isAdjusting ? (
+              <span className="text-lg font-bold text-slate-500 py-1 animate-pulse">Mesure au relâchement…</span>
+            ) : (
+              <span className={`text-2xl font-black transition-colors ${
+                isSuccess ? 'text-emerald-400' : showError ? 'text-red-400' : 'text-white'
+              }`}>{avgIntensity} <span className="text-xs font-normal text-slate-400">gCO₂/kWh</span></span>
+            )}
           </div>
           <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 flex flex-col items-center text-center">
             <span className="text-[10px] uppercase text-slate-500 tracking-wider mb-1 flex items-center gap-1">
               <Leaf className="w-3 h-3 text-emerald-400" /> Part Renouvelable
             </span>
-            <span className="text-2xl font-black text-cyan-300">{renewableShare}%</span>
+            {isAdjusting ? (
+              <span className="text-2xl font-black text-slate-600">--%</span>
+            ) : (
+              <span className="text-2xl font-black text-cyan-300">{renewableShare}%</span>
+            )}
           </div>
           <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 flex flex-col items-center text-center">
             <span className="text-[10px] uppercase text-slate-500 tracking-wider mb-1 flex items-center gap-1">
               <Zap className="w-3 h-3 text-yellow-400" /> Bilan Entraînement
             </span>
-            <span className="text-2xl font-black text-slate-200">{totalCo2Kg} <span className="text-xs font-normal text-slate-400">kg CO₂</span></span>
-            <span className="text-[10px] text-slate-500 mt-0.5">pour {TRAINING_ENERGY_KWH} kWh (pic soir : {peakCo2Kg} kg)</span>
+            {isAdjusting ? (
+              <span className="text-2xl font-black text-slate-600">-- <span className="text-xs font-normal text-slate-500">kg CO₂</span></span>
+            ) : (
+              <>
+                <span className="text-2xl font-black text-slate-200">{totalCo2Kg} <span className="text-xs font-normal text-slate-400">kg CO₂</span></span>
+                <span className="text-[10px] text-slate-500 mt-0.5">pour {TRAINING_ENERGY_KWH} kWh (pic soir : {peakCo2Kg} kg)</span>
+              </>
+            )}
           </div>
         </div>
 

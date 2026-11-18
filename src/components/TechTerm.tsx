@@ -63,6 +63,26 @@ export const TERMS_DICTIONARY: Record<string, { title: string; definition: strin
   'PUE': {
     title: 'Power Usage Effectiveness (PUE)',
     definition: 'Indicateur d\'efficacité énergétique d\'un datacenter (énergie totale du bâtiment ÷ énergie des serveurs). Plus il est proche de 1,0, moins il y a de pertes en climatisation.'
+  },
+  'CPU': {
+    title: 'Processeur (CPU)',
+    definition: 'Le cerveau d\'un ordinateur ou serveur qui exécute les calculs et coordonne les opérations du système.'
+  },
+  'RAM': {
+    title: 'Mémoire Vive (RAM)',
+    definition: 'Mémoire ultra-rapide qui stocke temporairement les données en cours de traitement. Une barrette défaillante provoque des plantages.'
+  },
+  'DEEE': {
+    title: 'Déchets Électriques et Électroniques',
+    definition: 'Filière de recyclage spécialisée qui dépollue les composants hors service (métaux lourds) et récupère l\'or, le cuivre ou les terres rares.'
+  },
+  'Eau virtuelle': {
+    title: 'Eau virtuelle (Empreinte eau)',
+    definition: 'Toute l\'eau cachée consommée durant la fabrication d\'un objet (ex : gravure ultra-pure des puces électroniques) et la production de son énergie.'
+  },
+  'Latence': {
+    title: 'Latence (Temps de réponse)',
+    definition: 'Délai entre l\'envoi d\'une demande et la réception du résultat (mesuré en millisecondes, ms). Plus la latence est faible, plus le système réagit vite.'
   }
 };
 

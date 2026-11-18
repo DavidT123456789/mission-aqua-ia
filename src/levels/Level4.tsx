@@ -170,7 +170,7 @@ export default function Level4({ isDevMode: _isDevMode, onComplete, onScoreUpdat
         <NaiaDialogue
           message={
             <>
-              HYDRA construit un nouveau <TechTerm term="Datacenter">data center</TechTerm> d'entraînement (latence tolérée jusqu'à 40 ms). Testez les systèmes de <TechTerm term="Refroidissement" /> ci-dessous pour simuler l'eau et le <TechTerm term="PUE" /> des 4 sites, puis sélectionnez la combinaison respectant nos 3 seuils stricts.
+              HYDRA construit un nouveau <TechTerm term="Datacenter">data center</TechTerm> d'entraînement (<TechTerm term="Latence">latence</TechTerm> tolérée jusqu'à 40 ms). Testez les systèmes de <TechTerm term="Refroidissement" /> ci-dessous pour simuler l'eau et le <TechTerm term="PUE" /> des 4 sites, puis sélectionnez la combinaison respectant nos 3 seuils stricts.
             </>
           }
           emotion="neutral"
@@ -197,7 +197,9 @@ export default function Level4({ isDevMode: _isDevMode, onComplete, onScoreUpdat
             <span className="px-2.5 py-1 rounded bg-slate-900 border border-slate-700 text-slate-200 font-bold">
               <TechTerm term="PUE" /> &lt; 1.15
             </span>
-            <span className="px-2.5 py-1 rounded bg-slate-900 border border-slate-700 text-slate-200 font-bold">Latence ≤ 40 ms</span>
+            <span className="px-2.5 py-1 rounded bg-slate-900 border border-slate-700 text-slate-200 font-bold">
+              <TechTerm term="Latence" /> ≤ 40 ms
+            </span>
           </div>
         </div>
 

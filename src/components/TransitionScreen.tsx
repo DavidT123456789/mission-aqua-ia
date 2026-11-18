@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Terminal, Cpu, ChevronRight, Star, ArrowUpRight } from 'lucide-react';
 import { soundManager } from '../utils/soundManager';
-import { LEVEL_NAMES } from '../constants';
+import { LEVEL_NAMES, MISSION_DURATION_SECONDS } from '../constants';
 
 interface TransitionScreenProps {
   level: number;
@@ -171,7 +171,7 @@ export default function TransitionScreen({ level, fact, onTransitionComplete, sc
               </div>
               <div className="mt-1.5 text-[8px] text-slate-400 uppercase tracking-widest flex items-center gap-1 bg-white/5 px-2 py-0.5 rounded-full border border-white/10">
                 <span>Efficacité:</span>
-                <span className="text-cyan-300 font-black ml-1">{Math.round((timeRemaining / 1800) * 100)}%</span>
+                <span className="text-cyan-300 font-black ml-1">{Math.min(100, Math.round((timeRemaining / MISSION_DURATION_SECONDS) * 100))}%</span>
                 <ArrowUpRight className="w-2.5 h-2.5 text-cyan-400" />
               </div>
             </div>

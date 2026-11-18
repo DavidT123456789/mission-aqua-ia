@@ -5,7 +5,7 @@ import confetti from 'canvas-confetti';
 import HUD from './components/HUD';
 import TransitionScreen from './components/TransitionScreen';
 import { soundManager } from './utils/soundManager';
-import { HINTS, FACTS, LEVEL_NAMES } from './constants';
+import { HINTS, FACTS, LEVEL_NAMES, MISSION_DURATION_SECONDS } from './constants';
 import Intro from './levels/Intro';
 import Level1 from './levels/Level1';
 import Level2 from './levels/Level2';
@@ -26,7 +26,8 @@ import { TERMS_DICTIONARY } from './components/TechTerm';
 
 export default function App() {
   const [level, setLevel] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(1800); // 30 minutes
+  const [timeLeft, setTimeLeft] = useState(MISSION_DURATION_SECONDS); // 40 minutes
+  const [extraTimeBought, setExtraTimeBought] = useState(0);
   const [isActive, setIsActive] = useState(false);
   const [score, setScore] = useState(0);
   const [waterSaved, setWaterSaved] = useState(0);
@@ -130,13 +131,21 @@ export default function App() {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (typeof parsed?.level === 'number' && parsed.level > 0 && parsed.level < 14) {
+        if (
+          typeof parsed?.level === 'number' &&
+          parsed.level > 0 &&
+          parsed.level < 14 &&
+          (parsed.lives ?? 3) > 0 &&
+          (parsed.timeLeft ?? 1) > 0
+        ) {
           setHasSavedGame(true);
           setSavedGameInfo({
             level: parsed.level,
             score: parsed.score ?? 0,
-            timeLeft: parsed.timeLeft ?? 1800,
+            timeLeft: parsed.timeLeft ?? MISSION_DURATION_SECONDS,
           });
+        } else {
+          localStorage.removeItem('hydrosave_progress');
         }
       } catch {
         localStorage.removeItem('hydrosave_progress');
@@ -151,12 +160,19 @@ export default function App() {
 
   useEffect(() => {
     if (level > 0 && level < 14) {
+      if (lives <= 0 || timeLeft <= 0) {
+        localStorage.removeItem('hydrosave_progress');
+        setHasSavedGame(false);
+        setSavedGameInfo(null);
+        return;
+      }
       const state = {
         level,
         score,
         waterSaved,
         lives,
         timeLeft,
+        extraTimeBought,
         nickname,
         discoveredTerms,
         unlockedFreeHints,
@@ -166,36 +182,44 @@ export default function App() {
       setHasSavedGame(true);
       setSavedGameInfo({ level, score, timeLeft });
     }
-  }, [level, score, waterSaved, lives, timeLeft, nickname, discoveredTerms, unlockedFreeHints, unlockedPaidHints]);
+  }, [level, score, waterSaved, lives, timeLeft, extraTimeBought, nickname, discoveredTerms, unlockedFreeHints, unlockedPaidHints]);
+
+  const leaderboardRecordedRef = useRef(false);
 
   useEffect(() => {
-    if (level === 14) {
-      setIsActive(false); // Arrête le timer
-      setHasSavedGame(false);
-      setSavedGameInfo(null);
-      localStorage.removeItem('hydrosave_progress');
-
-      // Ajout du score au leaderboard de façon résiliente avec garantie d'utilisation des données les plus à jour (sans stale closure)
-      setLeaderboard((prevBoard) => {
-        const newEntry = { name: nickname || 'Agent Anonyme', score };
-        
-        // On évite les doublons stricts (même nom, même score) pour prévenir les soucis en mode dev (Strict Mode de React)
-        // et éviter d'inonder le leaderboard avec la même performance
-        const isDuplicate = prevBoard.some(entry => entry.score === newEntry.score && entry.name === newEntry.name);
-        
-        let updated;
-        if (isDuplicate) {
-           updated = prevBoard;
-        } else {
-           updated = [...prevBoard, newEntry]
-              .sort((a, b) => b.score - a.score)
-              .slice(0, 5); // Limite au Top 5
-        }
-        
-        localStorage.setItem('hydrosave_leaderboard', JSON.stringify(updated));
-        return updated;
-      });
+    if (level < 14) {
+      leaderboardRecordedRef.current = false;
+      return;
     }
+
+    setIsActive(false); // Arrête le timer
+    setHasSavedGame(false);
+    setSavedGameInfo(null);
+    localStorage.removeItem('hydrosave_progress');
+
+    if (leaderboardRecordedRef.current) return;
+    leaderboardRecordedRef.current = true;
+
+    // Ajout du score au leaderboard de façon résiliente avec garantie d'utilisation des données les plus à jour (sans stale closure)
+    setLeaderboard((prevBoard) => {
+      const newEntry = { name: nickname || 'Agent Anonyme', score };
+      
+      // On évite les doublons stricts (même nom, même score) pour prévenir les soucis en mode dev (Strict Mode de React)
+      // et éviter d'inonder le leaderboard avec la même performance
+      const isDuplicate = prevBoard.some(entry => entry.score === newEntry.score && entry.name === newEntry.name);
+      
+      let updated;
+      if (isDuplicate) {
+         updated = prevBoard;
+      } else {
+         updated = [...prevBoard, newEntry]
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 5); // Limite au Top 5
+      }
+      
+      localStorage.setItem('hydrosave_leaderboard', JSON.stringify(updated));
+      return updated;
+    });
   }, [level, nickname, score]);
 
   const loadGame = () => {
@@ -212,6 +236,7 @@ export default function App() {
       setWaterSaved(state.waterSaved);
       setLives(state.lives);
       setTimeLeft(state.timeLeft);
+      setExtraTimeBought(state.extraTimeBought || 0);
       setNickname(state.nickname);
       const loadedTerms = state.discoveredTerms || [];
       setDiscoveredTerms(loadedTerms);
@@ -230,10 +255,14 @@ export default function App() {
   };
 
   const discoveredTermsRef = useRef<string[]>([]);
+  const levelRef = useRef(level);
   useEffect(() => {
     // Keep ref in sync for the event listener to check without side-effects in updaters
     discoveredTermsRef.current = discoveredTerms;
   }, [discoveredTerms]);
+  useEffect(() => {
+    levelRef.current = level;
+  }, [level]);
 
   useEffect(() => {
     const handleDiscovery = (e: any) => {
@@ -250,10 +279,13 @@ export default function App() {
         return [...prev, term];
       });
 
-      setScore(s => s + 10);
-      setLevelBonusScore(prev => prev + 10);
+      // Figer les gains de points sur l'écran de fin (level 14) pour ne pas fausser le score/classement
+      if (levelRef.current < 14) {
+        setScore(s => s + 10);
+        setLevelBonusScore(prev => prev + 10);
+        window.dispatchEvent(new CustomEvent('glossaryPlusOne'));
+      }
       soundManager.playSuccess();
-      window.dispatchEvent(new CustomEvent('glossaryPlusOne'));
     };
     window.addEventListener('discoverTerm', handleDiscovery);
     return () => window.removeEventListener('discoverTerm', handleDiscovery);
@@ -332,7 +364,9 @@ export default function App() {
     setScore(initialScore);
     setWaterSaved(0);
     setLives(3);
-    setTimeLeft(1800);
+    setTimeLeft(MISSION_DURATION_SECONDS);
+    setExtraTimeBought(0);
+    leaderboardRecordedRef.current = false;
     setUnlockedFreeHints([]);
     setUnlockedPaidHints([]);
     setLevelBonusScore(0);
@@ -425,10 +459,15 @@ export default function App() {
   };
 
   const prevLevelDev = () => {
-    setLevel((l) => Math.max(1, l - 1));
+    setLevel((l) => Math.max(0, l - 1));
   };
 
   const skipLevelDev = () => {
+    if (level >= 14) return;
+    if (level === 0) {
+      setLevel(1);
+      return;
+    }
     const devWaterByLevel: Record<number, number> = { 1: 0, 2: 28, 3: 35, 4: 42, 5: 49, 6: 56, 7: 63, 8: 70, 9: 76, 10: 82, 11: 88, 12: 94, 13: 100 };
     handleScoreUpdate(200, devWaterByLevel[level] ?? 50);
     nextLevel();
@@ -467,7 +506,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-emerald-400 font-mono flex flex-col items-center justify-center p-4 overflow-hidden relative">
+    <div className="min-h-screen bg-slate-950 text-emerald-400 font-mono flex flex-col items-center p-4 pb-2 overflow-hidden relative">
       {/* Decorative background elements */}
       <Background />
       {/* Success Flash Overlay */}
@@ -503,16 +542,17 @@ export default function App() {
         prevLevelDev={prevLevelDev}
         skipLevelDev={skipLevelDev}
         buyHeart={() => {
-          if (score >= 200 && lives < 3) {
+          if (level !== 13 && score >= 200 && lives < 3) {
             setScore(s => s - 200);
             setLives(l => l + 1);
             soundManager.playSuccess();
           }
         }}
         buyTime={() => {
-          if (score >= 100) {
+          if (level !== 13 && score >= 100 && timeLeft < MISSION_DURATION_SECONDS) {
             setScore(s => s - 100);
             setTimeLeft(t => t + 180); // Add 3 minutes
+            setExtraTimeBought(e => e + 180);
             soundManager.playSuccess();
           }
         }}
@@ -725,7 +765,7 @@ export default function App() {
       </AnimatePresence>
 
       <motion.main 
-        className="w-full mt-14 md:mt-16 pb-6 relative"
+        className="w-full pt-14 md:pt-16 pb-2 my-auto relative"
         animate={isShaking ? { 
           x: [-10, 10, -10, 10, 0], 
           filter: ["hue-rotate(0deg)", "hue-rotate(90deg)", "hue-rotate(-90deg)", "hue-rotate(0deg)"],
@@ -784,6 +824,7 @@ export default function App() {
             <Outro 
               key="outro" 
               timeLeft={timeLeft} 
+              extraTimeBought={extraTimeBought}
               score={score} 
               waterSaved={waterSaved}
               onRestart={startGame} 
@@ -798,15 +839,13 @@ export default function App() {
 
       {/* Background moved to the top for z-index layering */}
 
-      <footer className="w-full max-w-4xl mx-auto flex justify-start relative z-20 mt-2">
+      <footer className="w-full max-w-4xl mx-auto flex justify-center relative z-20 pt-2">
         <button 
           onClick={() => setShowDevModal(true)}
-          className="text-[10px] sm:text-xs font-sans text-emerald-500/30 hover:text-emerald-500/60 transition-all duration-500 bg-transparent border-none p-2 focus:outline-none cursor-default group"
+          className="text-[10px] sm:text-xs font-sans text-emerald-500/35 hover:text-emerald-500/70 transition-colors duration-300 bg-transparent border-none px-3 py-1.5 focus:outline-none cursor-default"
           aria-label="Mode Enseignant / Développeur"
         >
-          <span className="group-hover:translate-x-1 inline-block transition-transform duration-500">
-            Réalisé par la constellation Echo
-          </span>
+          Réalisé par la constellation Echo
         </button>
       </footer>
     </div>

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Flame, CheckCircle2, Home, Droplets, ArrowUp, ArrowDown, AlertTriangle, RefreshCw, Wind } from 'lucide-react';
+import { Flame, CheckCircle2, Home, Droplets, ArrowUp, ArrowDown, AlertTriangle, RefreshCw, Wind, Server, ArrowRight } from 'lucide-react';
 import NaiaDialogue from '../components/NaiaDialogue';
 import TechTerm from '../components/TechTerm';
 import { soundManager } from '../utils/soundManager';
@@ -12,10 +12,10 @@ interface LoopStep {
 }
 
 const CORRECT_LOOP_STEPS: LoopStep[] = [
-  { id: 1, label: 'Captage thermique', detail: 'L\'eau froide absorbe la chaleur des serveurs via un échangeur (25°C → 58°C).' },
-  { id: 2, label: 'Acheminement isolé', detail: 'L\'eau réchauffée est pompée vers la boucle urbaine sans contact avec l\'air.' },
-  { id: 3, label: 'Transfert aux logements', detail: 'Un échangeur cède les calories au chauffage et à l\'eau chaude des habitants.' },
-  { id: 4, label: 'Retour en boucle fermée', detail: 'L\'eau refroidie (25°C) revient au datacenter pour un nouveau cycle.' }
+  { id: 1, label: 'Captage thermique', detail: 'L\'eau du circuit absorbe la chaleur dégagée par les serveurs via un échangeur interne.' },
+  { id: 2, label: 'Acheminement isolé', detail: 'L\'eau circule dans des conduites souterraines isolées en direction du quartier.' },
+  { id: 3, label: 'Transfert aux logements', detail: 'Un second échangeur transmet la chaleur au chauffage et à l\'eau chaude des habitants.' },
+  { id: 4, label: 'Retour en boucle fermée', detail: 'Après avoir cédé ses calories, l\'eau repart par une conduite dédiée sans contact avec l\'air.' }
 ];
 
 // Ordre initial volontairement mélangé (non résolu)
@@ -174,6 +174,39 @@ export default function Level8({ isDevMode, onComplete, onScoreUpdate, onMistake
                   <RefreshCw className="w-4 h-4" />
                   2. Remettez dans l'ordre les 4 étapes du cycle fermé :
                 </h3>
+              </div>
+
+              {/* Schéma synoptique de la boucle fermée */}
+              <div className="mb-4 p-3 rounded-xl bg-slate-900/70 border border-slate-800">
+                <div className="text-[10px] uppercase tracking-wider text-slate-500 mb-2 text-center">
+                  Schéma de la boucle : Datacenter → Conduite Aller → Logements → Conduite Retour
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 items-center">
+                  {steps.map((s, idx) => {
+                    const slotLabels = ['1. Datacenter', '2. Conduite Aller', '3. Quartier', '4. Conduite Retour'];
+                    return (
+                      <div key={`schema-${s.id}`} className="flex items-center gap-1.5">
+                        <div className={`flex-1 px-2.5 py-2 rounded-lg border text-center transition-colors ${
+                          isSuccess
+                            ? idx < 2
+                              ? 'bg-orange-950/30 border-orange-500/40 text-orange-200'
+                              : 'bg-cyan-950/30 border-cyan-500/40 text-cyan-200'
+                            : 'bg-slate-950 border-slate-700 text-slate-300'
+                        }`}>
+                          <div className="flex items-center justify-center gap-1 text-[10px] text-slate-400 mb-0.5">
+                            {idx === 0 && <Server className="w-3 h-3 text-orange-400" />}
+                            {idx === 2 && <Home className="w-3 h-3 text-emerald-400" />}
+                            <span>{slotLabels[idx]}</span>
+                          </div>
+                          <div className="text-[11px] font-bold truncate">{s.label}</div>
+                        </div>
+                        {idx < steps.length - 1 && (
+                          <ArrowRight className="hidden sm:block w-3.5 h-3.5 text-slate-600 shrink-0" />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
 
               <div className="space-y-2.5">

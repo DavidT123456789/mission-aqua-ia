@@ -1,51 +1,66 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Server, CheckCircle2, AlertTriangle, Wrench, Trash2, Cpu, MemoryStick, HardDrive, Recycle, Terminal } from 'lucide-react';
+import { Server, CheckCircle2, AlertTriangle, Wrench, Trash2, Cpu, MemoryStick, HardDrive, Recycle, Terminal, Zap } from 'lucide-react';
 import NaiaDialogue from '../components/NaiaDialogue';
 import HydraLog from '../components/HydraLog';
 import TechTerm from '../components/TechTerm';
 import { soundManager } from '../utils/soundManager';
 
-type ComponentId = 'cpu' | 'ram' | 'nvme';
+type ComponentId = 'cpu' | 'ram' | 'nvme' | 'gpu';
 type ActionId = 'replace_all' | 'repair_ram' | 'refurbished';
 type DisposalId = 'trash' | 'weee';
 
 const HARDWARE_LOGS: {
   id: ComponentId;
-  name: string;
+  name: React.ReactNode;
   icon: typeof Cpu;
-  metrics: { label: string; value: string }[];
+  metrics: { id: string; label: React.ReactNode; value: string }[];
   logLine: string;
+  logPlain: string;
 }[] = [
   {
     id: 'cpu',
-    name: 'Processeur (CPU)',
+    name: <>Processeur (<TechTerm term="CPU">CPU</TechTerm>)</>,
     icon: Cpu,
     metrics: [
-      { label: 'Temp.', value: '64°C (max 95°C)' },
-      { label: 'Charge', value: '42%' }
+      { id: 'temp', label: 'Temp.', value: '64°C (max 95°C)' },
+      { id: 'load', label: 'Charge', value: '42%' }
     ],
-    logLine: '[KERNEL] CPU0-15: thermal throttling nominal, 0 machine-check exception.'
+    logLine: '[KERNEL] CPU0-15: thermal throttling nominal, 0 machine-check exception.',
+    logPlain: 'Traduction : régulation thermique normale, aucune erreur matérielle.'
   },
   {
     id: 'ram',
-    name: 'Mémoire Vive (RAM ECC)',
+    name: <>Mémoire Vive (<TechTerm term="RAM">RAM</TechTerm> ECC)</>,
     icon: MemoryStick,
     metrics: [
-      { label: 'Temp.', value: '49°C (max 85°C)' },
-      { label: 'Parité', value: '4 820 corr./min' }
+      { id: 'temp', label: 'Temp.', value: '49°C (max 85°C)' },
+      { id: 'parity', label: 'Parité', value: '4 820 corr./min' }
     ],
-    logLine: '[EDAC] MC0: uncorrectable page read failure on DIMM_B2 (addr 0x7FF4A0).'
+    logLine: '[EDAC] MC0: uncorrectable page read failure on DIMM_B2 (addr 0x7FF4A0).',
+    logPlain: 'Traduction : échec critique de lecture mémoire impossible à corriger sur la barrette B2.'
   },
   {
     id: 'nvme',
     name: 'Disque Stockage (NVMe)',
     icon: HardDrive,
     metrics: [
-      { label: 'Santé SMART', value: '96%' },
-      { label: 'Latence I/O', value: '0.4 ms' }
+      { id: 'health', label: 'Santé disque', value: '96%' },
+      { id: 'latency', label: <TechTerm term="Latence" />, value: '0.4 ms' }
     ],
-    logLine: '[NVME] nvme0n1: 0 media errors, 0 reallocated sectors.'
+    logLine: '[NVME] nvme0n1: 0 media errors, 0 reallocated sectors.',
+    logPlain: 'Traduction : aucune erreur disque ni secteur défectueux détecté.'
+  },
+  {
+    id: 'gpu',
+    name: <>Carte Calcul IA (<TechTerm term="GPU">GPU</TechTerm>)</>,
+    icon: Zap,
+    metrics: [
+      { id: 'temp', label: 'Temp.', value: '58°C (max 90°C)' },
+      { id: 'vram', label: 'VRAM ECC', value: '0 erreur' }
+    ],
+    logLine: '[GPU-MON] GPU0: compute cores nominal, 0 uncorrected VRAM error.',
+    logPlain: 'Traduction : processeur graphique sain, aucune erreur de calcul ni mémoire vidéo.'
   }
 ];
 
@@ -71,8 +86,10 @@ export default function Level7({ isDevMode, onComplete, onScoreUpdate, onMistake
       setStep(2);
     } else if (selectedComponent === 'cpu') {
       triggerError("Le processeur est à 64°C (largement sous la limite de 95°C) et n'a aucune erreur.");
+    } else if (selectedComponent === 'gpu') {
+      triggerError("Le GPU est à 58°C avec 0 erreur VRAM : inutile de le remplacer, sa gravure coûte énormément d'eau ultra-pure !");
     } else {
-      triggerError("Le disque NVMe affiche 96% de santé SMART et 0 secteur réalloué : il est sain.");
+      triggerError("Le disque NVMe affiche 96% de santé disque et 0 secteur réalloué : il est sain.");
     }
   };
 
@@ -131,15 +148,15 @@ export default function Level7({ isDevMode, onComplete, onScoreUpdate, onMistake
           message={
             step === 1 ? (
               <>
-                Un des <TechTerm term="Serveur">serveurs</TechTerm> locaux d'HYDRA remonte des plantages critiques. Par défaut, son protocole commande une machine neuve (1 200 L d'eau pure pour graver les puces !). Analysez d'abord les journaux système pour isoler le composant en panne.
+                Un des <TechTerm term="Serveur">serveurs</TechTerm> locaux d'HYDRA remonte des plantages critiques. Par défaut, son protocole commande une machine neuve (1 200 L d'<TechTerm term="Eau virtuelle">eau virtuelle</TechTerm> pour graver les puces et <TechTerm term="GPU">GPU</TechTerm> !). Analysez d'abord les journaux système pour isoler le composant en panne.
               </>
             ) : step === 2 ? (
               <>
-                Bien vu : seule la barrette mémoire (RAM) génère des erreurs critiques. Choisissez maintenant l'intervention la plus sobre en eau et en matières premières.
+                Bien vu : seule la barrette mémoire (<TechTerm term="RAM">RAM</TechTerm>) génère des erreurs critiques. Choisissez maintenant l'intervention la plus sobre en eau et en matières premières.
               </>
             ) : (
               <>
-                La barrette est remplacée et le serveur redémarre ! Dernière décision : que faire de l'ancien module défectueux pour boucler le cycle de vie ?
+                La barrette est remplacée et le serveur redémarre ! Dernière décision : que faire de l'ancien module défectueux pour boucler le cycle de vie (<TechTerm term="DEEE">DEEE</TechTerm>) ?
               </>
             )
           }
@@ -176,7 +193,7 @@ export default function Level7({ isDevMode, onComplete, onScoreUpdate, onMistake
               <Terminal className="w-4 h-4 text-cyan-400" />
               Inspectez les journaux ci-dessous et sélectionnez le composant défaillant :
             </p>
-            <div className="grid grid-cols-1 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {HARDWARE_LOGS.map((comp) => {
                 const Icon = comp.icon;
                 const isSelected = selectedComponent === comp.id;
@@ -198,14 +215,15 @@ export default function Level7({ isDevMode, onComplete, onScoreUpdate, onMistake
                       </div>
                       <div className="flex flex-wrap gap-2 text-[11px]">
                         {comp.metrics.map(m => (
-                          <span key={m.label} className="px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-300">
+                          <span key={m.id} className="px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-300">
                             {m.label} : <strong className="text-white">{m.value}</strong>
                           </span>
                         ))}
                       </div>
                     </div>
-                    <div className="text-xs font-mono text-slate-400 bg-slate-900/80 px-3 py-2 rounded border border-slate-800/80">
-                      {comp.logLine}
+                    <div className="text-xs font-mono text-slate-400 bg-slate-900/80 px-3 py-2 rounded border border-slate-800/80 space-y-1">
+                      <div>{comp.logLine}</div>
+                      <div className="font-sans text-[11px] text-cyan-300/90 italic">({comp.logPlain})</div>
                     </div>
                   </button>
                 );
@@ -377,7 +395,7 @@ export default function Level7({ isDevMode, onComplete, onScoreUpdate, onMistake
                 MAINTENANCE CIRCULAIRE VALIDÉE
               </div>
               <p className="text-center mb-6 text-sm">
-                Plus de 70 % de l'empreinte écologique d'un matériel informatique provient de sa fabrication (dont l'eau ultra-pure nécessaire à la gravure des puces). En ciblant la panne réelle et en recyclant la pièce via les DEEE, vous avez économisé 1 185 litres d'eau virtuelle !
+                Plus de 70 % de l'empreinte écologique d'un matériel informatique provient de sa fabrication (dont l'eau ultra-pure nécessaire à la gravure des puces et <TechTerm term="GPU">GPU</TechTerm>). En ciblant la panne réelle et en recyclant la pièce via les <TechTerm term="DEEE">DEEE</TechTerm>, vous avez économisé 1 185 litres d'<TechTerm term="Eau virtuelle">eau virtuelle</TechTerm> !
               </p>
               <button
                 onClick={onComplete}

@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Cpu, CheckCircle2, RotateCcw } from 'lucide-react';
+import { Cpu, CheckCircle2, RotateCcw, CloudRain, Sun, Play, Loader2, XCircle } from 'lucide-react';
 import NaiaDialogue from '../components/NaiaDialogue';
 import HydraLog from '../components/HydraLog';
 import TechTerm from '../components/TechTerm';
@@ -42,61 +42,85 @@ const wordDescriptions: Record<string, string> = {
   'aube': "Début de journée (lever du soleil)",
 };
 
+type TestStatus = 'idle' | 'pending' | 'running' | 'pass' | 'fail' | 'skipped';
+
+interface TestBenchState {
+  case1: TestStatus;
+  case2: TestStatus;
+  message: string | null;
+}
+
 export default function Level11({ isDevMode, onComplete, onScoreUpdate, onMistake }: { isDevMode?: boolean; onComplete: () => void; onScoreUpdate: (points: number, water: number) => void; onMistake?: () => void; key?: string }) {
   const [activeWord, setActiveWord] = useState<{ id: number, word: string } | null>(null);
   const [activeBlank, setActiveBlank] = useState<number | null>(null);
+  const [draggedWord, setDraggedWord] = useState<{ id: number, word: string, fromBlankId?: number } | null>(null);
+  const [dragOverBlank, setDragOverBlank] = useState<number | null>(null);
   const [showError, setShowError] = useState(false);
   const [success, setSuccess] = useState(false);
   const [moisture, setMoisture] = useState(20);
+  const [isTesting, setIsTesting] = useState(false);
+  const [testBench, setTestBench] = useState<TestBenchState>({
+    case1: 'idle',
+    case2: 'idle',
+    message: null,
+  });
+  const testTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   // Initialisation paresseuse pour éviter de mélanger l'array à chaque re-render
   const [blanks, setBlanks] = useState(THE_BLANKS);
   const [words, setWords] = useState(getInitialWords);
 
+  const clearTestTimers = () => {
+    testTimersRef.current.forEach(clearTimeout);
+    testTimersRef.current = [];
+  };
+
+  useEffect(() => {
+    return () => clearTestTimers();
+  }, []);
+
+  const assignWordToBlank = (wordObj: { id: number; word: string }, blankId: number) => {
+    const targetBlank = blanks.find(b => b.id === blankId);
+    if (!targetBlank) return;
+
+    if (targetBlank.val !== '') {
+      // Libérer l'ancien mot déjà placé dans cette case
+      setWords(prev => prev.map(w => w.word === targetBlank.val ? { ...w, used: false } : w));
+    }
+    setBlanks(prev => prev.map(b => b.id === blankId ? { ...b, val: wordObj.word } : b));
+    setWords(prev => prev.map(w => w.id === wordObj.id ? { ...w, used: true } : w));
+    setShowError(false);
+    setTestBench({ case1: 'idle', case2: 'idle', message: null });
+  };
+
   const handleBlankClick = (id: number) => {
+    if (isTesting || success) return;
     const blank = blanks.find(b => b.id === id);
     if (!blank) return;
-    
+
     soundManager.playClick();
     if (activeWord) {
-      // Un mot est "en main", on le place ici
-      if (blank.val !== '') {
-        // Si la case était déjà pleine, on libère l'ancien mot
-        setWords(prev => prev.map(w => w.word === blank.val ? { ...w, used: false } : w));
-      }
-      setBlanks(prev => prev.map(b => b.id === id ? { ...b, val: activeWord.word } : b));
-      setWords(prev => prev.map(w => w.id === activeWord.id ? { ...w, used: true } : w));
+      assignWordToBlank(activeWord, id);
       setActiveWord(null);
+    } else if (blank.val !== '') {
+      setWords(prev => prev.map(w => w.word === blank.val ? { ...w, used: false } : w));
+      setBlanks(prev => prev.map(b => b.id === id ? { ...b, val: '' } : b));
+      setActiveBlank(null);
+      setShowError(false);
+      setTestBench({ case1: 'idle', case2: 'idle', message: null });
     } else {
-      if (blank.val !== '') {
-        // Si on clique sur un mot déjà placé sans rien avoir en main, on le retire
-        setWords(prev => prev.map(w => w.word === blank.val ? { ...w, used: false } : w));
-        setBlanks(prev => prev.map(b => b.id === id ? { ...b, val: '' } : b));
-        setActiveBlank(null);
-      } else {
-        // On cible un espace vide
-        setActiveBlank(activeBlank === id ? null : id);
-      }
+      setActiveBlank(activeBlank === id ? null : id);
     }
-    
-    setShowError(false);
   };
 
   const handleWordClick = (wordObj: { id: number, word: string, used: boolean }) => {
-    if (wordObj.used) return;
-    
+    if (wordObj.used || isTesting || success) return;
+
     soundManager.playClick();
     if (activeBlank) {
-      // Un espace est ciblé, on insère le mot dedans
-      const targetBlank = blanks.find(b => b.id === activeBlank);
-      if (targetBlank && targetBlank.val !== '') {
-        setWords(prev => prev.map(w => w.word === targetBlank.val ? { ...w, used: false } : w));
-      }
-      setBlanks(prev => prev.map(b => b.id === activeBlank ? { ...b, val: wordObj.word } : b));
-      setWords(prev => prev.map(w => w.id === wordObj.id ? { ...w, used: true } : w));
+      assignWordToBlank(wordObj, activeBlank);
       setActiveBlank(null);
     } else {
-      // Basculer la sélection : si on clique sur le mot déjà pris, on le repose
       if (activeWord?.id === wordObj.id) {
         setActiveWord(null);
       } else {
@@ -105,37 +129,178 @@ export default function Level11({ isDevMode, onComplete, onScoreUpdate, onMistak
     }
   };
 
+  const handleDragStart = (e: React.DragEvent<HTMLDivElement>, wordObj: { id: number; word: string; used: boolean }) => {
+    if (wordObj.used || isTesting || success) {
+      e.preventDefault();
+      return;
+    }
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', JSON.stringify({ id: wordObj.id, word: wordObj.word }));
+    setDraggedWord({ id: wordObj.id, word: wordObj.word });
+    setActiveWord(null);
+    setActiveBlank(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedWord(null);
+    setDragOverBlank(null);
+  };
+
+  const handleBlankDragStart = (e: React.DragEvent<HTMLButtonElement>, blankId: number, val: string) => {
+    if (!val || isTesting || success) {
+      e.preventDefault();
+      return;
+    }
+    const wordEntry = words.find(w => w.word === val);
+    if (!wordEntry) return;
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', JSON.stringify({ id: wordEntry.id, word: wordEntry.word, fromBlankId: blankId }));
+    setDraggedWord({ id: wordEntry.id, word: wordEntry.word, fromBlankId: blankId });
+    setActiveWord(null);
+    setActiveBlank(null);
+  };
+
+  const handleDropOnBlank = (e: React.DragEvent<HTMLButtonElement>, blankId: number) => {
+    e.preventDefault();
+    setDragOverBlank(null);
+    if (isTesting || success) return;
+
+    let dropped = draggedWord;
+    if (!dropped) {
+      try {
+        const raw = e.dataTransfer.getData('text/plain');
+        if (raw) dropped = JSON.parse(raw);
+      } catch {
+        dropped = null;
+      }
+    }
+    setDraggedWord(null);
+    if (!dropped) return;
+
+    // Déplacement ou échange d'un mot déjà placé dans un autre trou
+    if (dropped.fromBlankId !== undefined) {
+      if (dropped.fromBlankId === blankId) return;
+      const sourceBlank = blanks.find(b => b.id === dropped!.fromBlankId);
+      const targetBlank = blanks.find(b => b.id === blankId);
+      if (!sourceBlank || !targetBlank) return;
+
+      soundManager.playClick();
+      setBlanks(prev =>
+        prev.map(b => {
+          if (b.id === blankId) return { ...b, val: sourceBlank.val };
+          if (b.id === dropped!.fromBlankId) return { ...b, val: targetBlank.val };
+          return b;
+        })
+      );
+      setShowError(false);
+      setTestBench({ case1: 'idle', case2: 'idle', message: null });
+      return;
+    }
+
+    const bankEntry = words.find(w => w.id === dropped!.id && !w.used);
+    if (!bankEntry) return;
+
+    soundManager.playClick();
+    assignWordToBlank(bankEntry, blankId);
+  };
+
   const resetCode = () => {
+    clearTestTimers();
+    setIsTesting(false);
     setBlanks(THE_BLANKS);
     setWords(getInitialWords());
     setActiveWord(null);
     setActiveBlank(null);
+    setDraggedWord(null);
+    setDragOverBlank(null);
     setShowError(false);
+    setTestBench({ case1: 'idle', case2: 'idle', message: null });
     setMoisture(20);
   };
 
   const [hasScored, setHasScored] = useState(false);
 
   const checkAnswers = () => {
-    const isCorrect = blanks.every(b => b.val === b.ans);
-    
-    if (isCorrect) {
-      setMoisture(65);
-      setSuccess(true);
-      soundManager.playSuccess();
-      if (onScoreUpdate && !hasScored) {
-        setHasScored(true);
-        onScoreUpdate(250, 88);
+    if (isTesting || success) return;
+    clearTestTimers();
+
+    const isCase1Correct = blanks.slice(0, 5).every(b => b.val === b.ans);
+    const isCase2Correct = blanks.slice(5, 8).every(b => b.val === b.ans);
+
+    setIsTesting(true);
+    setShowError(false);
+    setActiveWord(null);
+    setActiveBlank(null);
+    setMoisture(45);
+    setTestBench({
+      case1: 'running',
+      case2: 'pending',
+      message: 'Simulation Cas 1 : Pluie annoncée (humidité 45 %)...',
+    });
+
+    const t1 = setTimeout(() => {
+      if (!isCase1Correct) {
+        setIsTesting(false);
+        setShowError(true);
+        setTestBench({
+          case1: 'fail',
+          case2: 'skipped',
+          message: 'Échec Cas 1 : avec de la pluie annoncée, la pompe doit rester coupée (vérifiez la condition if et arrosage = False).',
+        });
+        onMistake?.();
+        const tErr = setTimeout(() => {
+          setShowError(false);
+          setMoisture(20);
+        }, 2200);
+        testTimersRef.current.push(tErr);
+        return;
       }
-    } else {
-      setMoisture(10);
-      setShowError(true);
-      onMistake?.();
-      setTimeout(() => {
-        setShowError(false);
-        setMoisture(20);
-      }, 2000);
-    }
+
+      // Cas 1 validé -> passage au Cas 2 (Sol sec 18 % + Soleil)
+      setMoisture(18);
+      setTestBench({
+        case1: 'pass',
+        case2: 'running',
+        message: 'Cas 1 validé (0 L gaspillé). Simulation Cas 2 : Sol sec 18 % + Soleil...',
+      });
+
+      const t2 = setTimeout(() => {
+        setIsTesting(false);
+        if (!isCase2Correct) {
+          setMoisture(10);
+          setShowError(true);
+          setTestBench({
+            case1: 'pass',
+            case2: 'fail',
+            message: 'Échec Cas 2 : sur sol sec sans pluie, il faut calculer le besoin en eau, activer arrosage = True et arroser à l\'aube.',
+          });
+          onMistake?.();
+          const tErr2 = setTimeout(() => {
+            setShowError(false);
+            setMoisture(20);
+          }, 2200);
+          testTimersRef.current.push(tErr2);
+          return;
+        }
+
+        setMoisture(65);
+        setTestBench({
+          case1: 'pass',
+          case2: 'pass',
+          message: 'Tous les tests météo sont validés !',
+        });
+        setSuccess(true);
+        soundManager.playSuccess();
+        if (onScoreUpdate && !hasScored) {
+          setHasScored(true);
+          onScoreUpdate(250, 88);
+        }
+      }, 1050);
+
+      testTimersRef.current.push(t2);
+    }, 950);
+
+    testTimersRef.current.push(t1);
   };
 
   const allFilled = blanks.every(b => b.val !== '');
@@ -144,18 +309,35 @@ export default function Level11({ isDevMode, onComplete, onScoreUpdate, onMistak
     const blank = blanks.find(b => b.id === id);
     const isFilled = blank?.val !== '';
     const isTargeted = activeBlank === id;
-    const isReadyToReceive = (activeWord !== null && !isFilled) || isTargeted;
+    const isDragTarget = dragOverBlank === id;
+    const isReadyToReceive = (activeWord !== null && !isFilled) || isTargeted || isDragTarget;
 
     return (
-      <motion.button
-        layout
+      <button
         key={`slot-${id}`}
+        type="button"
+        disabled={isTesting || success}
+        draggable={Boolean(isFilled && !isTesting && !success)}
+        onDragStart={(e) => handleBlankDragStart(e, id, blank?.val || '')}
+        onDragEnd={handleDragEnd}
         onClick={() => handleBlankClick(id)}
-        className={`inline-flex items-center justify-center min-w-[80px] h-7 px-2 mx-1 rounded transition-colors focus:outline-none ${
-          isTargeted
+        onDragOver={(e) => {
+          if (isTesting || success) return;
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'move';
+          if (dragOverBlank !== id) setDragOverBlank(id);
+        }}
+        onDragLeave={() => {
+          if (dragOverBlank === id) setDragOverBlank(null);
+        }}
+        onDrop={(e) => handleDropOnBlank(e, id)}
+        className={`inline-flex items-center justify-center min-w-[80px] h-7 px-2 mx-1 rounded transition-all focus:outline-none ${
+          isDragTarget
+            ? 'bg-cyan-900/50 border-2 border-cyan-400 scale-105 z-10 shadow-[0_0_12px_rgba(34,211,238,0.4)]'
+            : isTargeted
             ? 'bg-emerald-900/50 border-2 border-emerald-400 z-10'
             : isFilled
-            ? 'bg-cyan-900/30 border border-cyan-500/50 text-cyan-300 cursor-pointer hover:bg-cyan-900/50'
+            ? 'bg-cyan-900/30 border border-cyan-500/50 text-cyan-300 cursor-grab active:cursor-grabbing hover:bg-cyan-900/50'
             : isReadyToReceive
             ? 'bg-emerald-900/20 border-2 border-dashed border-emerald-500/50'
             : 'bg-slate-800/50 border border-dashed border-slate-500 hover:border-emerald-500/50 hover:bg-slate-800 cursor-pointer'
@@ -176,7 +358,7 @@ export default function Level11({ isDevMode, onComplete, onScoreUpdate, onMistak
             <span key={`empty-${id}`} className="opacity-0">...</span>
           )}
         </AnimatePresence>
-      </motion.button>
+      </button>
     );
   };
 
@@ -240,7 +422,7 @@ export default function Level11({ isDevMode, onComplete, onScoreUpdate, onMistak
         </div>
 
         <div className="text-center mb-4 p-3 bg-emerald-950/30 border border-cyan-500/20 rounded-lg text-sm">
-          👆 <strong>Mission :</strong> Complétez le code ci-dessous. Vous pouvez soit <strong>prendre une étiquette</strong> puis cliquer sur un espace, soit <strong>sélectionner un espace</strong> <span className="inline-block w-8 h-4 border border-dashed border-emerald-500 mx-1"></span> puis choisir une étiquette.
+          👆 <strong>Mission :</strong> Complétez le code par <strong>glisser-déposer</strong> (souris) ou par <strong>clic / toucher</strong> sur une étiquette puis sur un espace <span className="inline-block w-8 h-4 border border-dashed border-emerald-500 mx-1"></span>.
         </div>
 
         {/* Code Editor */}
@@ -316,28 +498,36 @@ export default function Level11({ isDevMode, onComplete, onScoreUpdate, onMistak
                   key={`${w.word}-${i}`} 
                   className="group/word relative flex items-center justify-center"
                 >
-                  <motion.button
-                    whileHover={w.used || success ? {} : { scale: 1.05 }}
-                    whileTap={w.used || success ? {} : { scale: 0.95 }}
-                    animate={{ 
-                      scale: w.used ? 0.9 : activeWord?.id === w.id ? 1.1 : 1, 
-                      opacity: w.used ? 0.35 : 1 
-                    }}
-                    transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                    onClick={() => handleWordClick(w)}
-                    disabled={w.used || success}
-                    className={`px-4 py-2 rounded-full font-mono text-sm transition-colors focus:outline-none ${
-                      w.used 
-                        ? 'bg-slate-900 text-slate-700 border border-slate-800 cursor-not-allowed' 
-                        : activeWord?.id === w.id
-                        ? 'bg-emerald-900/50 text-emerald-400 border border-emerald-400 z-10'
-                        : activeBlank
-                        ? 'bg-emerald-900/20 text-emerald-400 border border-emerald-500/50 cursor-pointer'
-                        : 'bg-cyan-900/30 text-cyan-400 border border-cyan-500/50'
-                    }`}
+                  <div
+                    draggable={!w.used && !success && !isTesting}
+                    onDragStart={(e) => handleDragStart(e, w)}
+                    onDragEnd={handleDragEnd}
+                    className={!w.used && !success && !isTesting ? 'cursor-grab active:cursor-grabbing' : ''}
                   >
-                    {w.word}
-                  </motion.button>
+                    <motion.button
+                      type="button"
+                      whileHover={w.used || success || isTesting ? {} : { scale: 1.05 }}
+                      whileTap={w.used || success || isTesting ? {} : { scale: 0.95 }}
+                      animate={{ 
+                        scale: w.used ? 0.9 : activeWord?.id === w.id ? 1.1 : 1, 
+                        opacity: w.used ? 0.35 : 1 
+                      }}
+                      transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                      onClick={() => handleWordClick(w)}
+                      disabled={w.used || success || isTesting}
+                      className={`px-4 py-2 rounded-full font-mono text-sm transition-colors focus:outline-none ${
+                        w.used 
+                          ? 'bg-slate-900 text-slate-700 border border-slate-800 cursor-not-allowed' 
+                          : activeWord?.id === w.id
+                          ? 'bg-emerald-900/50 text-emerald-400 border border-emerald-400 z-10'
+                          : activeBlank
+                          ? 'bg-emerald-900/20 text-emerald-400 border border-emerald-500/50 cursor-pointer'
+                          : 'bg-cyan-900/30 text-cyan-400 border border-cyan-500/50 cursor-grab active:cursor-grabbing'
+                      }`}
+                    >
+                      {w.word}
+                    </motion.button>
+                  </div>
                   {!w.used && (
                     <div className="hidden md:block absolute bottom-full mb-2 w-48 px-3 py-2 bg-slate-900 text-slate-200 text-xs leading-relaxed rounded-lg border border-slate-700 opacity-0 group-hover/word:opacity-100 transition-opacity pointer-events-none z-50 text-center font-sans shadow-xl not-italic font-normal tracking-normal">
                       {wordDescriptions[w.word]}
@@ -357,31 +547,114 @@ export default function Level11({ isDevMode, onComplete, onScoreUpdate, onMistak
                 <strong className="text-emerald-400 font-mono">{activeWord.word}</strong> : {wordDescriptions[activeWord.word]}
               </span>
             ) : (
-              <span className="text-slate-500">Touchez une étiquette pour voir son rôle et la placer dans le code.</span>
+              <span className="text-slate-500">Glissez ou touchez une étiquette pour voir son rôle et la placer dans le code.</span>
             )}
           </div>
         </div>
+
+        {/* Animated Weather Test Bench */}
+        <AnimatePresence>
+          {testBench.case1 !== 'idle' && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-3"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-2">
+                  <Play className="w-3.5 h-3.5" /> Banc de test météo (Exécution pas à pas)
+                </span>
+                {isTesting && (
+                  <span className="text-[11px] text-amber-400 flex items-center gap-1.5 font-sans">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" /> Exécution...
+                  </span>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {[
+                  {
+                    title: 'Cas 1 : Pluie annoncée (45 %)',
+                    expect: 'Attendu : arrosage = False (0 L)',
+                    status: testBench.case1,
+                    icon: CloudRain,
+                  },
+                  {
+                    title: 'Cas 2 : Sol sec (18 %) + Soleil',
+                    expect: 'Attendu : arrosage = True à l\'aube',
+                    status: testBench.case2,
+                    icon: Sun,
+                  },
+                ].map((item, idx) => {
+                  const Icon = item.icon;
+                  const statusStyle =
+                    item.status === 'pass'
+                      ? 'bg-emerald-950/30 border-emerald-500/50 text-emerald-300'
+                      : item.status === 'fail'
+                      ? 'bg-red-950/40 border-red-500/60 text-red-300'
+                      : item.status === 'running'
+                      ? 'bg-amber-950/30 border-amber-400/60 text-amber-200'
+                      : 'bg-slate-900/50 border-slate-800 text-slate-500';
+                  return (
+                    <div key={idx} className={`p-3 rounded-lg border flex items-center justify-between gap-3 transition-colors ${statusStyle}`}>
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <Icon className="w-5 h-5 shrink-0" />
+                        <div className="min-w-0">
+                          <div className="text-xs font-bold truncate">{item.title}</div>
+                          <div className="text-[11px] opacity-80 font-sans truncate">{item.expect}</div>
+                        </div>
+                      </div>
+                      <div className="shrink-0">
+                        {item.status === 'running' && <Loader2 className="w-4 h-4 animate-spin text-amber-400" />}
+                        {item.status === 'pass' && <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
+                        {item.status === 'fail' && <XCircle className="w-4 h-4 text-red-400" />}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {testBench.message && (
+                <div className={`text-xs font-sans font-semibold px-3 py-2 rounded-lg border ${
+                  testBench.case1 === 'fail' || testBench.case2 === 'fail'
+                    ? 'bg-red-950/40 border-red-500/40 text-red-300'
+                    : testBench.case1 === 'pass' && testBench.case2 === 'pass'
+                    ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-300'
+                    : 'bg-slate-900 border-slate-800 text-slate-300'
+                }`}>
+                  {testBench.message}
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {!success && (
           <div className="flex justify-center gap-4 mt-6">
             <button
               onClick={resetCode}
-              className="px-4 py-3 rounded-lg font-bold transition-all bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center gap-2"
+              disabled={isTesting}
+              className={`px-4 py-3 rounded-lg font-bold transition-all flex items-center gap-2 ${
+                isTesting
+                  ? 'bg-slate-900 text-slate-600 cursor-not-allowed'
+                  : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
+              }`}
             >
               <RotateCcw className="w-4 h-4" /> RESET
             </button>
             <button
               onClick={checkAnswers}
-              disabled={!allFilled || success}
-              className={`px-8 py-3 rounded-lg font-bold transition-all ${
-                !allFilled
+              disabled={!allFilled || success || isTesting}
+              className={`px-8 py-3 rounded-lg font-bold transition-all flex items-center gap-2 ${
+                !allFilled || isTesting
                   ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
                   : showError
                   ? 'bg-red-600 text-white animate-shake'
                   : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-[0_0_20px_rgba(16,185,129,0.3)]'
               }`}
             >
-              {showError ? 'ERREUR LOGIQUE' : 'COMPILER LE CODE'}
+              {isTesting ? 'EXÉCUTION DES TESTS...' : showError ? 'ERREUR LOGIQUE' : 'TESTER LE CODE'}
             </button>
           </div>
         )}

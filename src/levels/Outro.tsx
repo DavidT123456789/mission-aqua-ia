@@ -4,6 +4,8 @@ import { Trophy, Droplets, RotateCcw, Star, Award, Clock, Download, ShieldCheck,
 import { toPng } from 'html-to-image';
 import TechTerm from '../components/TechTerm';
 import NaiaDialogue from '../components/NaiaDialogue';
+import BonusMissions, { BonusMissionId } from '../components/BonusMissions';
+import { MISSION_DURATION_SECONDS } from '../constants';
 
 interface Evaluation {
   title: string;
@@ -17,8 +19,9 @@ interface Evaluation {
   feedback: string;
 }
 
-export default function Outro({ timeLeft, score, waterSaved, onRestart, nickname, evaluation, imageUrl, leaderboard }: { 
+export default function Outro({ timeLeft, extraTimeBought = 0, score, waterSaved, onRestart, nickname, evaluation, imageUrl, leaderboard }: { 
   timeLeft: number; 
+  extraTimeBought?: number;
   score: number; 
   waterSaved: number;
   onRestart: (name: string) => void; 
@@ -32,6 +35,11 @@ export default function Outro({ timeLeft, score, waterSaved, onRestart, nickname
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const [safeImageUrl, setSafeImageUrl] = useState<string | null>(null);
+  const [completedBonus, setCompletedBonus] = useState<BonusMissionId[]>([]);
+
+  const handleCompleteBonus = (id: BonusMissionId) => {
+    setCompletedBonus(prev => (prev.includes(id) ? prev : [...prev, id]));
+  };
 
   useEffect(() => {
     if (imageUrl) {
@@ -62,13 +70,13 @@ export default function Outro({ timeLeft, score, waterSaved, onRestart, nickname
     return `${m}m ${s}s`;
   };
 
-  const timeTaken = 1800 - timeLeft;
+  const timeTaken = Math.max(0, MISSION_DURATION_SECONDS + extraTimeBought - timeLeft);
 
   const getGrade = () => {
-    if (score >= 2750) return { title: 'COMMANDANT SUPRÊME', icon: <Star className="w-8 h-8 text-yellow-400" />, color: 'text-yellow-400', hex: '#facc15', bg: 'bg-yellow-400/10', border: 'border-yellow-500/50' };
-    if (score >= 2450) return { title: 'EXPERT HYDROSAVE', icon: <Droplets className="w-8 h-8 text-cyan-400" />, color: 'text-cyan-400', hex: '#22d3ee', bg: 'bg-cyan-400/10', border: 'border-cyan-500/50' };
-    if (score >= 2150) return { title: 'AGENT SENIOR', icon: <Award className="w-8 h-8 text-emerald-400" />, color: 'text-emerald-400', hex: '#34d399', bg: 'bg-emerald-400/10', border: 'border-emerald-500/50' };
-    if (score >= 1800) return { title: 'AGENT CONFIRMÉ', icon: <ShieldCheck className="w-8 h-8 text-slate-300" />, color: 'text-slate-300', hex: '#cbd5e1', bg: 'bg-slate-300/10', border: 'border-slate-500/50' };
+    if (score >= 2850) return { title: 'COMMANDANT SUPRÊME', icon: <Star className="w-8 h-8 text-yellow-400" />, color: 'text-yellow-400', hex: '#facc15', bg: 'bg-yellow-400/10', border: 'border-yellow-500/50' };
+    if (score >= 2600) return { title: 'EXPERT HYDROSAVE', icon: <Droplets className="w-8 h-8 text-cyan-400" />, color: 'text-cyan-400', hex: '#22d3ee', bg: 'bg-cyan-400/10', border: 'border-cyan-500/50' };
+    if (score >= 2350) return { title: 'AGENT SENIOR', icon: <Award className="w-8 h-8 text-emerald-400" />, color: 'text-emerald-400', hex: '#34d399', bg: 'bg-emerald-400/10', border: 'border-emerald-500/50' };
+    if (score >= 2000) return { title: 'AGENT CONFIRMÉ', icon: <ShieldCheck className="w-8 h-8 text-slate-300" />, color: 'text-slate-300', hex: '#cbd5e1', bg: 'bg-slate-300/10', border: 'border-slate-500/50' };
     return { title: 'AGENT JUNIOR', icon: <Zap className="w-8 h-8 text-orange-400" />, color: 'text-orange-400', hex: '#fb923c', bg: 'bg-orange-400/10', border: 'border-orange-500/50' };
   };
 
@@ -207,6 +215,20 @@ export default function Outro({ timeLeft, score, waterSaved, onRestart, nickname
                 {grade.title}
               </div>
             </div>
+            {completedBonus.length > 0 && (
+              <div className="flex flex-wrap justify-center gap-2 mt-3">
+                {completedBonus.includes('prompt') && (
+                  <span className="text-[10px] font-mono font-bold px-2.5 py-1 rounded-full bg-cyan-950/60 border border-cyan-500/40 text-cyan-300">
+                    ★ Maître du Prompt Sobre
+                  </span>
+                )}
+                {completedBonus.includes('gpu_bias') && (
+                  <span className="text-[10px] font-mono font-bold px-2.5 py-1 rounded-full bg-emerald-950/60 border border-emerald-500/40 text-emerald-300">
+                    ★ Auditeur Anti-Biais & GPU
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </motion.div>
@@ -269,6 +291,11 @@ export default function Outro({ timeLeft, score, waterSaved, onRestart, nickname
           </div>
         </div>
       )}
+
+      <BonusMissions
+        completedMissions={completedBonus}
+        onCompleteMission={handleCompleteBonus}
+      />
 
       <motion.div variants={itemVariants} className="flex flex-col sm:flex-row gap-3 justify-center mb-6">
         <button
@@ -382,6 +409,20 @@ export default function Outro({ timeLeft, score, waterSaved, onRestart, nickname
                 </h2>
                 <div className="text-3xl font-black mb-1 uppercase tracking-tight relative z-10 text-white drop-shadow-md">{nickname}</div>
                 <div className={`text-lg font-bold font-mono tracking-widest relative z-10 ${grade.color}`}>{grade.title}</div>
+                {completedBonus.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mt-2 relative z-10">
+                    {completedBonus.includes('prompt') && (
+                      <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-cyan-950/70 border border-cyan-500/40 text-cyan-300">
+                        ★ PROMPT SOBRE
+                      </span>
+                    )}
+                    {completedBonus.includes('gpu_bias') && (
+                      <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-950/70 border border-emerald-500/40 text-emerald-300">
+                        ★ ANTI-BIAIS & GPU
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
               
               <div className="bg-slate-900/60 p-5 rounded-2xl border border-cyan-500/20 backdrop-blur-xl shadow-lg relative overflow-hidden">

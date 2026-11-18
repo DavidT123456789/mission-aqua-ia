@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Droplets, Clock, Star, Heart, FastForward, HelpCircle, Menu, X, Volume2, VolumeX, BookOpen, Layers } from 'lucide-react';
-import { DEV_ANSWERS, LEVEL_NAMES } from '../constants';
+import { Droplets, Clock, Pause, Star, Heart, FastForward, HelpCircle, Menu, X, Volume2, VolumeX, BookOpen, Layers } from 'lucide-react';
+import { DEV_ANSWERS, LEVEL_NAMES, MISSION_DURATION_SECONDS } from '../constants';
 
 interface HUDProps {
   level: number;
@@ -73,13 +73,14 @@ export default function HUD({
   const freeHintCost = 10;
   const hintCost = 100;
   const completedCount = Math.max(0, Math.min(13, level - 1));
+  const isInnovationLab = level === 13;
 
   return (
     <header className="fixed top-0 left-0 right-0 p-3 md:p-4 bg-slate-950 z-50">
       {/* 13-Step Progress Bar as Bottom Border */}
       {level > 0 && level < 14 ? (
         <div
-          className="absolute bottom-0 left-0 right-0 h-1.5 bg-slate-950 px-0.5 flex items-center gap-0.5 sm:gap-1 z-[75]"
+          className="absolute bottom-0 left-0 right-0 h-1.5 bg-slate-950 px-0.5 flex items-center gap-0.5 sm:gap-1 z-[60]"
           aria-label={`Progression : niveau ${level} sur 13 (${completedCount} complétés)`}
         >
           {Array.from({ length: 13 }, (_, idx) => {
@@ -143,7 +144,7 @@ export default function HUD({
               AQUA-IA
             </span>
             {/* Custom tooltip for Logo */}
-            <div className="fixed top-16 left-1/2 -translate-x-1/2 md:absolute md:top-full md:left-1/2 md:-translate-x-1/2 md:mt-2 hidden group-hover/logo:block w-max bg-slate-900 text-[10px] md:text-xs text-slate-200 px-2 py-1.5 rounded border border-slate-700 shadow-xl z-[100] pointer-events-none font-sans not-italic font-normal tracking-normal text-center">
+            <div className="fixed top-16 left-1/2 -translate-x-1/2 md:absolute md:top-full md:left-1/2 md:-translate-x-1/2 md:mt-3.5 hidden group-hover/logo:block w-max bg-slate-900 text-[10px] md:text-xs text-slate-200 px-2 py-1.5 rounded border border-slate-700 shadow-xl z-[100] pointer-events-none font-sans not-italic font-normal tracking-normal text-center">
               Retour à l'accueil
               <div className="hidden md:block absolute bottom-full left-1/2 -translate-x-1/2 border-4 border-transparent border-b-slate-700"></div>
               <div className="hidden md:block absolute bottom-[calc(100%-1px)] left-1/2 -translate-x-1/2 border-4 border-transparent border-b-slate-900"></div>
@@ -162,7 +163,7 @@ export default function HUD({
                 [PROF]
               </span>
               {/* Custom Tooltip */}
-              <div className="fixed top-16 left-1/2 -translate-x-1/2 md:absolute md:top-full md:left-1/2 md:-translate-x-1/2 md:mt-2 hidden group-hover/dev:block w-max max-w-[90vw] bg-slate-900 text-[10px] md:text-xs text-slate-200 px-2.5 py-1.5 rounded border border-slate-700 shadow-xl z-[100] pointer-events-none font-sans not-italic font-normal tracking-normal text-center">
+              <div className="fixed top-16 left-1/2 -translate-x-1/2 md:absolute md:top-full md:left-1/2 md:-translate-x-1/2 md:mt-3.5 hidden group-hover/dev:block w-max max-w-[90vw] bg-slate-900 text-[10px] md:text-xs text-slate-200 px-2.5 py-1.5 rounded border border-slate-700 shadow-xl z-[100] pointer-events-none font-sans not-italic font-normal tracking-normal text-center">
                 Désactiver le mode enseignant / dev
                 <div className="hidden md:block absolute bottom-full left-1/2 -translate-x-1/2 border-4 border-transparent border-b-slate-700"></div>
                 <div className="hidden md:block absolute bottom-[calc(100%-1px)] left-1/2 -translate-x-1/2 border-4 border-transparent border-b-slate-900"></div>
@@ -179,14 +180,14 @@ export default function HUD({
                 <div key={i} className="relative w-4 h-4 md:w-5 md:h-5 flex items-center justify-center">
                   <motion.div
                     initial={{ scale: 1 }}
-                    animate={lives === 1 && i < lives ? {
+                    animate={lives === 1 && !isInnovationLab && i < lives ? {
                       scale: [1, 1.2, 1],
                       opacity: 1
                     } : {
                       scale: i < lives ? 1 : 0.5,
                       opacity: i < lives ? 1 : 0.3,
                     }}
-                    transition={lives === 1 && i < lives ? {
+                    transition={lives === 1 && !isInnovationLab && i < lives ? {
                       duration: 0.8,
                       repeat: Infinity,
                       ease: "easeInOut"
@@ -200,7 +201,7 @@ export default function HUD({
                   </motion.div>
                 </div>
               ))}
-              {lives < 3 && (
+              {lives < 3 && !isInnovationLab && (
                 <div className="relative group ml-1 flex items-center">
                   <button 
                     onClick={buyHeart}
@@ -230,41 +231,73 @@ export default function HUD({
             {/* Timer */}
             <div className="flex items-center gap-1">
               <div className="relative group/timer">
-                <div className={`flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1 rounded-full border transition-all duration-500 cursor-help ${timeLeft < 300 ? 'border-red-500 text-red-500 bg-red-950/20' : 'border-emerald-500/30 text-emerald-400 bg-emerald-950/10'}`} aria-label={`Temps restant : ${formatTime(timeLeft)}`}>
-                  <Clock className={`w-3 h-3 md:w-4 md:h-4 ${timeLeft < 300 ? 'text-red-400' : 'text-emerald-400'}`} />
+                <div
+                  className={`flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1 rounded-full border transition-all duration-500 cursor-help ${
+                    isInnovationLab
+                      ? 'border-cyan-500/40 text-cyan-300 bg-cyan-950/20'
+                      : timeLeft < 300
+                      ? 'border-red-500 text-red-500 bg-red-950/20'
+                      : 'border-emerald-500/30 text-emerald-400 bg-emerald-950/10'
+                  }`}
+                  aria-label={isInnovationLab ? `Chrono en pause : ${formatTime(timeLeft)}` : `Temps restant : ${formatTime(timeLeft)}`}
+                >
+                  {isInnovationLab ? (
+                    <Pause className="w-3 h-3 md:w-4 md:h-4 text-cyan-400" />
+                  ) : (
+                    <Clock className={`w-3 h-3 md:w-4 md:h-4 ${timeLeft < 300 ? 'text-red-400' : 'text-emerald-400'}`} />
+                  )}
                   <span className="font-bold font-mono text-xs md:text-lg">{formatTime(timeLeft)}</span>
+                  {isInnovationLab && (
+                    <span className="hidden sm:inline text-[10px] font-black uppercase tracking-wider text-cyan-400/90">
+                      PAUSE
+                    </span>
+                  )}
                 </div>
                 {/* Timer Tooltip */}
-                <div className="fixed top-16 left-1/2 -translate-x-1/2 md:absolute md:top-full md:left-1/2 md:-translate-x-1/2 md:mt-2 hidden group-hover/timer:block w-max max-w-[90vw] bg-slate-900 text-xs text-slate-200 px-2 py-1.5 rounded border border-slate-700 shadow-xl z-[100] pointer-events-none font-sans not-italic font-normal tracking-normal text-center">
-                  Temps restant :<br />Résolvez les missions avant 00:00
+                <div className="fixed top-16 left-1/2 -translate-x-1/2 md:absolute md:top-full md:left-1/2 md:-translate-x-1/2 md:mt-2 hidden group-hover/timer:block w-max max-w-[90vw] bg-slate-900 text-xs text-slate-200 px-2.5 py-1.5 rounded border border-slate-700 shadow-xl z-[100] pointer-events-none font-sans not-italic font-normal tracking-normal text-center">
+                  {isInnovationLab ? (
+                    <>
+                      Chrono en pause :<br />Prenez le temps de concevoir votre brevet
+                    </>
+                  ) : (
+                    <>
+                      Temps restant :<br />Résolvez les missions avant 00:00
+                    </>
+                  )}
                   <div className="hidden md:block absolute bottom-full left-1/2 -translate-x-1/2 border-4 border-transparent border-b-slate-700"></div>
                   <div className="hidden md:block absolute bottom-[calc(100%-1px)] left-1/2 -translate-x-1/2 border-4 border-transparent border-b-slate-900"></div>
                 </div>
               </div>
               
-              <div className="relative group/buytime">
-                <button 
-                  onClick={buyTime}
-                  disabled={score < 100}
-                  className={`text-xs rounded px-1.5 py-0.5 font-bold transition-all ${
-                    score >= 100 
-                      ? 'bg-emerald-900/50 text-emerald-400 border border-emerald-500/50 hover:bg-emerald-800/50 cursor-pointer' 
-                      : 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed'
-                  }`}
-                  aria-label="Acheter du temps"
-                >
-                  +
-                </button>
-                {/* Tooltip for buying time */}
-                <div className="fixed top-16 left-1/2 -translate-x-1/2 md:absolute md:top-full md:left-1/2 md:-translate-x-1/2 md:mt-2 hidden group-hover/buytime:block w-max max-w-[90vw] bg-slate-900 text-[10px] md:text-xs text-slate-200 px-2 py-1.5 rounded border border-slate-700 shadow-xl z-[100] pointer-events-none font-sans not-italic font-normal tracking-normal">
-                  <div className="flex items-center gap-1.5 justify-center">
-                    <span>Ajouter 3 min :</span>
-                    <span className={score >= 100 ? "text-yellow-400 font-bold" : "text-red-400 font-bold"}>100 pts</span>
+              {!isInnovationLab && (
+                <div className="relative group/buytime">
+                  <button 
+                    onClick={buyTime}
+                    disabled={score < 100 || timeLeft >= MISSION_DURATION_SECONDS}
+                    className={`text-xs rounded px-1.5 py-0.5 font-bold transition-all ${
+                      score >= 100 && timeLeft < MISSION_DURATION_SECONDS
+                        ? 'bg-emerald-900/50 text-emerald-400 border border-emerald-500/50 hover:bg-emerald-800/50 cursor-pointer' 
+                        : 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed'
+                    }`}
+                    aria-label="Acheter du temps"
+                  >
+                    +
+                  </button>
+                  {/* Tooltip for buying time */}
+                  <div className="fixed top-16 left-1/2 -translate-x-1/2 md:absolute md:top-full md:left-1/2 md:-translate-x-1/2 md:mt-2 hidden group-hover/buytime:block w-max max-w-[90vw] bg-slate-900 text-[10px] md:text-xs text-slate-200 px-2 py-1.5 rounded border border-slate-700 shadow-xl z-[100] pointer-events-none font-sans not-italic font-normal tracking-normal">
+                    {timeLeft >= MISSION_DURATION_SECONDS ? (
+                      <span className="text-slate-400">Chrono déjà au maximum</span>
+                    ) : (
+                      <div className="flex items-center gap-1.5 justify-center">
+                        <span>Ajouter 3 min :</span>
+                        <span className={score >= 100 ? "text-yellow-400 font-bold" : "text-red-400 font-bold"}>100 pts</span>
+                      </div>
+                    )}
+                    <div className="hidden md:block absolute bottom-full left-1/2 -translate-x-1/2 border-4 border-transparent border-b-slate-700"></div>
+                    <div className="hidden md:block absolute bottom-[calc(100%-1px)] left-1/2 -translate-x-1/2 border-4 border-transparent border-b-slate-900"></div>
                   </div>
-                  <div className="hidden md:block absolute bottom-full left-1/2 -translate-x-1/2 border-4 border-transparent border-b-slate-700"></div>
-                  <div className="hidden md:block absolute bottom-[calc(100%-1px)] left-1/2 -translate-x-1/2 border-4 border-transparent border-b-slate-900"></div>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Score */}
@@ -478,6 +511,24 @@ export default function HUD({
             </div>
           )}
 
+          {level === 14 && (
+            <div className="relative group">
+              <button
+                onClick={() => setShowGlossary(true)}
+                className="relative flex items-center gap-1.5 bg-emerald-900/30 hover:bg-emerald-800/50 text-emerald-400 px-2.5 lg:px-3 py-1 rounded-full border border-emerald-500/30 text-xs font-bold transition-all hover:scale-105"
+                aria-label="Ouvrir le glossaire"
+              >
+                <BookOpen className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
+                <span className="hidden sm:inline">GLOSSAIRE</span>
+              </button>
+              <div className="hidden md:group-hover:block absolute top-full right-0 mt-2 w-max bg-slate-900 text-xs text-slate-200 px-2 py-1.5 rounded border border-slate-700 shadow-xl z-[100] pointer-events-none font-sans not-italic font-normal tracking-normal">
+                Ouvrir le glossaire
+                <div className="absolute bottom-full right-6 border-4 border-transparent border-b-slate-700"></div>
+                <div className="absolute bottom-[calc(100%-1px)] right-6 border-4 border-transparent border-b-slate-900"></div>
+              </div>
+            </div>
+          )}
+
           {/* Mute Toggle (Always visible on desktop, and visible on mobile when outside active levels) */}
           <div className={`relative group/mute ${(level > 0 && level < 14 && timeLeft > 0 && lives > 0) ? 'hidden md:block' : 'block'}`}>
             <button
@@ -592,7 +643,7 @@ export default function HUD({
       </AnimatePresence>
 
       {/* Dev Controls Floating Card */}
-      {isDevMode && level > 0 && level < 14 && (
+      {isDevMode && (
         <div className="fixed right-0 md:right-4 top-20 md:top-24 z-[55] flex flex-col items-end gap-2">
           {/* Main Card: Menu Prof */}
           <div className="p-3 bg-slate-900/90 backdrop-blur border border-indigo-500/40 rounded-l-xl md:rounded-xl shadow-[0_0_20px_rgba(99,102,241,0.2)] flex flex-col gap-2 w-44 md:w-48 font-sans">
@@ -615,7 +666,12 @@ export default function HUD({
             <div className="flex gap-2">
               <button 
                 onClick={prevLevelDev}
-                className="flex items-center justify-center bg-indigo-950/60 hover:bg-indigo-900/60 text-indigo-400 w-8 h-8 rounded-full border border-indigo-500/40 transition-colors shrink-0"
+                disabled={level <= 0}
+                className={`flex items-center justify-center w-8 h-8 rounded-full border transition-colors shrink-0 ${
+                  level <= 0
+                    ? 'bg-slate-900/50 text-slate-600 border-slate-800 cursor-not-allowed'
+                    : 'bg-indigo-950/60 hover:bg-indigo-900/60 text-indigo-400 border-indigo-500/40'
+                }`}
                 title="Niveau précédent"
                 aria-label="Niveau précédent"
               >
@@ -623,7 +679,12 @@ export default function HUD({
               </button>
               <button 
                 onClick={skipLevelDev}
-                className="flex items-center justify-center flex-1 gap-1.5 bg-indigo-900/70 hover:bg-indigo-800/70 text-indigo-200 h-8 rounded-full border border-indigo-500/50 text-xs font-bold transition-all hover:brightness-110"
+                disabled={level >= 14}
+                className={`flex items-center justify-center flex-1 gap-1.5 h-8 rounded-full border text-xs font-bold transition-all ${
+                  level >= 14
+                    ? 'bg-slate-900/50 text-slate-600 border-slate-800 cursor-not-allowed'
+                    : 'bg-indigo-900/70 hover:bg-indigo-800/70 text-indigo-200 border-indigo-500/50 hover:brightness-110'
+                }`}
                 title="Passer le niveau"
                 aria-label="Passer le niveau"
               >
