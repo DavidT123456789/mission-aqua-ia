@@ -123,46 +123,46 @@ export default function Outro({ timeLeft, score, waterSaved, onRestart, nickname
       variants={containerVariants}
       initial="hidden"
       animate="visible"
-      className="bg-slate-900/90 border border-emerald-500/40 p-6 sm:p-10 rounded-3xl shadow-[0_0_40px_rgba(16,185,129,0.15),inset_0_0_20px_rgba(16,185,129,0.05)] max-w-3xl mx-auto text-center backdrop-blur-xl relative overflow-hidden"
+      className="bg-slate-900/90 border border-emerald-500/40 p-5 sm:p-8 rounded-3xl shadow-[0_0_40px_rgba(16,185,129,0.15),inset_0_0_20px_rgba(16,185,129,0.05)] max-w-3xl mx-auto text-center backdrop-blur-xl relative overflow-hidden"
     >
       {/* Subtle animated border glow line (optional but cool) */}
       <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-emerald-500/20 to-transparent opacity-50" />
       <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-cyan-500/20 to-transparent opacity-50" />
-      <motion.div variants={itemVariants} className="flex justify-center mb-8">
+      <motion.div variants={itemVariants} className="flex justify-center mb-4">
         <div className="relative group">
           <motion.div 
             animate={{ rotate: [0, 5, -5, 0], scale: [1, 1.05, 1] }} 
             transition={{ duration: 4, repeat: Infinity }}
             className="relative"
           >
-            <Trophy className="w-28 h-28 text-yellow-400 drop-shadow-[0_0_15px_rgba(250,204,21,0.5)]" />
+            <Trophy className="w-16 h-16 sm:w-20 sm:h-20 text-yellow-400 drop-shadow-[0_0_15px_rgba(250,204,21,0.5)]" />
           </motion.div>
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ delay: 0.8, type: 'spring' }}
-            className="absolute -bottom-2 -right-2 bg-emerald-500 rounded-full p-2.5 shadow-lg border-2 border-slate-900"
+            className="absolute -bottom-1 -right-1 bg-emerald-500 rounded-full p-1.5 shadow-lg border-2 border-slate-900"
           >
-            <Droplets className="w-6 h-6 text-white" />
+            <Droplets className="w-4 h-4 text-white" />
           </motion.div>
         </div>
       </motion.div>
 
-      <motion.h1 variants={itemVariants} className="text-4xl md:text-5xl font-black text-white mb-2 uppercase tracking-[0.2em] drop-shadow-sm">
+      <motion.h1 variants={itemVariants} className="text-3xl md:text-4xl font-black text-white mb-1.5 uppercase tracking-[0.18em] drop-shadow-sm">
         Mission Accomplie !
       </motion.h1>
-      <motion.p variants={itemVariants} className="text-emerald-400/80 font-mono text-sm tracking-widest mb-6">
+      <motion.p variants={itemVariants} className="text-emerald-400/80 font-mono text-xs sm:text-sm tracking-widest mb-4">
         OPÉRATION "HYDROSAVE" TERMINÉE AVEC SUCCÈS
       </motion.p>
 
-      <motion.div variants={itemVariants} className="max-w-2xl mx-auto mb-8 text-left">
+      <motion.div variants={itemVariants} className="max-w-2xl mx-auto mb-5 text-left">
         <NaiaDialogue
           message={`Félicitations, agent ${nickname || 'Anonyme'} ! Les réserves d'eau potable de la ville remontent déjà. Désormais encadrée par la charte municipale et basculée en mode Symbiose, HYDRA protège nos réseaux hydriques au lieu de les épuiser.`}
           emotion="happy"
         />
       </motion.div>
       
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-2xl mx-auto mb-10">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-2xl mx-auto mb-6">
         {[
           { icon: Clock, label: 'Temps', value: formatTime(timeTaken), color: 'text-emerald-400', bg: 'bg-emerald-950/40', border: 'border-emerald-500/30' },
           { icon: Star, label: 'Score', value: score, color: 'text-yellow-400', bg: 'bg-yellow-950/40', border: 'border-yellow-500/30' },
@@ -173,37 +173,37 @@ export default function Outro({ timeLeft, score, waterSaved, onRestart, nickname
             key={i} 
             variants={itemVariants}
             whileHover={{ y: -5, transition: { duration: 0.2 } }}
-            className={`${stat.bg} ${stat.border} border p-4 rounded-xl flex flex-col items-center justify-center transition-all duration-300 hover:shadow-lg`}
+            className={`${stat.bg} ${stat.border} border p-3 rounded-xl flex flex-col items-center justify-center transition-all duration-300 hover:shadow-lg`}
           >
-            <stat.icon className={`w-5 h-5 ${stat.color} mb-3`} />
-            <div className={`text-xl font-mono font-bold ${stat.color} truncate max-w-full`}>{stat.value}</div>
-            <div className="text-[10px] text-slate-500 uppercase font-bold tracking-widest mt-1">{stat.label}</div>
+            <stat.icon className={`w-4 h-4 sm:w-5 sm:h-5 ${stat.color} mb-1.5`} />
+            <div className={`text-base sm:text-lg font-mono font-bold ${stat.color} truncate max-w-full`}>{stat.value}</div>
+            <div className="text-[10px] text-slate-500 uppercase font-bold tracking-widest mt-0.5">{stat.label}</div>
           </motion.div>
         ))}
       </div>
 
       <motion.div 
         variants={itemVariants}
-        className="relative bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border-2 border-emerald-500/20 rounded-2xl p-8 mb-8 max-w-xl mx-auto overflow-hidden shadow-2xl"
+        className="relative bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border-2 border-emerald-500/20 rounded-2xl p-5 sm:p-6 mb-5 max-w-xl mx-auto overflow-hidden shadow-2xl"
       >
         <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-3xl -mr-16 -mt-16" />
         <div className="absolute bottom-0 left-0 w-32 h-32 bg-cyan-500/5 rounded-full blur-3xl -ml-16 -mb-16" />
         
         <div className="relative z-10">
-          <h3 className="text-emerald-500 font-mono font-bold text-xs tracking-[0.3em] mb-4 opacity-70">OPÉRATION HYDROSAVE - CERTIFICAT OFFICIEL</h3>
+          <h3 className="text-emerald-500 font-mono font-bold text-xs tracking-[0.25em] mb-3 opacity-70">OPÉRATION HYDROSAVE - CERTIFICAT OFFICIEL</h3>
           
-          <div className="flex flex-col items-center mb-6">
-            <div className="text-slate-400 text-xs uppercase tracking-widest mb-2 font-mono">Agent de liaison</div>
-            <div className="text-2xl md:text-3xl font-black text-white uppercase tracking-tight border-b-2 border-emerald-500/10 pb-4 w-full">
+          <div className="flex flex-col items-center mb-4">
+            <div className="text-slate-400 text-[11px] uppercase tracking-widest mb-1 font-mono">Agent de liaison</div>
+            <div className="text-2xl font-black text-white uppercase tracking-tight border-b-2 border-emerald-500/10 pb-2.5 w-full">
               {nickname || 'ANONYME'}
             </div>
           </div>
           
           <div className="flex flex-col items-center">
-            <div className="text-slate-400 text-xs uppercase tracking-widest mb-3 font-mono">Niveau d'accréditation</div>
-            <div className={`flex items-center gap-3 px-6 py-3 rounded-full ${grade.bg} border-2 ${grade.border}`}>
+            <div className="text-slate-400 text-[11px] uppercase tracking-widest mb-2 font-mono">Niveau d'accréditation</div>
+            <div className={`flex items-center gap-2.5 px-5 py-2 rounded-full ${grade.bg} border-2 ${grade.border}`}>
               <div className="shrink-0">{grade.icon}</div>
-              <div className={`text-xl font-black font-mono tracking-tighter ${grade.color}`}>
+              <div className={`text-base sm:text-lg font-black font-mono tracking-tighter ${grade.color}`}>
                 {grade.title}
               </div>
             </div>
@@ -214,7 +214,7 @@ export default function Outro({ timeLeft, score, waterSaved, onRestart, nickname
       {evaluation && (
         <motion.div
           variants={itemVariants}
-          className="max-w-xl mx-auto mb-8 bg-slate-950/70 border border-cyan-500/30 rounded-2xl p-5 text-left"
+          className="max-w-xl mx-auto mb-5 bg-slate-950/70 border border-cyan-500/30 rounded-2xl p-4 text-left"
         >
           <div className="flex items-center justify-between gap-2 mb-3">
             <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-[0.2em] flex items-center gap-1.5">
@@ -253,12 +253,12 @@ export default function Outro({ timeLeft, score, waterSaved, onRestart, nickname
 
       {leaderboard && leaderboard.length > 0 && (
         <div className="max-w-xl mx-auto mb-5 bg-slate-950/50 border border-slate-800 rounded-xl p-4">
-          <h3 className="text-yellow-500 font-bold uppercase tracking-widest text-sm mb-4 flex items-center justify-center gap-2">
+          <h3 className="text-yellow-500 font-bold uppercase tracking-widest text-sm mb-3 flex items-center justify-center gap-2">
             <Trophy className="w-4 h-4" /> TOP 5 DES MEILLEURS AGENTS
           </h3>
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             {leaderboard.map((entry, idx) => (
-              <div key={idx} className="flex justify-between items-center px-4 py-2 bg-slate-900/50 rounded border border-slate-800/50">
+              <div key={idx} className="flex justify-between items-center px-3.5 py-1.5 bg-slate-900/50 rounded border border-slate-800/50 text-sm">
                 <div className="flex items-center gap-3">
                   <span className="text-slate-500 font-mono text-xs w-4">{idx + 1}.</span>
                   <span className={`font-bold ${entry.name === nickname ? 'text-emerald-400' : 'text-slate-300'}`}>{entry.name}</span>
@@ -270,11 +270,11 @@ export default function Outro({ timeLeft, score, waterSaved, onRestart, nickname
         </div>
       )}
 
-      <motion.div variants={itemVariants} className="flex flex-col sm:flex-row gap-4 justify-center mb-10">
+      <motion.div variants={itemVariants} className="flex flex-col sm:flex-row gap-3 justify-center mb-6">
         <button
           onClick={downloadFullCertificate}
           disabled={isDownloading}
-          className={`flex items-center justify-center gap-3 relative overflow-hidden group px-8 py-4 rounded-xl font-black transition-all ${isDownloading ? 'bg-emerald-600/50 text-white/50 cursor-wait border border-emerald-500/30' : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:scale-105 active:scale-95 border-b-4 border-emerald-800'}`}
+          className={`flex items-center justify-center gap-2.5 relative overflow-hidden group px-6 py-3 rounded-xl text-sm sm:text-base font-black transition-all ${isDownloading ? 'bg-emerald-600/50 text-white/50 cursor-wait border border-emerald-500/30' : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:scale-105 active:scale-95 border-b-4 border-emerald-800'}`}
         >
           {/* Shine effect */}
           {!isDownloading && (
@@ -291,55 +291,55 @@ export default function Outro({ timeLeft, score, waterSaved, onRestart, nickname
         </button>
         <button
           onClick={() => onRestart(nickname)}
-          className="flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-8 py-4 rounded-xl font-bold transition-all hover:bg-slate-750 active:scale-95 border border-slate-700"
+          className="flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-6 py-3 rounded-xl text-sm sm:text-base font-bold transition-all hover:bg-slate-750 active:scale-95 border border-slate-700"
         >
-          <RotateCcw className="w-5 h-5" />
+          <RotateCcw className="w-4 h-4 sm:w-5 sm:h-5" />
           REJOUER
         </button>
       </motion.div>
 
       {downloadError && (
-        <p className="text-xs text-red-400 bg-red-950/40 border border-red-500/40 rounded-lg px-4 py-2.5 mb-6 max-w-xl mx-auto">
+        <p className="text-xs text-red-400 bg-red-950/40 border border-red-500/40 rounded-lg px-4 py-2.5 mb-5 max-w-xl mx-auto">
           {downloadError}
         </p>
       )}
 
-      <motion.div variants={itemVariants} className="space-y-4 text-left bg-slate-950/80 backdrop-blur-md p-8 rounded-2xl border border-slate-800/50 font-sans text-slate-300 shadow-inner">
-        <p className="text-xl font-black text-white border-b border-slate-800 pb-4 mb-6 flex items-center gap-3">
-          <Bot className="w-6 h-6 text-emerald-500" />
+      <motion.div variants={itemVariants} className="space-y-4 text-left bg-slate-950/80 backdrop-blur-md p-5 sm:p-6 rounded-2xl border border-slate-800/50 font-sans text-slate-300 shadow-inner">
+        <p className="text-lg sm:text-xl font-black text-white border-b border-slate-800 pb-3 mb-4 flex items-center gap-3">
+          <Bot className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-500" />
           Ce qu'il faut retenir :
         </p>
         
-        <div className="grid md:grid-cols-2 gap-8">
-          <div className="flex gap-4">
-            <div className="w-10 h-10 rounded-xl bg-red-400/10 border border-red-400/20 flex items-center justify-center shrink-0 text-red-400 font-black shadow-sm">1</div>
+        <div className="grid md:grid-cols-2 gap-5">
+          <div className="flex gap-3.5">
+            <div className="w-9 h-9 rounded-xl bg-red-400/10 border border-red-400/20 flex items-center justify-center shrink-0 text-red-400 font-black shadow-sm">1</div>
             <div>
-              <p className="font-bold text-white text-lg">L'<TechTerm term="IA" /> a une empreinte écologique</p>
-              <p className="text-sm mt-2 leading-relaxed opacity-80">Les <TechTerm term="Datacenter">datacenters</TechTerm> consomment énormément d'eau pour le <TechTerm term="Refroidissement" /> et d'électricité. Chaque requête a un coût réel.</p>
+              <p className="font-bold text-white text-base">L'<TechTerm term="IA" /> a une empreinte écologique</p>
+              <p className="text-sm mt-1 leading-relaxed opacity-80">Les <TechTerm term="Datacenter">datacenters</TechTerm> consomment énormément d'eau pour le <TechTerm term="Refroidissement" /> et d'électricité. Chaque requête a un coût réel.</p>
             </div>
           </div>
           
-          <div className="flex gap-4">
-            <div className="w-10 h-10 rounded-xl bg-blue-400/10 border border-blue-400/20 flex items-center justify-center shrink-0 text-blue-400 font-black shadow-sm">2</div>
+          <div className="flex gap-3.5">
+            <div className="w-9 h-9 rounded-xl bg-blue-400/10 border border-blue-400/20 flex items-center justify-center shrink-0 text-blue-400 font-black shadow-sm">2</div>
             <div>
-              <p className="font-bold text-white text-lg">L'optimisation est possible</p>
-              <p className="text-sm mt-2 leading-relaxed opacity-80">En choisissant des lieux froids (Free Cooling) et en récupérant la chaleur, on réduit drastiquement cet impact environnemental.</p>
+              <p className="font-bold text-white text-base">L'optimisation est possible</p>
+              <p className="text-sm mt-1 leading-relaxed opacity-80">En choisissant des lieux froids (Free Cooling) et en récupérant la chaleur, on réduit drastiquement cet impact environnemental.</p>
             </div>
           </div>
 
-          <div className="flex gap-4">
-            <div className="w-10 h-10 rounded-xl bg-emerald-400/10 border border-emerald-400/20 flex items-center justify-center shrink-0 text-emerald-400 font-black shadow-sm">3</div>
+          <div className="flex gap-3.5">
+            <div className="w-9 h-9 rounded-xl bg-emerald-400/10 border border-emerald-400/20 flex items-center justify-center shrink-0 text-emerald-400 font-black shadow-sm">3</div>
             <div>
-              <p className="font-bold text-white text-lg">L'économie circulaire</p>
-              <p className="text-sm mt-2 leading-relaxed opacity-80">Réparer le matériel et trier les données (Data Hygiene) évite des calculs inutiles et économise l'eau de fabrication.</p>
+              <p className="font-bold text-white text-base">L'économie circulaire</p>
+              <p className="text-sm mt-1 leading-relaxed opacity-80">Réparer le matériel et trier les données (Data Hygiene) évite des calculs inutiles et économise l'eau de fabrication.</p>
             </div>
           </div>
 
-          <div className="flex gap-4">
-            <div className="w-10 h-10 rounded-xl bg-purple-400/10 border border-purple-400/20 flex items-center justify-center shrink-0 text-purple-400 font-black shadow-sm">4</div>
+          <div className="flex gap-3.5">
+            <div className="w-9 h-9 rounded-xl bg-purple-400/10 border border-purple-400/20 flex items-center justify-center shrink-0 text-purple-400 font-black shadow-sm">4</div>
             <div>
-              <p className="font-bold text-white text-lg">La sobriété et l'éthique</p>
-              <p className="text-sm mt-2 leading-relaxed opacity-80">Il faut utiliser le bon modèle pour le bon usage. L'innovation doit s'accompagner de règles pour protéger nos ressources.</p>
+              <p className="font-bold text-white text-base">La sobriété et l'éthique</p>
+              <p className="text-sm mt-1 leading-relaxed opacity-80">Il faut utiliser le bon modèle pour le bon usage. L'innovation doit s'accompagner de règles pour protéger nos ressources.</p>
             </div>
           </div>
         </div>

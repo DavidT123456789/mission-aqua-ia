@@ -139,7 +139,7 @@ export default function HUD({
             role="button"
             tabIndex={0}
           >
-            <span className="font-bold tracking-[0.15em] lg:tracking-[0.25em] uppercase text-sm lg:text-base bg-gradient-to-r from-emerald-400 via-cyan-400 to-emerald-400 bg-[length:200%_auto] animate-gradient-x bg-clip-text text-transparent hidden sm:inline drop-shadow-[0_0_8px_rgba(52,211,153,0.3)] hover:brightness-125 transition-all">
+            <span className={`font-bold tracking-[0.15em] lg:tracking-[0.25em] uppercase text-sm lg:text-base bg-gradient-to-r from-emerald-400 via-cyan-400 to-emerald-400 bg-[length:200%_auto] animate-gradient-x bg-clip-text text-transparent drop-shadow-[0_0_8px_rgba(52,211,153,0.3)] hover:brightness-125 transition-all ${(level > 0 && level < 14 && timeLeft > 0 && lives > 0) ? 'hidden sm:inline' : 'inline'}`}>
               AQUA-IA
             </span>
             {/* Custom tooltip for Logo */}

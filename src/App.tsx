@@ -590,39 +590,39 @@ export default function App() {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-slate-900 border border-emerald-500/50 rounded-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto shadow-[0_0_50px_rgba(16,185,129,0.2)]"
+              className="bg-slate-900 border border-emerald-500/50 rounded-2xl max-w-3xl w-full max-h-[82vh] overflow-y-auto shadow-[0_0_50px_rgba(16,185,129,0.2)]"
             >
-              <div className="flex justify-between items-center sticky top-0 bg-slate-900/95 px-6 py-5 z-20 border-b border-emerald-900/50">
+              <div className="flex justify-between items-center sticky top-0 bg-slate-900/95 backdrop-blur px-5 py-4 z-20 border-b border-emerald-900/50">
                 <div className="flex items-center gap-3">
-                  <h2 className="text-xl font-bold text-emerald-400 flex items-center gap-2">
-                    <BookOpen className="w-6 h-6" />
+                  <h2 className="text-lg sm:text-xl font-bold text-emerald-400 flex items-center gap-2">
+                    <BookOpen className="w-5 h-5 sm:w-6 sm:h-6" />
                     GLOSSAIRE TECHNIQUE
                   </h2>
                   <span className="text-xs font-mono bg-emerald-950/60 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded-full">
                     {discoveredTerms.length}/{Object.keys(TERMS_DICTIONARY).length}
                   </span>
                 </div>
-                <button onClick={() => setShowGlossary(false)} className="text-slate-400 hover:text-white transition-colors p-2 hover:bg-slate-800 rounded-full">
-                  <X className="w-6 h-6" />
+                <button onClick={() => setShowGlossary(false)} className="text-slate-400 hover:text-white transition-colors p-1.5 hover:bg-slate-800 rounded-full">
+                  <X className="w-5 h-5 sm:w-6 sm:h-6" />
                 </button>
               </div>
               
-              <div className="grid gap-4 p-6">
+              <div className="grid sm:grid-cols-2 gap-3 p-5">
                 {Object.entries(TERMS_DICTIONARY).map(([term, item]) => {
                   const isDiscovered = discoveredTerms.includes(term) || isDevMode;
                   return (
-                    <div key={term} className={`border p-4 rounded-xl transition-all ${
+                    <div key={term} className={`border p-3.5 rounded-xl transition-all ${
                       isDiscovered 
                         ? 'bg-slate-950/50 border-emerald-500/30' 
                         : 'bg-slate-900/20 border-slate-800 opacity-50 grayscale'
                     }`}>
                       <div className="flex justify-between items-start mb-1">
-                        <h3 className={`font-bold ${isDiscovered ? 'text-emerald-400' : 'text-slate-600'}`}>
+                        <h3 className={`text-sm font-bold ${isDiscovered ? 'text-emerald-400' : 'text-slate-600'}`}>
                           {isDiscovered ? item.title : '???'} ({term})
                         </h3>
-                        {!isDiscovered && <Lock className="w-3 h-3 text-slate-700" />}
+                        {!isDiscovered && <Lock className="w-3 h-3 text-slate-700 shrink-0 mt-1" />}
                       </div>
-                      <p className={`text-sm leading-relaxed ${isDiscovered ? 'text-slate-300' : 'text-slate-700 italic'}`}>
+                      <p className={`text-xs sm:text-sm leading-relaxed ${isDiscovered ? 'text-slate-300' : 'text-slate-700 italic'}`}>
                         {isDiscovered ? item.definition : 'Découvrez ce terme dans la simulation pour débloquer sa définition.'}
                       </p>
                     </div>
@@ -630,10 +630,10 @@ export default function App() {
                 })}
               </div>
               
-              <div className="p-6 pt-0">
+              <div className="sticky bottom-0 bg-slate-900/95 backdrop-blur px-5 py-3.5 border-t border-emerald-900/50 z-20">
                 <button 
                   onClick={() => setShowGlossary(false)}
-                  className="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-3 rounded-xl font-bold transition-all shadow-[0_0_20px_rgba(16,185,129,0.3)]"
+                  className="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 rounded-xl font-bold text-sm transition-all shadow-[0_0_20px_rgba(16,185,129,0.3)]"
                 >
                   RETOUR À LA MISSION
                 </button>
@@ -725,7 +725,7 @@ export default function App() {
       </AnimatePresence>
 
       <motion.main 
-        className="w-full mt-16 md:mt-20 pb-16 relative"
+        className="w-full mt-14 md:mt-16 pb-6 relative"
         animate={isShaking ? { 
           x: [-10, 10, -10, 10, 0], 
           filter: ["hue-rotate(0deg)", "hue-rotate(90deg)", "hue-rotate(-90deg)", "hue-rotate(0deg)"],
