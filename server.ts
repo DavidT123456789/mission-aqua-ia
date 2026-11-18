@@ -7,6 +7,7 @@ import express from 'express';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from '@google/genai';
 import path from 'path';
+import { DEV_ANSWERS } from './shared/devAnswers';
 
 async function startServer() {
   const app = express();
@@ -15,6 +16,16 @@ async function startServer() {
   app.use(express.json());
 
   // API Routes
+  app.post('/api/dev-auth', (req, res) => {
+    const { password } = req.body || {};
+    const expectedPassword = process.env.DEV_PASSWORD || 'dev123';
+
+    if (typeof password !== 'string' || password !== expectedPassword) {
+      return res.status(401).json({ error: 'Mot de passe incorrect.' });
+    }
+    return res.json({ answers: DEV_ANSWERS });
+  });
+
   app.post('/api/evaluate', async (req, res) => {
     try {
       const { idea } = req.body;

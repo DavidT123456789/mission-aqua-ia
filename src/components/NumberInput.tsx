@@ -45,7 +45,7 @@ export default function NumberInput({ value, onChange, min = 0, max = 9999, step
           type="button"
           onClick={decrement}
           disabled={value <= min}
-          className="w-12 h-12 flex items-center justify-center rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors active:scale-90"
+          className="w-12 h-12 flex items-center justify-center rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-400 disabled:opacity-30 disabled:cursor-not-allowed transition-all enabled:hover:shadow-[0_0_12px_rgba(16,185,129,0.2)]"
           aria-label="Diminuer"
         >
           <Minus className="w-6 h-6" />
@@ -70,7 +70,7 @@ export default function NumberInput({ value, onChange, min = 0, max = 9999, step
           type="button"
           onClick={increment}
           disabled={value >= max}
-          className="w-12 h-12 flex items-center justify-center rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors active:scale-90"
+          className="w-12 h-12 flex items-center justify-center rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-400 disabled:opacity-30 disabled:cursor-not-allowed transition-all enabled:hover:shadow-[0_0_12px_rgba(16,185,129,0.2)]"
           aria-label="Augmenter"
         >
           <Plus className="w-6 h-6" />

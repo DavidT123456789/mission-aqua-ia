@@ -4,6 +4,7 @@ import { Database, CheckCircle2, Filter, Trash2 } from 'lucide-react';
 import NaiaDialogue from '../components/NaiaDialogue';
 import TechTerm from '../components/TechTerm';
 import { soundManager } from '../utils/soundManager';
+import { useErrorFeedback } from '../utils/useErrorFeedback';
 
 export default function Level9({ isDevMode, onComplete, onScoreUpdate, onMistake }: { isDevMode?: boolean; onComplete: () => void; onScoreUpdate: (points: number, water: number) => void; onMistake?: () => void; key?: string }) {
   const [datasets, setDatasets] = useState([
@@ -15,7 +16,7 @@ export default function Level9({ isDevMode, onComplete, onScoreUpdate, onMistake
     { id: 6, text: <><TechTerm term="Topographie">Topographie</TechTerm> des sols</>, size: 20, relevant: true, kept: true },
   ]);
 
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const { errorMsg, isErrorFlash, triggerError, clearError } = useErrorFeedback();
   const [hasScored, setHasScored] = useState(false);
 
   const isSuccess = hasScored;
@@ -24,14 +25,14 @@ export default function Level9({ isDevMode, onComplete, onScoreUpdate, onMistake
     if (isSuccess) return;
     soundManager.playClick();
     setDatasets(datasets.map(d => d.id === id ? { ...d, kept: !d.kept } : d));
-    setErrorMsg(null);
+    clearError();
   };
 
   const checkAnswer = () => {
     const isCorrect = datasets.every(d => d.kept === d.relevant);
     if (isCorrect) {
       soundManager.playSuccess();
-      setErrorMsg(null);
+      clearError();
       if (!hasScored) {
         setHasScored(true);
         onScoreUpdate(200, 76);
@@ -42,16 +43,15 @@ export default function Level9({ isDevMode, onComplete, onScoreUpdate, onMistake
       const keptVideo = datasets.find(d => d.id === 3)?.kept;
 
       if (deletedUseful) {
-        setErrorMsg("Attention : vous avez supprimé des données scientifiques indispensables !");
+        triggerError("Attention : vous avez supprimé des données scientifiques indispensables !");
       } else if (keptDuplicate) {
-        setErrorMsg("Doublons détectés : les archives 1995-2020 sont déjà présentes en données propres !");
+        triggerError("Doublons détectés : les archives 1995-2020 sont déjà présentes en données propres !");
       } else if (keptVideo) {
-        setErrorMsg("Format trop lourd : les vidéos HD de rivières (80 To) sont inutiles quand on a les séries numériques de débits !");
+        triggerError("Format trop lourd : les vidéos HD de rivières (80 To) sont inutiles quand on a les séries numériques de débits !");
       } else {
-        setErrorMsg("Données hors-sujet conservées : les traces publicitaires polluent l'entraînement.");
+        triggerError("Données hors-sujet conservées : les traces publicitaires polluent l'entraînement.");
       }
       onMistake?.();
-      setTimeout(() => setErrorMsg(null), 3500);
     }
   };
 
@@ -62,12 +62,12 @@ export default function Level9({ isDevMode, onComplete, onScoreUpdate, onMistake
       initial={{ opacity: 0, x: 50 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -50 }}
-      className="sm:bg-slate-900 border-transparent sm:border-cyan-500/20 sm:border px-0 sm:px-6 py-4 sm:py-6 sm:rounded-xl max-w-4xl mx-auto font-mono relative flex flex-col"
+      className="sm:bg-slate-900/90 border-transparent sm:border-white/10 sm:border px-0 sm:px-6 py-4 sm:py-6 sm:rounded-2xl max-w-4xl mx-auto relative flex flex-col backdrop-blur-xl sm:shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_24px_48px_rgba(0,0,0,0.55)]"
     >
       
-      <div className="flex items-center gap-3 mb-3 border-b border-cyan-900/50 pb-3">
-        <Filter className="w-8 h-8 text-emerald-400" />
-        <h2 className="text-xl md:text-2xl font-bold text-white uppercase tracking-widest">
+      <div className="flex items-center gap-3 mb-3 border-b border-white/10 pb-3">
+        <Filter className="w-7 h-7 text-emerald-400 shrink-0" />
+        <h2 className="font-mono text-xl md:text-2xl font-bold text-white uppercase tracking-widest">
           Niveau 9 : Hygiène des Données
         </h2>
       </div>
@@ -76,10 +76,13 @@ export default function Level9({ isDevMode, onComplete, onScoreUpdate, onMistake
         <NaiaDialogue 
           message={
             <>
-              L'infrastructure d'HYDRA est assainie ! Nous devons maintenant l'entraîner à <strong>prédire les sécheresses</strong>. Au-delà des <TechTerm term="Mème">mèmes</TechTerm> ou vidéos virales évidentes, les bases brutes cachent de vrais pièges (doublons, vidéos non compressées, traces publicitaires) qui gaspillent eau et électricité. <strong>Filtrez son jeu de données</strong> pour ne garder que l'essentiel.
+              L'infrastructure d'HYDRA est assainie ! Nous devons maintenant l'entraîner à <strong className="text-white">prédire les sécheresses</strong>. Au-delà des <TechTerm term="Mème">mèmes</TechTerm>, les bases brutes cachent doublons, vidéos lourdes et traces publicitaires.
             </>
           }
-          emotion="alert"
+          objective="Filtrez le jeu de données ci-dessous pour ne conserver que les données scientifiques utiles."
+          reaction={errorMsg ? { message: errorMsg, emotion: 'alert' } : null}
+          onDismissReaction={clearError}
+          emotion={isSuccess ? 'happy' : 'neutral'}
         />
       </div>
 
@@ -94,16 +97,24 @@ export default function Level9({ isDevMode, onComplete, onScoreUpdate, onMistake
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {datasets.map((dataset) => (
-            <button
+            <div
               key={dataset.id}
-              type="button"
-              disabled={isSuccess}
-              onClick={() => toggleDataset(dataset.id)}
-              className={`p-4 rounded-lg border-2 flex justify-between items-center gap-2 transition-all text-left ${
+              role="button"
+              tabIndex={isSuccess ? -1 : 0}
+              aria-pressed={!dataset.kept}
+              aria-disabled={isSuccess}
+              onClick={() => !isSuccess && toggleDataset(dataset.id)}
+              onKeyDown={(e) => {
+                if (!isSuccess && (e.key === 'Enter' || e.key === ' ')) {
+                  e.preventDefault();
+                  toggleDataset(dataset.id);
+                }
+              }}
+              className={`p-4 rounded-lg border-2 flex justify-between items-center gap-2 transition-all text-left focus:outline-none focus:ring-2 focus:ring-emerald-400/70 ${
                 !dataset.kept 
                   ? 'bg-red-950/20 border-red-500/30 opacity-60' 
                   : 'bg-slate-800 border-slate-600 hover:border-emerald-500/50'
-              } ${isSuccess ? 'cursor-default' : ''}`}
+              } ${isSuccess ? 'cursor-default' : 'cursor-pointer'}`}
             >
               <div className="flex items-center gap-3">
                 <Database className={`w-5 h-5 shrink-0 ${!dataset.kept ? 'text-red-500' : 'text-blue-400'}`} />
@@ -120,28 +131,18 @@ export default function Level9({ isDevMode, onComplete, onScoreUpdate, onMistake
                   Conservé
                 </span>
               )}
-            </button>
+            </div>
           ))}
         </div>
-
-        {errorMsg && (
-          <motion.div
-            initial={{ opacity: 0, y: -5 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="p-3 bg-red-950/40 border border-red-500/50 rounded-lg text-red-300 text-xs font-bold text-center"
-          >
-            {errorMsg}
-          </motion.div>
-        )}
 
         {!isSuccess && (
           <div className="flex justify-center mt-5">
             <button
               onClick={checkAnswer}
               className={`px-8 py-4 rounded-lg font-bold text-lg transition-all ${
-                errorMsg
+                isErrorFlash
                   ? 'bg-red-600 text-white animate-shake'
-                  : 'bg-emerald-600 hover:bg-emerald-500 text-white hover:scale-105'
+                  : 'bg-emerald-600 hover:bg-emerald-500 text-white hover:shadow-[0_0_18px_rgba(16,185,129,0.35)]'
               }`}
             >
               LANCER L'ENTRAÎNEMENT
@@ -165,7 +166,7 @@ export default function Level9({ isDevMode, onComplete, onScoreUpdate, onMistake
               </p>
               <button
                 onClick={onComplete}
-                className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-3 rounded-lg font-bold transition-colors"
+                className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-3 rounded-lg font-bold transition-all hover:shadow-[0_0_18px_rgba(16,185,129,0.35)]"
               >
                 PASSER AU NIVEAU SUIVANT
               </button>

@@ -4,6 +4,7 @@ import { Clock, ArrowRight, Leaf, CheckCircle2, AlertTriangle, Activity, Zap } f
 import NaiaDialogue from '../components/NaiaDialogue';
 import TechTerm from '../components/TechTerm';
 import { soundManager } from '../utils/soundManager';
+import { useErrorFeedback } from '../utils/useErrorFeedback';
 
 // Intensité carbone horaire (gCO2eq/kWh) sur 24h (00h à 23h)
 const HOURLY_INTENSITY = [
@@ -19,7 +20,7 @@ const TRAINING_ENERGY_KWH = 500;
 
 export default function Level5({ isDevMode, onComplete, onScoreUpdate, onMistake }: { isDevMode?: boolean; onComplete: () => void; onScoreUpdate: (points: number, water: number) => void; onMistake?: () => void; key?: string }) {
   const [startHour, setStartHour] = useState<number>(12); // Démarre en plein milieu de journée pour obliger à ajuster
-  const [showError, setShowError] = useState(false);
+  const { errorMsg, isErrorFlash: showError, triggerError, clearError } = useErrorFeedback();
   const [hasScored, setHasScored] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [isDraggingChart, setIsDraggingChart] = useState(false);
@@ -62,7 +63,6 @@ export default function Level5({ isDevMode, onComplete, onScoreUpdate, onMistake
     } else {
       dragGrabOffsetRef.current = DURATION_HOURS / 2;
       setStartHour(clampStartHour(hour - DURATION_HOURS / 2));
-      setShowError(false);
     }
 
     e.currentTarget.setPointerCapture(e.pointerId);
@@ -74,7 +74,6 @@ export default function Level5({ isDevMode, onComplete, onScoreUpdate, onMistake
     const hour = getHourFromClientX(e.clientX);
     if (hour === null) return;
     setStartHour(clampStartHour(hour - dragGrabOffsetRef.current));
-    setShowError(false);
   };
 
   const handleChartPointerEnd = () => {
@@ -84,6 +83,13 @@ export default function Level5({ isDevMode, onComplete, onScoreUpdate, onMistake
 
   const windowSlice = HOURLY_INTENSITY.slice(startHour, startHour + DURATION_HOURS);
   const avgIntensity = Math.round(windowSlice.reduce((sum, v) => sum + v, 0) / DURATION_HOURS);
+
+  // Efface le message d'erreur dès que l'utilisateur a relâché son curseur sur un créneau valide
+  useEffect(() => {
+    if (!isAdjusting && errorMsg && avgIntensity <= TARGET_MAX_INTENSITY) {
+      clearError();
+    }
+  }, [isAdjusting, errorMsg, avgIntensity, clearError]);
   const totalCo2Kg = Math.round((avgIntensity * TRAINING_ENERGY_KWH) / 1000);
   const peakAvgIntensity = Math.max(
     ...Array.from({ length: 24 - DURATION_HOURS + 1 }, (_, i) =>
@@ -110,6 +116,7 @@ export default function Level5({ isDevMode, onComplete, onScoreUpdate, onMistake
 
   const handleSubmit = () => {
     if (avgIntensity <= TARGET_MAX_INTENSITY) {
+      clearError();
       setIsSuccess(true);
       soundManager.playSuccess();
       if (!hasScored) {
@@ -117,9 +124,8 @@ export default function Level5({ isDevMode, onComplete, onScoreUpdate, onMistake
         onScoreUpdate(150, 49);
       }
     } else {
-      setShowError(true);
+      triggerError(`Ce créneau est trop carboné (${avgIntensity} gCO₂/kWh) : visez sous ${TARGET_MAX_INTENSITY} gCO₂/kWh (regardez du côté de l'éolien nocturne).`);
       onMistake?.();
-      setTimeout(() => setShowError(false), 2000);
     }
   };
 
@@ -128,11 +134,11 @@ export default function Level5({ isDevMode, onComplete, onScoreUpdate, onMistake
       initial={{ opacity: 0, x: 50 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -50 }}
-      className="sm:bg-slate-900 border-transparent sm:border-cyan-500/20 sm:border px-0 sm:px-6 py-4 sm:py-6 sm:rounded-xl sm:shadow-emerald-900/20 max-w-4xl mx-auto font-mono relative flex flex-col"
+      className="sm:bg-slate-900/90 border-transparent sm:border-white/10 sm:border px-0 sm:px-6 py-4 sm:py-6 sm:rounded-2xl max-w-4xl mx-auto relative flex flex-col backdrop-blur-xl sm:shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_24px_48px_rgba(0,0,0,0.55)]"
     >
-      <div className="flex items-center gap-3 mb-3 border-b border-cyan-900/50 pb-3">
-        <Clock className="w-8 h-8 text-emerald-400" />
-        <h2 className="text-xl md:text-2xl font-bold text-white uppercase tracking-widest">
+      <div className="flex items-center gap-3 mb-3 border-b border-white/10 pb-3">
+        <Clock className="w-7 h-7 text-emerald-400 shrink-0" />
+        <h2 className="font-mono text-xl md:text-2xl font-bold text-white uppercase tracking-widest">
           Niveau 5 : Optimisation Temporelle
         </h2>
       </div>
@@ -141,10 +147,17 @@ export default function Level5({ isDevMode, onComplete, onScoreUpdate, onMistake
         <NaiaDialogue
           message={
             <>
-              Même sur un site bien refroidi, entraîner ce modèle d'<TechTerm term="IA" /> consomme <strong>{TRAINING_ENERGY_KWH} kWh</strong> pendant <strong>{DURATION_HOURS} heures consécutives</strong>. Selon l'heure, le réseau électrique fournit une énergie bas-carbone ou doit démarrer des centrales fossiles : faites glisser la fenêtre temporelle sur la courbe pour maintenir l'intensité carbone moyenne sous <strong>{TARGET_MAX_INTENSITY} gCO₂/kWh</strong>.
+              Même sur un site bien refroidi, entraîner ce modèle d'<TechTerm term="IA" /> consomme <strong className="font-mono text-white">{TRAINING_ENERGY_KWH} kWh</strong> pendant <strong className="font-mono text-white">{DURATION_HOURS} h</strong> d'affilée. Selon l'heure, le réseau utilise plus d'éolien ou de centrales à gaz.
             </>
           }
-          emotion="neutral"
+          objective={
+            <>
+              Faites glisser la fenêtre temporelle sur la courbe pour garder l'intensité carbone sous <strong className="font-mono text-white">{TARGET_MAX_INTENSITY} gCO₂/kWh</strong>.
+            </>
+          }
+          reaction={errorMsg ? { message: errorMsg, emotion: 'alert' } : null}
+          onDismissReaction={clearError}
+          emotion={isSuccess ? 'happy' : 'neutral'}
         />
       </div>
 
@@ -278,7 +291,6 @@ export default function Level5({ isDevMode, onComplete, onScoreUpdate, onMistake
               onBlur={() => setIsSlidingRange(false)}
               onChange={(e) => {
                 setStartHour(Number(e.target.value));
-                setShowError(false);
               }}
               className="w-full accent-cyan-400 cursor-pointer h-2 bg-slate-800 rounded-lg"
             />
@@ -335,7 +347,7 @@ export default function Level5({ isDevMode, onComplete, onScoreUpdate, onMistake
               className={`px-8 py-3 rounded-lg font-bold transition-all flex items-center gap-2 ${
                 showError
                   ? 'bg-red-600 text-white animate-shake'
-                  : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-[0_0_15px_rgba(16,185,129,0.3)] hover:scale-105'
+                  : 'bg-emerald-600 hover:bg-emerald-500 text-white hover:shadow-[0_0_18px_rgba(16,185,129,0.35)]'
               }`}
             >
               {showError ? (
@@ -363,7 +375,7 @@ export default function Level5({ isDevMode, onComplete, onScoreUpdate, onMistake
               </p>
               <button
                 onClick={onComplete}
-                className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-3 rounded-lg font-bold transition-colors shadow-[0_0_20px_rgba(16,185,129,0.4)]"
+                className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-3 rounded-lg font-bold transition-all hover:shadow-[0_0_18px_rgba(16,185,129,0.35)]"
               >
                 PASSER AU NIVEAU SUIVANT
               </button>

@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { BrainCircuit, CheckCircle2, AlertTriangle, Zap, Scale, Cpu, Database, Target } from 'lucide-react';
+import { BrainCircuit, CheckCircle2, Zap, Scale, Cpu, Database, Target } from 'lucide-react';
 import NaiaDialogue from '../components/NaiaDialogue';
 import TechTerm from '../components/TechTerm';
 import { soundManager } from '../utils/soundManager';
+import { useErrorFeedback } from '../utils/useErrorFeedback';
 
 type ArchId = 'heuristic' | 'specialized' | 'llm';
 
@@ -87,7 +88,7 @@ const TARGET_MIN_QUALITY = 95;
 
 export default function Level6({ isDevMode, onComplete, onScoreUpdate, onMistake }: { isDevMode?: boolean; onComplete: () => void; onScoreUpdate: (points: number, water: number) => void; onMistake?: () => void; key?: string }) {
   const [assignments, setAssignments] = useState<Partial<Record<TaskFlow['id'], ArchId>>>({});
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const { errorMsg, isErrorFlash, triggerError, clearError } = useErrorFeedback();
   const [hasScored, setHasScored] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
@@ -113,7 +114,7 @@ export default function Level6({ isDevMode, onComplete, onScoreUpdate, onMistake
     if (isSuccess) return;
     soundManager.playClick();
     setAssignments(prev => ({ ...prev, [taskId]: archId }));
-    setErrorMsg(null);
+    clearError();
   };
 
   const checkAnswer = () => {
@@ -122,7 +123,7 @@ export default function Level6({ isDevMode, onComplete, onScoreUpdate, onMistake
     const isAllCorrect = TASKS.every(t => assignments[t.id] === t.expected);
     if (isAllCorrect) {
       setIsSuccess(true);
-      setErrorMsg(null);
+      clearError();
       soundManager.playSuccess();
       if (!hasScored) {
         setHasScored(true);
@@ -133,12 +134,11 @@ export default function Level6({ isDevMode, onComplete, onScoreUpdate, onMistake
 
     // Feedback ciblé selon le type d'erreur
     if (assignments.blacklist !== 'heuristic' || assignments.tickets === 'llm') {
-      setErrorMsg("Surcharge énergétique : vous utilisez une architecture surdimensionnée sur un flux massif.");
+      triggerError("Surcharge énergétique : vous utilisez une architecture surdimensionnée sur un flux massif.");
     } else {
-      setErrorMsg("Qualité insuffisante : un outil trop simple échoue à comprendre ou synthétiser ces données.");
+      triggerError("Qualité insuffisante : un outil trop simple échoue à comprendre ou synthétiser ces données.");
     }
     onMistake?.();
-    setTimeout(() => setErrorMsg(null), 3500);
   };
 
   return (
@@ -146,11 +146,11 @@ export default function Level6({ isDevMode, onComplete, onScoreUpdate, onMistake
       initial={{ opacity: 0, x: 50 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -50 }}
-      className="sm:bg-slate-900 border-transparent sm:border-cyan-500/20 sm:border px-0 sm:px-6 py-4 sm:py-6 sm:rounded-xl max-w-4xl mx-auto font-mono relative flex flex-col"
+      className="sm:bg-slate-900/90 border-transparent sm:border-white/10 sm:border px-0 sm:px-6 py-4 sm:py-6 sm:rounded-2xl max-w-4xl mx-auto relative flex flex-col backdrop-blur-xl sm:shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_24px_48px_rgba(0,0,0,0.55)]"
     >
-      <div className="flex items-center gap-3 mb-3 border-b border-cyan-900/50 pb-3">
-        <Scale className="w-8 h-8 text-emerald-400" />
-        <h2 className="text-xl md:text-2xl font-bold text-white uppercase tracking-widest">
+      <div className="flex items-center gap-3 mb-3 border-b border-white/10 pb-3">
+        <Scale className="w-7 h-7 text-emerald-400 shrink-0" />
+        <h2 className="font-mono text-xl md:text-2xl font-bold text-white uppercase tracking-widest">
           Niveau 6 : Sobriété Algorithmique
         </h2>
       </div>
@@ -159,10 +159,17 @@ export default function Level6({ isDevMode, onComplete, onScoreUpdate, onMistake
         <NaiaDialogue
           message={
             <>
-              Pour les flux municipaux qui restent traités sur place, HYDRA envoie encore toutes ses requêtes vers un énorme <TechTerm term="LLM" />, même pour de simples filtres ! Associez chacun des 3 flux à l'architecture la plus adaptée afin de rester sous <strong>50 kWh/jour</strong> tout en gardant au moins <strong>{TARGET_MIN_QUALITY} % de qualité</strong>.
+              HYDRA envoie encore toutes ses requêtes vers un énorme <TechTerm term="LLM" />, même pour de simples filtres !
             </>
           }
-          emotion="neutral"
+          objective={
+            <>
+              Associez chacun des 3 flux à l'architecture la plus adaptée pour rester sous <strong className="font-mono text-white">50 kWh/jour</strong> avec au moins <strong className="font-mono text-white">{TARGET_MIN_QUALITY} % de qualité</strong>.
+            </>
+          }
+          reaction={errorMsg ? { message: errorMsg, emotion: 'alert' } : null}
+          onDismissReaction={clearError}
+          emotion={isSuccess ? 'happy' : 'neutral'}
         />
       </div>
 
@@ -308,7 +315,7 @@ export default function Level6({ isDevMode, onComplete, onScoreUpdate, onMistake
                         onClick={() => handleAssign(task.id, archId)}
                         className={`px-2.5 py-2 rounded-lg border text-[11px] font-bold transition-all ${
                           isPicked
-                            ? 'bg-cyan-950/60 border-cyan-400 text-cyan-200 shadow-[0_0_12px_rgba(34,211,238,0.2)]'
+                            ? 'bg-cyan-950/60 border-cyan-400 text-cyan-200'
                             : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-slate-500 hover:text-slate-200'
                         }`}
                       >
@@ -322,17 +329,6 @@ export default function Level6({ isDevMode, onComplete, onScoreUpdate, onMistake
           })}
         </div>
 
-        {errorMsg && (
-          <motion.div
-            initial={{ opacity: 0, y: -5 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="p-3 bg-red-950/40 border border-red-500/50 rounded-lg text-red-300 text-xs font-bold flex items-center justify-center gap-2 text-center"
-          >
-            <AlertTriangle className="w-4 h-4 shrink-0 text-red-400" />
-            <span>{errorMsg}</span>
-          </motion.div>
-        )}
-
         {!isSuccess && (
           <div className="flex justify-center mt-4">
             <button
@@ -341,9 +337,9 @@ export default function Level6({ isDevMode, onComplete, onScoreUpdate, onMistake
               className={`px-8 py-4 rounded-lg font-bold text-lg transition-all flex items-center gap-2 ${
                 !allAssigned
                   ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                  : errorMsg
+                  : isErrorFlash
                   ? 'bg-red-600 text-white animate-shake'
-                  : 'bg-emerald-600 hover:bg-emerald-500 text-white hover:scale-105'
+                  : 'bg-emerald-600 hover:bg-emerald-500 text-white hover:shadow-[0_0_18px_rgba(16,185,129,0.35)]'
               }`}
             >
               DÉPLOYER LE ROUTAGE
@@ -367,7 +363,7 @@ export default function Level6({ isDevMode, onComplete, onScoreUpdate, onMistake
               </p>
               <button
                 onClick={onComplete}
-                className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-3 rounded-lg font-bold transition-colors shadow-[0_0_20px_rgba(16,185,129,0.4)]"
+                className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-3 rounded-lg font-bold transition-all hover:shadow-[0_0_18px_rgba(16,185,129,0.35)]"
               >
                 PASSER AU NIVEAU SUIVANT
               </button>

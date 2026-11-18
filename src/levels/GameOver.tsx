@@ -6,7 +6,7 @@ export default function GameOver({ onRetry, nickname, reason = 'time' }: { onRet
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="sm:bg-slate-900 border-transparent sm:border-red-500/50 p-4 sm:p-8 sm:rounded-xl max-w-2xl mx-auto text-center font-mono"
+      className="sm:bg-slate-900/90 border-transparent sm:border-red-500/40 sm:border p-4 sm:p-8 sm:rounded-2xl max-w-2xl mx-auto text-center backdrop-blur-xl sm:shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_24px_48px_rgba(0,0,0,0.55)]"
     >
       <div className="flex justify-center mb-6">
         {reason === 'lives' ? (
@@ -16,7 +16,7 @@ export default function GameOver({ onRetry, nickname, reason = 'time' }: { onRet
         )}
       </div>
 
-      <h1 className="text-3xl md:text-5xl font-bold text-red-500 mb-4 uppercase tracking-widest">
+      <h1 className="font-mono text-3xl md:text-5xl font-bold text-red-500 mb-4 uppercase tracking-widest">
         ÉCHEC DE LA MISSION
       </h1>
       
@@ -28,7 +28,7 @@ export default function GameOver({ onRetry, nickname, reason = 'time' }: { onRet
 
       <button
         onClick={() => onRetry(nickname)}
-        className="mt-5 flex items-center justify-center gap-2 mx-auto bg-red-600 hover:bg-red-500 text-white px-8 py-4 rounded-lg font-bold text-xl transition-colors shadow-[0_0_20px_rgba(239,68,68,0.4)]"
+        className="mt-5 flex items-center justify-center gap-2 mx-auto bg-red-600 hover:bg-red-500 text-white px-8 py-4 rounded-lg font-bold text-xl transition-all hover:shadow-[0_0_18px_rgba(239,68,68,0.35)]"
       >
         <RotateCcw className="w-6 h-6" />
         RELANCER LA SIMULATION

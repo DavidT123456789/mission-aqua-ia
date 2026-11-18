@@ -4,10 +4,11 @@ import { FileText, CheckCircle2, Scale } from 'lucide-react';
 import NaiaDialogue from '../components/NaiaDialogue';
 import TechTerm from '../components/TechTerm';
 import { soundManager } from '../utils/soundManager';
+import { useErrorFeedback } from '../utils/useErrorFeedback';
 
 export default function Level10({ isDevMode, onComplete, onScoreUpdate, onMistake }: { isDevMode?: boolean; onComplete: () => void; onScoreUpdate: (points: number, water: number) => void; onMistake?: () => void; key?: string }) {
   const [selectedClauses, setSelectedClauses] = useState<number[]>([]);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const { errorMsg, isErrorFlash, triggerError, clearError } = useErrorFeedback();
   const [hasScored, setHasScored] = useState(false);
 
   const [shuffledClauses] = useState(() => [
@@ -30,7 +31,7 @@ export default function Level10({ isDevMode, onComplete, onScoreUpdate, onMistak
     setSelectedClauses(prev => 
       prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]
     );
-    setErrorMsg(null);
+    clearError();
   };
 
   const checkAnswer = () => {
@@ -39,6 +40,7 @@ export default function Level10({ isDevMode, onComplete, onScoreUpdate, onMistak
     const isCorrect = !hasBadClause && !missingGoodClause;
     
     if (isCorrect) {
+      clearError();
       soundManager.playSuccess();
       if (!hasScored) {
         setHasScored(true);
@@ -46,7 +48,7 @@ export default function Level10({ isDevMode, onComplete, onScoreUpdate, onMistak
       }
     } else {
       const hasGreenwashing = selectedClauses.includes(2) || selectedClauses.includes(8);
-      setErrorMsg(
+      triggerError(
         hasGreenwashing
           ? 'PIÈGE DE GREENWASHING DÉTECTÉ : cela ne protège pas nos nappes locales !'
           : hasBadClause
@@ -54,7 +56,6 @@ export default function Level10({ isDevMode, onComplete, onScoreUpdate, onMistak
           : 'CHARTE INCOMPLÈTE'
       );
       onMistake?.();
-      setTimeout(() => setErrorMsg(null), 3000);
     }
   };
 
@@ -63,12 +64,12 @@ export default function Level10({ isDevMode, onComplete, onScoreUpdate, onMistak
       initial={{ opacity: 0, x: 50 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -50 }}
-      className="sm:bg-slate-900 border-transparent sm:border-cyan-500/20 sm:border px-0 sm:px-6 py-4 sm:py-6 sm:rounded-xl max-w-4xl mx-auto font-mono relative flex flex-col"
+      className="sm:bg-slate-900/90 border-transparent sm:border-white/10 sm:border px-0 sm:px-6 py-4 sm:py-6 sm:rounded-2xl max-w-4xl mx-auto relative flex flex-col backdrop-blur-xl sm:shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_24px_48px_rgba(0,0,0,0.55)]"
     >
       
-      <div className="flex items-center gap-3 mb-3 border-b border-cyan-900/50 pb-3">
-        <FileText className="w-8 h-8 text-emerald-400" />
-        <h2 className="text-xl md:text-2xl font-bold text-white uppercase tracking-widest">
+      <div className="flex items-center gap-3 mb-3 border-b border-white/10 pb-3">
+        <FileText className="w-7 h-7 text-emerald-400 shrink-0" />
+        <h2 className="font-mono text-xl md:text-2xl font-bold text-white uppercase tracking-widest">
           Niveau 10 : La Charte Éthique
         </h2>
       </div>
@@ -77,10 +78,13 @@ export default function Level10({ isDevMode, onComplete, onScoreUpdate, onMistak
         <NaiaDialogue 
           message={
             <>
-              La technique ne suffit pas : pour empêcher qu'une telle crise ne se reproduise, les autorités de la ville exigent une 'Charte de l'<TechTerm term="IA" /> Responsable' contraignante avant d'autoriser le redémarrage d'HYDRA. Sélectionnez uniquement les clauses bénéfiques pour l'environnement.
+              La technique ne suffit pas : pour éviter qu'une telle crise se reproduise, la ville exige une « Charte de l'<TechTerm term="IA" /> Responsable » contraignante avant de redémarrer HYDRA.
             </>
           }
-          emotion="neutral"
+          objective="Sélectionnez uniquement les clauses réellement bénéfiques et contraignantes pour l'environnement."
+          reaction={errorMsg ? { message: errorMsg, emotion: 'alert' } : null}
+          onDismissReaction={clearError}
+          emotion={isSuccess ? 'happy' : 'neutral'}
         />
       </div>
 
@@ -93,26 +97,37 @@ export default function Level10({ isDevMode, onComplete, onScoreUpdate, onMistak
             </span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {shuffledClauses.map((clause) => (
-              <button
-                key={clause.id}
-                type="button"
-                disabled={isSuccess}
-                onClick={() => toggleClause(clause.id)}
-                className={`w-full text-left p-4 rounded-lg border transition-all flex items-start gap-4 ${
-                  selectedClauses.includes(clause.id)
-                    ? 'bg-emerald-900/30 border-emerald-500 text-emerald-100'
-                    : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-slate-500'
-                } ${isSuccess ? 'cursor-default opacity-85' : ''}`}
-              >
-                <div className={`w-6 h-6 rounded border flex items-center justify-center shrink-0 mt-0.5 ${
-                  selectedClauses.includes(clause.id) ? 'bg-emerald-500 border-emerald-500' : 'border-slate-600'
-                }`}>
-                  {selectedClauses.includes(clause.id) && <CheckCircle2 className="w-4 h-4 text-slate-900" />}
+            {shuffledClauses.map((clause) => {
+              const isSelected = selectedClauses.includes(clause.id);
+              return (
+                <div
+                  key={clause.id}
+                  role="button"
+                  tabIndex={isSuccess ? -1 : 0}
+                  aria-pressed={isSelected}
+                  aria-disabled={isSuccess}
+                  onClick={() => !isSuccess && toggleClause(clause.id)}
+                  onKeyDown={(e) => {
+                    if (!isSuccess && (e.key === 'Enter' || e.key === ' ')) {
+                      e.preventDefault();
+                      toggleClause(clause.id);
+                    }
+                  }}
+                  className={`w-full text-left p-4 rounded-lg border transition-all flex items-start gap-4 focus:outline-none focus:ring-2 focus:ring-emerald-400/70 ${
+                    isSelected
+                      ? 'bg-emerald-900/30 border-emerald-500 text-emerald-100'
+                      : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-slate-500'
+                  } ${isSuccess ? 'cursor-default opacity-85' : 'cursor-pointer'}`}
+                >
+                  <div className={`w-6 h-6 rounded border flex items-center justify-center shrink-0 mt-0.5 ${
+                    isSelected ? 'bg-emerald-500 border-emerald-500' : 'border-slate-600'
+                  }`}>
+                    {isSelected && <CheckCircle2 className="w-4 h-4 text-slate-900" />}
+                  </div>
+                  <span className="text-sm md:text-base">{clause.text}</span>
                 </div>
-                <span className="text-sm md:text-base">{clause.text}</span>
-              </button>
-            ))}
+              );
+            })}
           </div>
         </div>
 
@@ -124,12 +139,12 @@ export default function Level10({ isDevMode, onComplete, onScoreUpdate, onMistak
               className={`px-8 py-4 rounded-lg font-bold text-lg transition-all ${
                 selectedClauses.length === 0
                   ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                  : errorMsg
+                  : isErrorFlash
                   ? 'bg-red-600 text-white animate-shake'
-                  : 'bg-emerald-600 hover:bg-emerald-500 text-white hover:scale-105'
+                  : 'bg-emerald-600 hover:bg-emerald-500 text-white hover:shadow-[0_0_18px_rgba(16,185,129,0.35)]'
               }`}
             >
-              {errorMsg || 'SOUMETTRE LA CHARTE'}
+              SOUMETTRE LA CHARTE
             </button>
           </div>
         )}
@@ -150,7 +165,7 @@ export default function Level10({ isDevMode, onComplete, onScoreUpdate, onMistak
               </p>
               <button
                 onClick={onComplete}
-                className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-3 rounded-lg font-bold transition-colors"
+                className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-3 rounded-lg font-bold transition-all hover:shadow-[0_0_18px_rgba(16,185,129,0.35)]"
               >
                 DÉPLOYER LES NOUVEAUX MODULES
               </button>

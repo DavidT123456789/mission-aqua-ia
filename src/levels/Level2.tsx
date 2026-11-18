@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Settings, AlertTriangle, CheckCircle2, Droplets, Gauge, Server, ArrowRight } from 'lucide-react';
+import { Settings, CheckCircle2, Droplets, Gauge, Server, ArrowRight } from 'lucide-react';
 import NaiaDialogue from '../components/NaiaDialogue';
 import HydraLog from '../components/HydraLog';
 import TechTerm from '../components/TechTerm';
 import { soundManager } from '../utils/soundManager';
+import { useErrorFeedback } from '../utils/useErrorFeedback';
 
 const VALVES = [
   { id: 1, flow: 65, pipeClass: 'w-5 sm:w-7', flangeClass: 'w-7 sm:w-9' },
@@ -22,7 +23,7 @@ export default function Level2({ isDevMode, onComplete, onScoreUpdate, onMistake
   // Toutes les vannes démarrent ouvertes, conformément au briefing de NAÏA
   const [activeValves, setActiveValves] = useState<number[]>(() => VALVES.map(v => v.id));
   const [measuredFlow, setMeasuredFlow] = useState<number | null>(null);
-  const [showError, setShowError] = useState(false);
+  const { isErrorFlash: showError, triggerError, clearError } = useErrorFeedback();
   const [isSuccess, setIsSuccess] = useState(false);
   const [hasScored, setHasScored] = useState(false);
 
@@ -34,7 +35,7 @@ export default function Level2({ isDevMode, onComplete, onScoreUpdate, onMistake
   const toggleValve = (id: number) => {
     if (isSuccess) return;
     soundManager.playClick();
-    setShowError(false);
+    clearError();
     setMeasuredFlow(null);
     setActiveValves(prev =>
       prev.includes(id) ? prev.filter(v => v !== id) : [...prev, id]
@@ -45,16 +46,15 @@ export default function Level2({ isDevMode, onComplete, onScoreUpdate, onMistake
     setMeasuredFlow(currentFlow);
     if (currentFlow === TARGET_FLOW) {
       setIsSuccess(true);
-      setShowError(false);
+      clearError();
       soundManager.playSuccess();
       if (!hasScored) {
         setHasScored(true);
         onScoreUpdate(100, 28);
       }
     } else {
-      setShowError(true);
+      triggerError('PRESSION INCORRECTE');
       onMistake?.();
-      setTimeout(() => setShowError(false), 2000);
     }
   };
 
@@ -77,39 +77,34 @@ export default function Level2({ isDevMode, onComplete, onScoreUpdate, onMistake
       initial={{ opacity: 0, x: 50 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -50 }}
-      className="sm:bg-slate-900 border-transparent sm:border-cyan-500/20 sm:border px-0 sm:px-6 py-4 sm:py-6 sm:rounded-xl max-w-4xl mx-auto font-mono relative flex flex-col"
+      className="sm:bg-slate-900/90 border-transparent sm:border-white/10 sm:border px-0 sm:px-6 py-4 sm:py-6 sm:rounded-2xl max-w-4xl mx-auto relative flex flex-col backdrop-blur-xl sm:shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_24px_48px_rgba(0,0,0,0.55)]"
     >
-      <div className="flex items-center gap-3 mb-3 border-b border-cyan-900/50 pb-3">
-        <Settings className="w-8 h-8 text-emerald-400" />
-        <h2 className="text-xl md:text-2xl font-bold text-white uppercase tracking-widest">
+      <div className="flex items-center gap-3 mb-3 border-b border-white/10 pb-3">
+        <Settings className="w-7 h-7 text-emerald-400 shrink-0" />
+        <h2 className="font-mono text-xl md:text-2xl font-bold text-white uppercase tracking-widest">
           Niveau 2 : Refroidissement
         </h2>
       </div>
 
-      <div className="mb-3 space-y-2.5">
+      <div className="mb-4 space-y-2">
         <HydraLog status="hostile" message="Charge maximale détectée. Ouverture forcée de toutes les vannes à 100 %." />
         <NaiaDialogue
           message={
             <>
-              Bien joué pour le diagnostic. Passons à l'urgence : HYDRA tourne en surrégime et a ouvert toutes les vannes d'eau de ses <TechTerm term="Serveur">serveurs</TechTerm> au maximum, mettant le circuit en surpression ! Le débitmètre est hors-ligne tant que la conduite n'est pas testée : calculez la somme exacte requise et fermez les vannes en trop avant de valider.
+              HYDRA tourne en surrégime et a ouvert toutes les vannes de ses <TechTerm term="Serveur">serveurs</TechTerm> au maximum ! Le débitmètre reste hors-ligne tant que la conduite n'est pas testée.
             </>
           }
-          emotion="alert"
+          objective={
+            <>
+              Calculez et fermez les vannes en trop pour obtenir exactement <strong className="font-mono text-white">{TARGET_FLOW} L/s</strong> avant de valider <span className="text-amber-300">(erreur = -1 vie)</span>.
+            </>
+          }
+          emotion={isSuccess ? 'happy' : 'alert'}
         />
       </div>
 
       <div className="space-y-4 text-slate-300">
-        <div className="bg-red-950/30 border border-red-500/50 p-4 rounded-lg flex items-start gap-4">
-          <AlertTriangle className="w-6 h-6 text-red-500 shrink-0 mt-1" />
-          <div>
-            <h3 className="text-red-400 font-bold uppercase mb-1">Alerte : Surconsommation d'eau</h3>
-            <p className="text-sm font-sans mt-1 font-bold text-emerald-300">
-              Le système requiert exactement {TARGET_FLOW} L/s pour un refroidissement optimal sans gaspillage. Toute mise sous pression incorrecte endommage le circuit (-1 vie).
-            </p>
-          </div>
-        </div>
-
-        <div className="flex flex-col lg:flex-row gap-5 mt-5">
+        <div className="flex flex-col lg:flex-row gap-5">
           {/* Valve Manifold Controls */}
           <div className="w-full lg:w-3/5 relative p-4 sm:p-6 bg-slate-950 rounded-xl border border-slate-800 flex flex-col justify-between">
             <p className="text-sm sm:text-lg text-center font-bold mb-4 relative z-10">
@@ -171,17 +166,16 @@ export default function Level2({ isDevMode, onComplete, onScoreUpdate, onMistake
                       </div>
 
                       {/* Valve Control */}
-                      <motion.button
-                        whileHover={isSuccess ? {} : { scale: 1.05 }}
-                        whileTap={isSuccess ? {} : { scale: 0.95 }}
+                      <button
+                        type="button"
                         disabled={isSuccess}
                         onClick={() => toggleValve(valve.id)}
                         aria-label={`Vanne ${valve.id}, débit ${valve.flow} litres par seconde. ${isActive ? 'Actuellement ouverte' : 'Actuellement fermée'}`}
                         className={`relative w-14 h-14 sm:w-20 sm:h-20 rounded-full border-[3px] sm:border-4 flex flex-col items-center justify-center transition-all duration-300 overflow-hidden group z-10 -my-1 ${
                           isActive
-                            ? 'bg-cyan-950/85 border-cyan-400 text-cyan-200 shadow-[0_0_16px_rgba(34,211,238,0.2)]'
-                            : 'bg-slate-900 border-slate-700 text-slate-500 hover:border-slate-500'
-                        } ${isSuccess ? 'cursor-default opacity-85' : ''}`}
+                            ? 'bg-cyan-950/85 border-cyan-400 text-cyan-200 hover:shadow-[0_0_16px_rgba(34,211,238,0.28)]'
+                            : 'bg-slate-900 border-slate-700 text-slate-500 hover:border-slate-500 hover:shadow-[0_0_12px_rgba(148,163,184,0.2)]'
+                        } ${isSuccess ? 'cursor-default opacity-85 hover:shadow-none' : ''}`}
                       >
                         {isActive && (
                           <motion.div
@@ -222,7 +216,7 @@ export default function Level2({ isDevMode, onComplete, onScoreUpdate, onMistake
                         }`}>
                           {isActive ? 'OUV' : 'FER'}
                         </span>
-                      </motion.button>
+                      </button>
 
                       {/* Downstream Pipe (Valve -> Collector) */}
                       <div className={`h-16 sm:h-24 ${valve.pipeClass} bg-slate-900/90 border-x border-slate-700/80 relative overflow-hidden shadow-inner`}>
@@ -419,7 +413,7 @@ export default function Level2({ isDevMode, onComplete, onScoreUpdate, onMistake
                   ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
                   : showError
                   ? 'bg-red-600 text-white animate-shake'
-                  : 'bg-emerald-600 hover:bg-emerald-500 text-white hover:scale-105 shadow-[0_0_20px_rgba(16,185,129,0.3)]'
+                  : 'bg-emerald-600 hover:bg-emerald-500 text-white hover:shadow-[0_0_18px_rgba(16,185,129,0.35)]'
               }`}
             >
               {activeValves.length === VALVES.length
@@ -447,7 +441,7 @@ export default function Level2({ isDevMode, onComplete, onScoreUpdate, onMistake
               </p>
               <button
                 onClick={onComplete}
-                className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-3 rounded-lg font-bold transition-colors shadow-[0_0_20px_rgba(16,185,129,0.4)]"
+                className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-3 rounded-lg font-bold transition-all hover:shadow-[0_0_18px_rgba(16,185,129,0.35)]"
               >
                 STABILISER LE SYSTÈME
               </button>

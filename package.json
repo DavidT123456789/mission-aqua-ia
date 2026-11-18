@@ -5,19 +5,16 @@
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
-    "start": "node dist/server.cjs",
-    "build": "vite build && tsc server.ts --module CommonJS --outDir dist --esModuleInterop --skipLibCheck && mv dist/server.js dist/server.cjs",
+    "start": "node dist-server/server.cjs",
+    "build": "vite build && tsc server.ts --module CommonJS --outDir dist-server --esModuleInterop --skipLibCheck && node -e \"require('fs').renameSync('dist-server/server.js','dist-server/server.cjs')\"",
     "preview": "vite preview",
-    "clean": "rm -rf dist",
+    "clean": "node -e \"const fs=require('fs');['dist','dist-server'].forEach(d=>fs.rmSync(d,{recursive:true,force:true}))\"",
     "lint": "tsc --noEmit"
   },
   "dependencies": {
     "@google/genai": "^1.29.0",
-    "@tailwindcss/vite": "^4.1.14",
-    "@vitejs/plugin-react": "^5.0.4",
     "canvas-confetti": "^1.9.4",
     "dotenv": "^17.2.3",
-    "eslint-plugin-react-hooks": "^5.1.0",
     "express": "^4.21.2",
     "html-to-image": "^1.11.13",
     "lucide-react": "^0.546.0",
@@ -28,17 +25,19 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@tailwindcss/vite": "^4.1.14",
     "@types/canvas-confetti": "^1.9.0",
     "@types/express": "^4.17.21",
     "@types/node": "^22.14.0",
+    "@vitejs/plugin-react": "^5.0.4",
     "autoprefixer": "^10.4.21",
     "eslint": "^10.0.3",
+    "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.4.0",
     "tailwindcss": "^4.1.14",
     "tsx": "^4.21.0",
     "typescript": "~5.8.2",
-    "typescript-eslint": "^8.57.1",
-    "vite": "^6.2.0"
+    "typescript-eslint": "^8.57.1"
   }
 }

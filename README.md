@@ -27,11 +27,13 @@ Un escape game éducatif sur l'intelligence artificielle et la consommation d'ea
    npm install
    ```
 
-3. **Configurer la clé API :**
+3. **Configurer les variables d'environnement :**
    Créez un fichier `.env.local` à la racine du projet :
    ```env
    GEMINI_API_KEY=votre_clé_api_ici
+   DEV_PASSWORD=mot_de_passe_prof_optionnel
    ```
+   *(Si `DEV_PASSWORD` est omis, le mot de passe par défaut côté serveur est `dev123`.)*
 
 4. **Lancer l'application :**
    ```bash
@@ -69,4 +71,4 @@ Un escape game éducatif sur l'intelligence artificielle et la consommation d'ea
 
 L'application est déployable sur **Cloudflare Pages** :
 - Les fichiers dans `functions/api/` servent d'endpoints serverless
-- La variable d'environnement `GEMINI_API_KEY` doit être configurée dans les paramètres Cloudflare
+- La variable d'environnement `GEMINI_API_KEY` doit être configurée dans les paramètres Cloudflare (et `DEV_PASSWORD` en option pour personnaliser le mot de passe du mode enseignant, sinon `dev123` par défaut)

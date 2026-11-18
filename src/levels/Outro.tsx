@@ -1,23 +1,10 @@
 import { useRef, useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Trophy, Droplets, RotateCcw, Star, Award, Clock, Download, ShieldCheck, Zap, Bot } from 'lucide-react';
-import { toPng } from 'html-to-image';
 import TechTerm from '../components/TechTerm';
 import NaiaDialogue from '../components/NaiaDialogue';
 import BonusMissions, { BonusMissionId } from '../components/BonusMissions';
-import { MISSION_DURATION_SECONDS } from '../constants';
-
-interface Evaluation {
-  title: string;
-  description: string;
-  impact: string;
-  feasibility: string;
-  precision: string;
-  originality: string;
-  score: number;
-  waterSaved: string;
-  feedback: string;
-}
+import { MISSION_DURATION_SECONDS, type Evaluation } from '../constants';
 
 export default function Outro({ timeLeft, extraTimeBought = 0, score, waterSaved, onRestart, nickname, evaluation, imageUrl, leaderboard }: { 
   timeLeft: number; 
@@ -88,7 +75,10 @@ export default function Outro({ timeLeft, extraTimeBought = 0, score, waterSaved
     setDownloadError(null);
 
     try {
-      await new Promise(resolve => setTimeout(resolve, 300));
+      const [{ toPng }] = await Promise.all([
+        import('html-to-image'),
+        new Promise(resolve => setTimeout(resolve, 300)),
+      ]);
 
       const dataUrl = await toPng(certificateRef.current, {
         pixelRatio: 2,
@@ -131,7 +121,7 @@ export default function Outro({ timeLeft, extraTimeBought = 0, score, waterSaved
       variants={containerVariants}
       initial="hidden"
       animate="visible"
-      className="bg-slate-900/90 border border-emerald-500/40 p-5 sm:p-8 rounded-3xl shadow-[0_0_40px_rgba(16,185,129,0.15),inset_0_0_20px_rgba(16,185,129,0.05)] max-w-3xl mx-auto text-center backdrop-blur-xl relative overflow-hidden"
+      className="bg-slate-900/90 border border-white/10 p-5 sm:p-8 rounded-3xl shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_24px_48px_rgba(0,0,0,0.55)] max-w-3xl mx-auto text-center backdrop-blur-xl relative overflow-hidden"
     >
       {/* Subtle animated border glow line (optional but cool) */}
       <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-emerald-500/20 to-transparent opacity-50" />
@@ -165,6 +155,7 @@ export default function Outro({ timeLeft, extraTimeBought = 0, score, waterSaved
 
       <motion.div variants={itemVariants} className="max-w-2xl mx-auto mb-5 text-left">
         <NaiaDialogue
+          hideHintButton
           message={`Félicitations, agent ${nickname || 'Anonyme'} ! Les réserves d'eau potable de la ville remontent déjà. Désormais encadrée par la charte municipale et basculée en mode Symbiose, HYDRA protège nos réseaux hydriques au lieu de les épuiser.`}
           emotion="happy"
         />
@@ -180,8 +171,7 @@ export default function Outro({ timeLeft, extraTimeBought = 0, score, waterSaved
           <motion.div 
             key={i} 
             variants={itemVariants}
-            whileHover={{ y: -5, transition: { duration: 0.2 } }}
-            className={`${stat.bg} ${stat.border} border p-3 rounded-xl flex flex-col items-center justify-center transition-all duration-300 hover:shadow-lg`}
+            className={`${stat.bg} ${stat.border} border p-3 rounded-xl flex flex-col items-center justify-center`}
           >
             <stat.icon className={`w-4 h-4 sm:w-5 sm:h-5 ${stat.color} mb-1.5`} />
             <div className={`text-base sm:text-lg font-mono font-bold ${stat.color} truncate max-w-full`}>{stat.value}</div>
@@ -301,7 +291,7 @@ export default function Outro({ timeLeft, extraTimeBought = 0, score, waterSaved
         <button
           onClick={downloadFullCertificate}
           disabled={isDownloading}
-          className={`flex items-center justify-center gap-2.5 relative overflow-hidden group px-6 py-3 rounded-xl text-sm sm:text-base font-black transition-all ${isDownloading ? 'bg-emerald-600/50 text-white/50 cursor-wait border border-emerald-500/30' : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:scale-105 active:scale-95 border-b-4 border-emerald-800'}`}
+          className={`flex items-center justify-center gap-2.5 relative overflow-hidden group px-6 py-3 rounded-xl text-sm sm:text-base font-black transition-all ${isDownloading ? 'bg-emerald-600/50 text-white/50 cursor-wait border border-emerald-500/30' : 'bg-emerald-600 hover:bg-emerald-500 text-white hover:shadow-[0_0_18px_rgba(16,185,129,0.35)] border-b-4 border-emerald-800'}`}
         >
           {/* Shine effect */}
           {!isDownloading && (
@@ -318,7 +308,7 @@ export default function Outro({ timeLeft, extraTimeBought = 0, score, waterSaved
         </button>
         <button
           onClick={() => onRestart(nickname)}
-          className="flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-6 py-3 rounded-xl text-sm sm:text-base font-bold transition-all hover:bg-slate-750 active:scale-95 border border-slate-700"
+          className="flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-6 py-3 rounded-xl text-sm sm:text-base font-bold transition-all border border-slate-700 hover:shadow-[0_0_12px_rgba(148,163,184,0.2)]"
         >
           <RotateCcw className="w-4 h-4 sm:w-5 sm:h-5" />
           REJOUER

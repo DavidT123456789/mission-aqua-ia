@@ -385,7 +385,7 @@ export default function BonusMissions({ completedMissions, onCompleteMission }: 
                 <button
                   type="button"
                   onClick={handleNextStep}
-                  className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-xs font-mono font-bold transition-all"
+                  className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-xs font-mono font-bold transition-all hover:shadow-[0_0_14px_rgba(16,185,129,0.3)]"
                 >
                   {stepIndex + 1 < activeMission.steps.length ? 'CAS SUIVANT' : 'DÉBLOQUER LE BADGE'}
                   <ChevronRight className="w-4 h-4" />

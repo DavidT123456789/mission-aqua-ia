@@ -1,28 +1,17 @@
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { Sparkles, Send, CheckCircle2, Lightbulb, Zap, Droplets, Bot, RotateCcw, Lock, Activity, Loader2 } from 'lucide-react';
-import NaiaDialogue from '../components/NaiaDialogue';
+import { motion } from 'motion/react';
+import { Sparkles, Send, CheckCircle2, Lightbulb, Zap, Droplets, RotateCcw, Lock, Activity, Loader2 } from 'lucide-react';
+import NaiaDialogue, { NaiaAvatar } from '../components/NaiaDialogue';
 import HydraLog from '../components/HydraLog';
 import TechTerm from '../components/TechTerm';
 import { soundManager } from '../utils/soundManager';
-
-interface Evaluation {
-  title: string;
-  description: string;
-  impact: string;
-  feasibility: string;
-  precision: string;
-  originality: string;
-  score: number;
-  waterSaved: string;
-  feedback: string;
-}
+import type { Evaluation } from '../constants';
 
 export default function Level13({ onComplete, onScoreUpdate, nickname, onFinalize, isDevMode }: { 
   onComplete: () => void; 
   onScoreUpdate: (points: number, water: number) => void; 
   nickname: string; 
-  onFinalize?: (evaluation: any, imageUrl: string | null) => void; 
+  onFinalize?: (evaluation: Evaluation, imageUrl: string | null) => void; 
   isDevMode?: boolean;
   key?: string 
 }) {
@@ -156,18 +145,18 @@ export default function Level13({ onComplete, onScoreUpdate, nickname, onFinaliz
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
-      className="sm:bg-slate-900 border-transparent sm:border-cyan-500/20 sm:border px-0 sm:px-6 py-4 sm:py-6 sm:rounded-xl sm:shadow-[0_0_40px_rgba(34,211,238,0.15)] max-w-4xl mx-auto font-mono relative flex flex-col"
+      className="sm:bg-slate-900/90 border-transparent sm:border-white/10 sm:border px-0 sm:px-6 py-4 sm:py-6 sm:rounded-2xl max-w-4xl mx-auto relative flex flex-col backdrop-blur-xl sm:shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_24px_48px_rgba(0,0,0,0.55)]"
     >
-      <div className="flex items-center gap-3 mb-3 border-b border-cyan-900/50 pb-3">
-        <Sparkles className="w-8 h-8 text-yellow-400" />
-        <h2 className="text-xl md:text-2xl font-bold text-white uppercase tracking-widest">
+      <div className="flex items-center gap-3 mb-3 border-b border-white/10 pb-3">
+        <Sparkles className="w-7 h-7 text-yellow-400 shrink-0" />
+        <h2 className="font-mono text-xl md:text-2xl font-bold text-white uppercase tracking-widest">
           NIVEAU 13 : L'INNOVATION LAB
         </h2>
       </div>
 
       {status === 'input' && !isAnalyzing && (
         <div className="space-y-6">
-          <div className="relative min-h-[320px] w-full rounded-2xl overflow-hidden border border-cyan-500/30 shadow-[0_0_30px_rgba(34,211,238,0.1)] group">
+          <div className="relative min-h-[320px] w-full rounded-2xl overflow-hidden border border-white/10 group">
             <div className="absolute inset-0 bg-cyan-900/30 mix-blend-color z-10 transition-opacity duration-500 group-hover:opacity-20"></div>
             <img 
               src="https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&q=80&w=1200" 
@@ -186,7 +175,12 @@ export default function Level13({ onComplete, onScoreUpdate, nickname, onFinaliz
                 <NaiaDialogue 
                   message={
                     <>
-                      Agent, vous avez franchi les 12 niveaux de sécurité et repris le contrôle d'HYDRA. Au niveau 1, nous avions mesuré qu'une simple image gaspillait 12 mL d'eau. Maintenant que le système tourne en sobriété et en circuit fermé, nous pouvons utiliser l'IA générative à bon escient : rédigez un <TechTerm term="Prompt">prompt</TechTerm> précis dès le premier essai pour limiter les relances, concevez votre propre innovation pour préserver l'eau, et matérialisons son prototype dans le noyau d'HYDRA !
+                      Bravo Agent, vous avez repris le contrôle d'HYDRA ! Désormais en sobriété et en circuit fermé, nous pouvons utiliser l'IA générative à bon escient (pour éviter de gaspiller 12 mL par relance inutile).
+                    </>
+                  }
+                  objective={
+                    <>
+                      Rédigez un <TechTerm term="Prompt">prompt</TechTerm> précis dès le premier essai pour concevoir votre innovation de préservation de l'eau et matérialiser son prototype !
                     </>
                   }
                   emotion="happy"
@@ -222,8 +216,8 @@ export default function Level13({ onComplete, onScoreUpdate, nickname, onFinaliz
 
           <div className="relative group mt-6">
             {/* Décoration Terminal */}
-            <div className="absolute -top-3 left-4 px-3 py-1 flex items-center gap-2 z-30 bg-slate-950 border border-emerald-500/50 rounded-full shadow-lg">
-              <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_5px_rgba(52,211,153,0.8)]"></div>
+            <div className="absolute -top-3 left-4 px-3 py-1 flex items-center gap-2 z-30 bg-slate-950 border border-emerald-500/40 rounded-full shadow-md">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-400"></div>
               <span className="text-[10px] font-bold text-emerald-400 tracking-widest uppercase">Console d'Entrée Neurale</span>
             </div>
             
@@ -231,7 +225,7 @@ export default function Level13({ onComplete, onScoreUpdate, nickname, onFinaliz
               value={idea}
               onChange={(e) => setIdea(e.target.value)}
               placeholder="Décrivez votre invention en détails : fonctionnement, capteurs utilisés, impact attendu (min. 20 caractères)"
-              className="block w-full h-48 relative z-20 bg-slate-950/80 backdrop-blur-md border-2 border-slate-800 rounded-xl p-5 pt-8 text-emerald-100 placeholder:text-slate-600 focus:outline-none focus:border-emerald-500 focus:bg-slate-950/90 transition-all resize-none shadow-inner font-sans"
+              className="block w-full h-48 relative z-20 bg-slate-950/80 backdrop-blur-md border border-white/15 rounded-xl p-5 pt-8 text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-emerald-400/70 focus:ring-2 focus:ring-emerald-400/15 focus:bg-slate-950/90 transition-all resize-none shadow-inner font-sans"
             />
 
             <div className={`absolute bottom-4 right-4 text-xs font-mono bg-slate-900 px-3 py-1.5 rounded border z-30 transition-colors ${idea.trim().length < 20 ? 'text-red-400 border-red-900/50' : 'text-emerald-500 border-emerald-900/50'}`}>
@@ -246,14 +240,11 @@ export default function Level13({ onComplete, onScoreUpdate, nickname, onFinaliz
               className={`relative flex items-center gap-3 px-8 py-4 rounded-xl font-black tracking-widest sm:text-lg transition-all overflow-hidden group ${
                 idea.trim().length < 20
                   ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'
-                  : 'bg-emerald-600 text-white hover:scale-[1.02] active:scale-[0.98] border border-emerald-400 shadow-[0_0_30px_rgba(16,185,129,0.3)] hover:shadow-[0_0_50px_rgba(16,185,129,0.5)]'
+                  : 'bg-emerald-600 hover:bg-emerald-500 text-white border border-emerald-400 hover:shadow-[0_0_20px_rgba(16,185,129,0.35)]'
               }`}
             >
               {idea.trim().length >= 20 && (
-                <>
-                  <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(255,255,255,0.2)_50%,transparent_75%)] bg-[length:250%_250%,100%_100%] animate-[scan_2s_ease-in-out_infinite] pointer-events-none"></div>
-                  <div className="absolute -inset-1 bg-gradient-to-r from-emerald-400 via-cyan-400 to-emerald-400 opacity-20 group-hover:opacity-40 blur-lg transition-opacity duration-500"></div>
-                </>
+                <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(255,255,255,0.2)_50%,transparent_75%)] bg-[length:250%_250%,100%_100%] animate-[scan_2s_ease-in-out_infinite] pointer-events-none"></div>
               )}
               <Send className={`w-5 h-5 relative z-10 ${idea.trim().length >= 20 ? 'group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform' : ''}`} />
               <span className="relative z-10">ANALYSER MON CONCEPT</span>
@@ -344,8 +335,9 @@ export default function Level13({ onComplete, onScoreUpdate, nickname, onFinaliz
             </div>
 
             <div className="bg-slate-950 border border-cyan-500/20 p-6 rounded-2xl flex flex-col">
-              <h3 className="text-emerald-400 font-bold mb-4 flex items-center gap-2">
-                <Bot className="w-5 h-5" /> ANALYSE DE NAÏA
+              <h3 className="font-mono text-emerald-400 font-bold mb-4 flex items-center gap-2.5">
+                <NaiaAvatar emotion="happy" size="sm" />
+                <span>ANALYSE DE NAÏA</span>
               </h3>
               <div className="flex-grow space-y-4">
                 <div className="bg-emerald-950/20 p-4 rounded-xl border border-emerald-500/10 italic text-sm text-emerald-100 leading-relaxed">
@@ -380,12 +372,12 @@ export default function Level13({ onComplete, onScoreUpdate, nickname, onFinaliz
             <div className="flex flex-col gap-2">
               <button
                 onClick={finalizeProject}
-                className={`group flex items-center justify-center gap-2 px-8 py-4 rounded-xl font-black text-lg transition-all shadow-[0_0_20px_rgba(16,185,129,0.4)] ${
+                className={`group flex items-center justify-center gap-2 px-8 py-4 rounded-xl font-black text-lg transition-all ${
                   evaluation.score >= 80 
-                    ? 'bg-yellow-500 hover:bg-yellow-400 text-slate-950 shadow-yellow-500/40' 
+                    ? 'bg-yellow-500 hover:bg-yellow-400 text-slate-950 hover:shadow-[0_0_18px_rgba(234,179,8,0.35)]' 
                     : evaluation.score >= 50
-                    ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
-                    : 'bg-slate-700 hover:bg-slate-600 text-slate-300 shadow-none'
+                    ? 'bg-emerald-600 hover:bg-emerald-500 text-white hover:shadow-[0_0_18px_rgba(16,185,129,0.35)]'
+                    : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
                 }`}
               >
                 <CheckCircle2 className="w-6 h-6 group-hover:scale-110 transition-transform" />
@@ -566,7 +558,7 @@ export default function Level13({ onComplete, onScoreUpdate, nickname, onFinaliz
             </button>
             <button
               onClick={onComplete}
-              className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-4 rounded-xl font-bold text-lg transition-all hover:scale-105"
+              className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-4 rounded-xl font-bold text-lg transition-all hover:shadow-[0_0_18px_rgba(16,185,129,0.35)]"
             >
               <CheckCircle2 className="w-6 h-6" />
               TERMINER LA MISSION

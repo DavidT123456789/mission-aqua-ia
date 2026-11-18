@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Flame, CheckCircle2, Home, Droplets, ArrowUp, ArrowDown, AlertTriangle, RefreshCw, Wind, Server, ArrowRight } from 'lucide-react';
+import { Flame, CheckCircle2, Home, Droplets, ArrowUp, ArrowDown, RefreshCw, Wind, Server, ArrowRight } from 'lucide-react';
 import NaiaDialogue from '../components/NaiaDialogue';
 import TechTerm from '../components/TechTerm';
 import { soundManager } from '../utils/soundManager';
+import { useErrorFeedback } from '../utils/useErrorFeedback';
 
 interface LoopStep {
   id: number;
@@ -38,7 +39,7 @@ export default function Level8({ isDevMode, onComplete, onScoreUpdate, onMistake
   const [phase, setPhase] = useState<1 | 2>(1);
   const [steps, setSteps] = useState<LoopStep[]>(INITIAL_LOOP_ORDER);
   const [selectedOutlet, setSelectedOutlet] = useState<OutletId | null>(null);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const { errorMsg, isErrorFlash, triggerError, clearError } = useErrorFeedback();
   const [hasScored, setHasScored] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
@@ -52,19 +53,18 @@ export default function Level8({ isDevMode, onComplete, onScoreUpdate, onMistake
       [next[index], next[target]] = [next[target], next[index]];
       return next;
     });
-    setErrorMsg(null);
+    clearError();
   };
 
   const validateOutlet = () => {
     if (!selectedOutlet) return;
     if (selectedOutlet === 'district_heating') {
       soundManager.playSuccess();
-      setErrorMsg(null);
+      clearError();
       setPhase(2);
     } else {
-      setErrorMsg("Ce raccordement gaspille de l'eau ou rejette la chaleur sans la valoriser.");
+      triggerError("Ce raccordement gaspille de l'eau ou rejette la chaleur sans la valoriser.");
       onMistake?.();
-      setTimeout(() => setErrorMsg(null), 3500);
     }
   };
 
@@ -73,7 +73,7 @@ export default function Level8({ isDevMode, onComplete, onScoreUpdate, onMistake
 
     if (isOrderCorrect) {
       setIsSuccess(true);
-      setErrorMsg(null);
+      clearError();
       soundManager.playSuccess();
       if (!hasScored) {
         setHasScored(true);
@@ -82,9 +82,8 @@ export default function Level8({ isDevMode, onComplete, onScoreUpdate, onMistake
       return;
     }
 
-    setErrorMsg("L'ordre des 4 étapes du cycle fermé n'est pas logique. Suivez le trajet de l'eau !");
+    triggerError("L'ordre des 4 étapes du cycle fermé n'est pas logique. Suivez le trajet de l'eau !");
     onMistake?.();
-    setTimeout(() => setErrorMsg(null), 3500);
   };
 
   return (
@@ -92,16 +91,16 @@ export default function Level8({ isDevMode, onComplete, onScoreUpdate, onMistake
       initial={{ opacity: 0, x: 50 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -50 }}
-      className="sm:bg-slate-900 border-transparent sm:border-cyan-500/20 sm:border px-0 sm:px-6 py-4 sm:py-6 sm:rounded-xl max-w-4xl mx-auto font-mono relative flex flex-col"
+      className="sm:bg-slate-900/90 border-transparent sm:border-white/10 sm:border px-0 sm:px-6 py-4 sm:py-6 sm:rounded-2xl max-w-4xl mx-auto relative flex flex-col backdrop-blur-xl sm:shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_24px_48px_rgba(0,0,0,0.55)]"
     >
-      <div className="flex items-center justify-between gap-3 mb-3 border-b border-cyan-900/50 pb-3">
+      <div className="flex items-center justify-between gap-3 mb-3 border-b border-white/10 pb-3">
         <div className="flex items-center gap-3">
-          <Flame className="w-8 h-8 text-emerald-400" />
-          <h2 className="text-xl md:text-2xl font-bold text-white uppercase tracking-widest">
+          <Flame className="w-7 h-7 text-emerald-400 shrink-0" />
+          <h2 className="font-mono text-xl md:text-2xl font-bold text-white uppercase tracking-widest">
             Niveau 8 : Valorisation Thermique
           </h2>
         </div>
-        <span className="text-xs px-2.5 py-1 rounded-full bg-slate-950 border border-cyan-500/30 text-cyan-300 shrink-0">
+        <span className="font-mono text-xs px-2.5 py-1 rounded-full bg-slate-950 border border-cyan-500/30 text-cyan-300 shrink-0">
           Étape {phase} / 2
         </span>
       </div>
@@ -111,15 +110,22 @@ export default function Level8({ isDevMode, onComplete, onScoreUpdate, onMistake
           message={
             phase === 1 ? (
               <>
-                Les entraînements lourds sont désormais délocalisés à Luleå, mais les <TechTerm term="Serveur">serveurs</TechTerm> locaux restés en ville pour le temps réel dissipent encore une chaleur immense. Pour supprimer toute évaporation d'eau sur place tout en valorisant cette énergie, choisissez d'abord le bon raccordement de sortie.
+                Les entraînements lourds sont délocalisés à Luleå, mais les <TechTerm term="Serveur">serveurs</TechTerm> locaux restés en ville dissipent encore une chaleur immense.
               </>
             ) : (
               <>
-                Excellent choix ! Le réseau de chaleur urbain fonctionne en circuit fermé sans évaporation. <strong>Ordonnez maintenant les 4 étapes</strong> de cette boucle thermique grâce aux flèches.
+                Excellent choix ! Le réseau de chaleur urbain fonctionne en circuit fermé sans évaporation d'eau.
               </>
             )
           }
-          emotion="neutral"
+          objective={
+            phase === 1
+              ? "Choisissez d'abord le bon raccordement de sortie pour supprimer l'évaporation sur place."
+              : 'Ordonnez maintenant les 4 étapes de cette boucle thermique grâce aux flèches.'
+          }
+          reaction={errorMsg ? { message: errorMsg, emotion: 'alert' } : null}
+          onDismissReaction={clearError}
+          emotion={isSuccess ? 'happy' : 'neutral'}
         />
       </div>
 
@@ -138,7 +144,7 @@ export default function Level8({ isDevMode, onComplete, onScoreUpdate, onMistake
                   key={outlet.id}
                   type="button"
                   disabled={phase === 2 || isSuccess}
-                  onClick={() => { soundManager.playClick(); setSelectedOutlet(outlet.id); setErrorMsg(null); }}
+                  onClick={() => { soundManager.playClick(); setSelectedOutlet(outlet.id); clearError(); }}
                   className={`p-3.5 rounded-xl border-2 text-left transition-all flex flex-col gap-2 ${
                     isSelected
                       ? phase === 2
@@ -262,17 +268,6 @@ export default function Level8({ isDevMode, onComplete, onScoreUpdate, onMistake
           )}
         </AnimatePresence>
 
-        {errorMsg && (
-          <motion.div
-            initial={{ opacity: 0, y: -5 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="p-3 bg-red-950/40 border border-red-500/50 rounded-lg text-red-300 text-xs font-bold flex items-center justify-center gap-2 text-center"
-          >
-            <AlertTriangle className="w-4 h-4 shrink-0 text-red-400" />
-            <span>{errorMsg}</span>
-          </motion.div>
-        )}
-
         {!isSuccess && (
           <div className="flex justify-center mt-4">
             <button
@@ -281,9 +276,9 @@ export default function Level8({ isDevMode, onComplete, onScoreUpdate, onMistake
               className={`px-8 py-4 rounded-lg font-bold text-lg transition-all ${
                 phase === 1 && !selectedOutlet
                   ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                  : errorMsg
+                  : isErrorFlash
                   ? 'bg-red-600 text-white animate-shake'
-                  : 'bg-emerald-600 hover:bg-emerald-500 text-white hover:scale-105'
+                  : 'bg-emerald-600 hover:bg-emerald-500 text-white hover:shadow-[0_0_18px_rgba(16,185,129,0.35)]'
               }`}
             >
               {phase === 1 ? 'VALIDER LE RACCORDEMENT' : 'ACTIVER LA BOUCLE THERMIQUE'}
@@ -307,7 +302,7 @@ export default function Level8({ isDevMode, onComplete, onScoreUpdate, onMistake
               </p>
               <button
                 onClick={onComplete}
-                className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-3 rounded-lg font-bold transition-colors shadow-[0_0_20px_rgba(16,185,129,0.4)]"
+                className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-3 rounded-lg font-bold transition-all hover:shadow-[0_0_18px_rgba(16,185,129,0.35)]"
               >
                 PASSER AU NIVEAU SUIVANT
               </button>

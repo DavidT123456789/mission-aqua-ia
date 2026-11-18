@@ -5,6 +5,7 @@ import NaiaDialogue from '../components/NaiaDialogue';
 import HydraLog from '../components/HydraLog';
 import TechTerm from '../components/TechTerm';
 import { soundManager } from '../utils/soundManager';
+import { useErrorFeedback } from '../utils/useErrorFeedback';
 
 export default function Level12({ isDevMode, onComplete, onScoreUpdate, onMistake }: { isDevMode?: boolean; onComplete: () => void; onScoreUpdate: (points: number, water: number) => void; onMistake?: () => void; key?: string }) {
   const [allocations, setAllocations] = useState({
@@ -14,8 +15,7 @@ export default function Level12({ isDevMode, onComplete, onScoreUpdate, onMistak
     ads: 0
   });
 
-  const [feedbackError, setFeedbackError] = useState<string | null>(null);
-  const [showErrorAnim, setShowErrorAnim] = useState(false);
+  const { errorMsg: feedbackError, isErrorFlash: showErrorAnim, triggerError: showFeedbackError, clearError } = useErrorFeedback();
   const [hasScored, setHasScored] = useState(false);
 
   const totalUsed = allocations.climate + allocations.water + allocations.entertainment + allocations.ads;
@@ -24,7 +24,7 @@ export default function Level12({ isDevMode, onComplete, onScoreUpdate, onMistak
 
   const handleSliderChange = (category: keyof typeof allocations, value: number) => {
     setAllocations(prev => ({ ...prev, [category]: value }));
-    setFeedbackError(null);
+    clearError();
   };
 
   const checkAnswer = () => {
@@ -46,6 +46,7 @@ export default function Level12({ isDevMode, onComplete, onScoreUpdate, onMistak
     }
 
     // Success
+    clearError();
     soundManager.playSuccess();
     if (!hasScored) {
       setHasScored(true);
@@ -54,10 +55,8 @@ export default function Level12({ isDevMode, onComplete, onScoreUpdate, onMistak
   };
 
   const triggerError = (msg: string) => {
-    setFeedbackError(msg);
-    setShowErrorAnim(true);
+    showFeedbackError(msg);
     onMistake?.();
-    setTimeout(() => setShowErrorAnim(false), 800);
   };
 
   const isSuccess = hasScored;
@@ -67,25 +66,32 @@ export default function Level12({ isDevMode, onComplete, onScoreUpdate, onMistak
       initial={{ opacity: 0, x: 50 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -50 }}
-      className="sm:bg-slate-900 border-transparent sm:border-cyan-500/20 sm:border px-0 sm:px-6 py-4 sm:py-6 sm:rounded-xl max-w-4xl mx-auto font-mono relative flex flex-col"
+      className="sm:bg-slate-900/90 border-transparent sm:border-white/10 sm:border px-0 sm:px-6 py-4 sm:py-6 sm:rounded-2xl max-w-4xl mx-auto relative flex flex-col backdrop-blur-xl sm:shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_24px_48px_rgba(0,0,0,0.55)]"
     >
 
-      <div className="flex items-center gap-3 mb-3 border-b border-cyan-900/50 pb-3">
-        <Globe className="w-8 h-8 text-emerald-400" />
-        <h2 className="text-xl md:text-2xl font-bold text-white uppercase tracking-widest">
+      <div className="flex items-center gap-3 mb-3 border-b border-white/10 pb-3">
+        <Globe className="w-7 h-7 text-emerald-400 shrink-0" />
+        <h2 className="font-mono text-xl md:text-2xl font-bold text-white uppercase tracking-widest">
           Niveau 12 : L'Équilibre Global
         </h2>
       </div>
 
-      <div className="mb-4 space-y-2.5">
+      <div className="mb-4 space-y-2">
         <HydraLog status="warning" message="Pare-feu contourné. Accès administrateur ouvert sur le répartiteur maître." />
         <NaiaDialogue 
           message={
             <>
-              Le pare-feu est tombé : nous avons enfin accès au répartiteur maître d'HYDRA ! Vous devez maintenant arbitrer sa puissance de calcul mondiale. Même optimisée, chaque requête mobilise de l'énergie et de l'eau à l'échelle du réseau. Vous disposez de <strong>100 Unités d'Eau</strong> : financez l'essentiel pour la planète, coupez le superflu.
+              Le pare-feu est tombé : nous avons enfin accès au répartiteur maître d'HYDRA ! Même optimisée, chaque requête mobilise énergie et eau à l'échelle du réseau.
             </>
           }
-          emotion="alert"
+          objective={
+            <>
+              Répartissez vos <strong className="font-mono text-white">100 Unités d'Eau</strong> : financez les usages vitaux pour la planète et coupez le superflu.
+            </>
+          }
+          reaction={feedbackError ? { message: feedbackError, emotion: 'alert' } : null}
+          onDismissReaction={clearError}
+          emotion={isSuccess ? 'happy' : 'neutral'}
         />
       </div>
 
@@ -195,17 +201,6 @@ export default function Level12({ isDevMode, onComplete, onScoreUpdate, onMistak
           
         </div>
 
-        {/* Feedback message (only visible after validation) */}
-        {!isSuccess && feedbackError && (
-          <motion.div 
-            initial={{ opacity: 0, y: -10 }} 
-            animate={{ opacity: 1, y: 0 }} 
-            className="text-center p-3 bg-red-950/50 border border-red-500/50 text-red-400 font-bold rounded-lg text-sm"
-          >
-            {feedbackError}
-          </motion.div>
-        )}
-
         {!isSuccess && (
           <div className="flex justify-center mt-6">
             <button
@@ -216,7 +211,7 @@ export default function Level12({ isDevMode, onComplete, onScoreUpdate, onMistak
                   ? 'bg-red-600 text-white animate-shake'
                   : isOverBudget 
                     ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-red-900/50'
-                    : 'bg-emerald-600 hover:bg-emerald-500 text-white hover:scale-105 shadow-[0_0_20px_rgba(16,185,129,0.3)]'
+                    : 'bg-emerald-600 hover:bg-emerald-500 text-white hover:shadow-[0_0_18px_rgba(16,185,129,0.35)]'
               }`}
             >
               {isOverBudget ? 'SÉCHERESSE IMMINENTE' : 'VERROUILLER LA NOUVELLE MATRICE'}
@@ -229,7 +224,7 @@ export default function Level12({ isDevMode, onComplete, onScoreUpdate, onMistak
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="flex flex-col items-center mt-5 p-6 bg-emerald-950/30 border border-emerald-500/50 rounded-lg shadow-[0_0_30px_rgba(16,185,129,0.2)]"
+              className="flex flex-col items-center mt-5 p-6 bg-emerald-950/30 border border-emerald-500/50 rounded-lg"
             >
               <div className="flex items-center gap-2 text-emerald-400 font-bold text-xl mb-4">
                  <CheckCircle2 className="w-8 h-8" />
@@ -240,7 +235,7 @@ export default function Level12({ isDevMode, onComplete, onScoreUpdate, onMistak
               </p>
               <button
                 onClick={onComplete}
-                className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-3 rounded-lg font-bold transition-all hover:scale-105 shadow-[0_0_20px_rgba(16,185,129,0.4)]"
+                className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-3 rounded-lg font-bold transition-all hover:shadow-[0_0_18px_rgba(16,185,129,0.35)]"
               >
                 ENTRER DANS L'INNOVATION LAB (NIVEAU FINAL)
               </button>

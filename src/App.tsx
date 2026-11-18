@@ -1,11 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { Bug, BookOpen, X, HelpCircle, Lock } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { motion, AnimatePresence, MotionConfig, useReducedMotion } from 'motion/react';
+import { Bug, BookOpen, X, Lock, Pause, Play } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import HUD from './components/HUD';
 import TransitionScreen from './components/TransitionScreen';
+import { NaiaHintContext } from './components/NaiaContext';
 import { soundManager } from './utils/soundManager';
-import { HINTS, FACTS, LEVEL_NAMES, MISSION_DURATION_SECONDS } from './constants';
+import { FACTS, HINTS, LEVEL_NAMES, MISSION_DURATION_SECONDS, type Evaluation } from './constants';
 import Intro from './levels/Intro';
 import Level1 from './levels/Level1';
 import Level2 from './levels/Level2';
@@ -25,10 +26,12 @@ import GameOver from './levels/GameOver';
 import { TERMS_DICTIONARY } from './components/TechTerm';
 
 export default function App() {
+  const prefersReducedMotion = useReducedMotion();
   const [level, setLevel] = useState(0);
   const [timeLeft, setTimeLeft] = useState(MISSION_DURATION_SECONDS); // 40 minutes
   const [extraTimeBought, setExtraTimeBought] = useState(0);
   const [isActive, setIsActive] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
   const [score, setScore] = useState(0);
   const [waterSaved, setWaterSaved] = useState(0);
   const [lives, setLives] = useState(3);
@@ -44,7 +47,7 @@ export default function App() {
   const [savedGameInfo, setSavedGameInfo] = useState<{ level: number; score: number; timeLeft: number } | null>(null);
 
   // Bonus Data for Final Certificate
-  const [finalEvaluation, setFinalEvaluation] = useState<any>(null);
+  const [finalEvaluation, setFinalEvaluation] = useState<Evaluation | null>(null);
   const [finalImageUrl, setFinalImageUrl] = useState<string | null>(null);
   const [leaderboard, setLeaderboard] = useState<{name: string, score: number}[]>([]);
 
@@ -52,6 +55,13 @@ export default function App() {
   const [showHint, setShowHint] = useState(false);
   const [unlockedFreeHints, setUnlockedFreeHints] = useState<number[]>([]);
   const [unlockedPaidHints, setUnlockedPaidHints] = useState<number[]>([]);
+
+  useEffect(() => {
+    setShowHint(false);
+    if (level <= 0 || level >= 13) {
+      setIsPaused(false);
+    }
+  }, [level]);
 
   const [isShaking, setIsShaking] = useState(false);
   const [isSuccessFlash, setIsSuccessFlash] = useState(false);
@@ -154,35 +164,115 @@ export default function App() {
     
     const savedLeaderboard = localStorage.getItem('hydrosave_leaderboard');
     if (savedLeaderboard) {
-      setLeaderboard(JSON.parse(savedLeaderboard));
+      try {
+        const parsedBoard = JSON.parse(savedLeaderboard);
+        if (Array.isArray(parsedBoard)) {
+          setLeaderboard(parsedBoard);
+        }
+      } catch {
+        localStorage.removeItem('hydrosave_leaderboard');
+      }
     }
   }, []);
 
+  const timeLeftRef = useRef(timeLeft);
+
+  const progressSnapshotRef = useRef({
+    level,
+    score,
+    waterSaved,
+    lives,
+    timeLeft,
+    extraTimeBought,
+    nickname,
+    discoveredTerms,
+    unlockedFreeHints,
+    unlockedPaidHints,
+  });
+
   useEffect(() => {
-    if (level > 0 && level < 14) {
-      if (lives <= 0 || timeLeft <= 0) {
-        localStorage.removeItem('hydrosave_progress');
-        setHasSavedGame(false);
-        setSavedGameInfo(null);
-        return;
-      }
-      const state = {
-        level,
-        score,
-        waterSaved,
-        lives,
-        timeLeft,
-        extraTimeBought,
-        nickname,
-        discoveredTerms,
-        unlockedFreeHints,
-        unlockedPaidHints
-      };
-      localStorage.setItem('hydrosave_progress', JSON.stringify(state));
-      setHasSavedGame(true);
-      setSavedGameInfo({ level, score, timeLeft });
+    timeLeftRef.current = timeLeft;
+    progressSnapshotRef.current = {
+      level,
+      score,
+      waterSaved,
+      lives,
+      timeLeft,
+      extraTimeBought,
+      nickname,
+      discoveredTerms,
+      unlockedFreeHints,
+      unlockedPaidHints,
+    };
+  }, [
+    level,
+    score,
+    waterSaved,
+    lives,
+    timeLeft,
+    extraTimeBought,
+    nickname,
+    discoveredTerms,
+    unlockedFreeHints,
+    unlockedPaidHints,
+  ]);
+
+  const persistProgress = useCallback(() => {
+    const snap = progressSnapshotRef.current;
+    if (snap.level <= 0 || snap.level >= 14) return false;
+    if (snap.lives <= 0 || snap.timeLeft <= 0) {
+      localStorage.removeItem('hydrosave_progress');
+      return false;
     }
-  }, [level, score, waterSaved, lives, timeLeft, extraTimeBought, nickname, discoveredTerms, unlockedFreeHints, unlockedPaidHints]);
+    localStorage.setItem('hydrosave_progress', JSON.stringify(snap));
+    return true;
+  }, []);
+
+  const isGameLost = lives <= 0 || timeLeft <= 0;
+
+  useEffect(() => {
+    if (level <= 0 || level >= 14) return;
+    if (isGameLost) {
+      localStorage.removeItem('hydrosave_progress');
+      setHasSavedGame(false);
+      setSavedGameInfo(null);
+      return;
+    }
+    if (persistProgress()) {
+      setHasSavedGame(true);
+      setSavedGameInfo({ level, score, timeLeft: timeLeftRef.current });
+    }
+  }, [
+    level,
+    score,
+    waterSaved,
+    lives,
+    isGameLost,
+    extraTimeBought,
+    nickname,
+    discoveredTerms,
+    unlockedFreeHints,
+    unlockedPaidHints,
+    isPaused,
+    persistProgress,
+  ]);
+
+  useEffect(() => {
+    const flushSave = () => {
+      persistProgress();
+    };
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        persistProgress();
+      }
+    };
+    window.addEventListener('pagehide', flushSave);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      window.removeEventListener('pagehide', flushSave);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [persistProgress]);
 
   const leaderboardRecordedRef = useRef(false);
 
@@ -222,36 +312,44 @@ export default function App() {
     });
   }, [level, nickname, score]);
 
+  const clearSave = () => {
+    localStorage.removeItem('hydrosave_progress');
+    setHasSavedGame(false);
+    setSavedGameInfo(null);
+  };
+
   const loadGame = () => {
     const saved = localStorage.getItem('hydrosave_progress');
-    if (saved) {
+    if (!saved) return;
+    try {
+      const state = JSON.parse(saved);
+      if (typeof state?.level !== 'number' || state.level <= 0 || state.level >= 14) {
+        clearSave();
+        return;
+      }
       if (transitionTimerRef.current) {
         clearTimeout(transitionTimerRef.current);
         transitionTimerRef.current = null;
       }
       isTransitionPendingRef.current = false;
-      const state = JSON.parse(saved);
       setLevel(state.level);
-      setScore(state.score);
-      setWaterSaved(state.waterSaved);
-      setLives(state.lives);
-      setTimeLeft(state.timeLeft);
+      setScore(state.score ?? 0);
+      setWaterSaved(state.waterSaved ?? 0);
+      setLives(state.lives ?? 3);
+      setTimeLeft(state.timeLeft ?? MISSION_DURATION_SECONDS);
       setExtraTimeBought(state.extraTimeBought || 0);
-      setNickname(state.nickname);
+      setNickname(state.nickname || '');
       const loadedTerms = state.discoveredTerms || [];
       setDiscoveredTerms(loadedTerms);
       discoveredTermsRef.current = loadedTerms;
       setUnlockedFreeHints(state.unlockedFreeHints || []);
       setUnlockedPaidHints(state.unlockedPaidHints || []);
+      setIsPaused(false);
       setIsActive(true);
       soundManager.playStart();
+    } catch {
+      clearSave();
     }
-  };
-
-  const clearSave = () => {
-    localStorage.removeItem('hydrosave_progress');
-    setHasSavedGame(false);
-    setSavedGameInfo(null);
   };
 
   const discoveredTermsRef = useRef<string[]>([]);
@@ -265,8 +363,9 @@ export default function App() {
   }, [level]);
 
   useEffect(() => {
-    const handleDiscovery = (e: any) => {
-      const term = e.detail;
+    const handleDiscovery = (e: Event) => {
+      const term = (e as CustomEvent<string>).detail;
+      if (!term) return;
       
       // Check ref synchronously to prevent double-processing during rapid events or Strict Mode
       if (discoveredTermsRef.current.includes(term)) return;
@@ -291,34 +390,51 @@ export default function App() {
     return () => window.removeEventListener('discoverTerm', handleDiscovery);
   }, []);
 
-  // Developer Mode State
-  const [isDevMode, setIsDevMode] = useState(() => {
-    const saved = localStorage.getItem('hydrosave_devmode');
-    return saved === 'true';
-  });
+  // Developer Mode State (verified server-side via /api/dev-auth)
+  const [devAnswers, setDevAnswers] = useState<Record<number, string> | null>(null);
+  const isDevMode = devAnswers !== null;
+  const setIsDevMode = useCallback((enabled: boolean) => {
+    if (!enabled) setDevAnswers(null);
+  }, []);
   const [showDevModal, setShowDevModal] = useState(false);
   const [devPassword, setDevPassword] = useState('');
-  const [devError, setDevError] = useState(false);
+  const [devError, setDevError] = useState<string | null>(null);
+  const [isDevLoading, setIsDevLoading] = useState(false);
+
+  const isTransitionPending = pendingLevel !== null || isTransitioning;
+  const isPauseOverlayVisible = isPaused && level > 0 && level < 13 && timeLeft > 0 && lives > 0 && !isTransitionPending;
 
   useEffect(() => {
-    localStorage.setItem('hydrosave_devmode', isDevMode.toString());
-  }, [isDevMode]);
+    localStorage.removeItem('hydrosave_devmode');
+    localStorage.removeItem('hydrosave_devanswers');
+  }, []);
 
   useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (isActive && timeLeft > 0 && lives > 0 && level !== 13) {
-      interval = setInterval(() => {
-        setTimeLeft((time) => {
-          if (time <= 1) {
-            setIsActive(false);
-            return 0;
-          }
-          return time - 1;
-        });
-      }, 1000);
+    if (!isPauseOverlayVisible) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [isPauseOverlayVisible]);
+
+  const hasTimeLeft = timeLeft > 0;
+  const hasLives = lives > 0;
+
+  useEffect(() => {
+    if (!isActive || isPaused || isTransitioning || pendingLevel !== null || !hasTimeLeft || !hasLives || level === 13) {
+      return;
     }
+    const interval = setInterval(() => {
+      if (timeLeftRef.current <= 1) {
+        setTimeLeft(0);
+        setIsActive(false);
+      } else {
+        setTimeLeft((time) => (time <= 1 ? 0 : time - 1));
+      }
+    }, 1000);
     return () => clearInterval(interval);
-  }, [isActive, timeLeft, lives, level]);
+  }, [isActive, isPaused, isTransitioning, pendingLevel, hasTimeLeft, hasLives, level]);
 
   // Close modals on Escape key
   useEffect(() => {
@@ -328,7 +444,7 @@ export default function App() {
         setShowHint(false);
         setShowGlossary(false);
         setShowDevModal(false);
-        setDevError(false);
+        setDevError(null);
         setDevPassword('');
       }
     };
@@ -344,6 +460,7 @@ export default function App() {
     isTransitionPendingRef.current = false;
     setIsTransitioning(false);
     setPendingLevel(null);
+    setIsPaused(false);
 
     // Effacer immédiatement toute ancienne sauvegarde pour éviter qu'un niveau ne lise un état obsolète
     localStorage.removeItem('hydrosave_progress');
@@ -360,6 +477,7 @@ export default function App() {
 
     setNickname(name);
     setIsActive(true);
+    setIsPaused(false);
     setLevel(1);
     setScore(initialScore);
     setWaterSaved(0);
@@ -378,6 +496,7 @@ export default function App() {
   const nextLevel = () => {
     if (isTransitionPendingRef.current || isTransitioning) return;
     isTransitionPendingRef.current = true;
+    setIsPaused(false);
 
     soundManager.playSuccess();
     setIsSuccessFlash(true);
@@ -388,7 +507,8 @@ export default function App() {
       particleCount: 100,
       spread: 70,
       origin: { y: 0.6 },
-      colors: ['#10b981', '#06b6d4', '#8b5cf6']
+      colors: ['#10b981', '#06b6d4', '#8b5cf6'],
+      disableForReducedMotion: true
     });
 
     const next = level + 1;
@@ -444,17 +564,44 @@ export default function App() {
     }
   };
 
-  const handleDevSubmit = (e: React.FormEvent) => {
+  const handleDevSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (devPassword === 'dev123') {
-      setIsDevMode(true);
-      setShowDevModal(false);
-      setDevPassword('');
-      setDevError(false);
-      soundManager.playSuccess();
-    } else {
-      setDevError(true);
+    if (!devPassword.trim() || isDevLoading) return;
+    setIsDevLoading(true);
+    setDevError(null);
+    try {
+      const res = await fetch('/api/dev-auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: devPassword })
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        if (res.status === 401) {
+          setDevError('Mot de passe incorrect.');
+        } else if (res.status === 503) {
+          setDevError(data?.error || 'Mode enseignant non configuré sur le serveur.');
+        } else {
+          setDevError("Service d'authentification indisponible.");
+        }
+        soundManager.playError();
+        return;
+      }
+      if (data?.answers && typeof data.answers === 'object') {
+        setDevAnswers(data.answers);
+        setShowDevModal(false);
+        setDevPassword('');
+        setDevError(null);
+        soundManager.playSuccess();
+      } else {
+        setDevError("Réponse invalide du serveur d'authentification.");
+        soundManager.playError();
+      }
+    } catch {
+      setDevError("Serveur d'authentification inaccessible.");
       soundManager.playError();
+    } finally {
+      setIsDevLoading(false);
     }
   };
 
@@ -473,7 +620,7 @@ export default function App() {
     nextLevel();
   };
 
-  const useHint = (type: 'free' | 'paid') => {
+  const useHint = useCallback((type: 'free' | 'paid') => {
     if (type === 'free') {
       if (unlockedFreeHints.includes(level)) {
         setShowHint(true); // Already unlocked (after mistake or purchase), free to review
@@ -486,6 +633,7 @@ export default function App() {
         }
       }
     } else {
+      if (!HINTS[level]?.paid) return;
       if (!unlockedPaidHints.includes(level)) {
         const cost = 100;
         if (score >= cost) {
@@ -497,7 +645,17 @@ export default function App() {
         setShowHint(true); // Already unlocked, just show it
       }
     }
-  };
+  }, [level, score, unlockedFreeHints, unlockedPaidHints]);
+
+  const naiaHintContextValue = useMemo(() => ({
+    level,
+    score,
+    unlockedFreeHints,
+    unlockedPaidHints,
+    isHintOpen: showHint,
+    setIsHintOpen: setShowHint,
+    useHint
+  }), [level, score, unlockedFreeHints, unlockedPaidHints, showHint, useHint]);
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
@@ -506,12 +664,14 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-emerald-400 font-mono flex flex-col items-center p-4 pb-2 overflow-hidden relative">
+    <MotionConfig reducedMotion="user">
+    <NaiaHintContext.Provider value={naiaHintContextValue}>
+    <div className="min-h-screen bg-slate-950 text-slate-200 font-sans flex flex-col items-center p-4 pb-2 overflow-hidden relative">
       {/* Decorative background elements */}
       <Background />
       {/* Success Flash Overlay */}
       <AnimatePresence>
-        {isSuccessFlash && (
+        {isSuccessFlash && !prefersReducedMotion && (
           <motion.div 
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: [0, 0.4, 0], scale: [0.8, 1.2, 1.5] }}
@@ -524,115 +684,85 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      <HUD
-        level={level}
-        timeLeft={timeLeft}
-        lives={lives}
-        waterSaved={waterSaved}
-        score={score}
-        isDevMode={isDevMode}
-        isMuted={isMuted}
-        setIsDevMode={setIsDevMode}
-        unlockedFreeHints={unlockedFreeHints}
-        unlockedPaidHints={unlockedPaidHints}
-        setShowDevModal={setShowDevModal}
-        setShowGlossary={setShowGlossary}
-        useHint={useHint}
-        setLevel={setLevel}
-        prevLevelDev={prevLevelDev}
-        skipLevelDev={skipLevelDev}
-        buyHeart={() => {
-          if (level !== 13 && score >= 200 && lives < 3) {
-            setScore(s => s - 200);
-            setLives(l => l + 1);
-            soundManager.playSuccess();
-          }
-        }}
-        buyTime={() => {
-          if (level !== 13 && score >= 100 && timeLeft < MISSION_DURATION_SECONDS) {
-            setScore(s => s - 100);
-            setTimeLeft(t => t + 180); // Add 3 minutes
-            setExtraTimeBought(e => e + 180);
-            soundManager.playSuccess();
-          }
-        }}
-        onGoHome={() => {
-          if (transitionTimerRef.current) {
-            clearTimeout(transitionTimerRef.current);
-            transitionTimerRef.current = null;
-          }
-          isTransitionPendingRef.current = false;
-          setIsTransitioning(false);
-          setPendingLevel(null);
-          setIsActive(false);
-          setLevel(0);
-        }}
-        onToggleMute={() => setIsMuted(m => !m)}
-      />
-
-      {/* Hint Modal */}
-      <AnimatePresence>
-        {showHint && (
-          <div
-            onClick={() => setShowHint(false)}
-            className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-950/90"
-          >
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              onClick={(e) => e.stopPropagation()}
-              className="bg-slate-900 border border-yellow-500/50 p-6 rounded-2xl max-w-md w-full"
-            >
-              <div className="flex items-center gap-3 text-yellow-500 mb-4">
-                <HelpCircle className="w-8 h-8" />
-                <h2 className="text-xl font-bold uppercase tracking-widest">Aide de NAÏA</h2>
-              </div>
-              
-              {unlockedFreeHints.includes(level) && (
-                <div className="mb-4">
-                  <h3 className="text-emerald-400 text-sm font-bold uppercase mb-1">Indice :</h3>
-                  <p className="text-slate-300 leading-relaxed">
-                    {HINTS[level]?.free || "Analysez bien la situation, agent. La réponse est sous vos yeux."}
-                  </p>
-                </div>
-              )}
-
-              {unlockedPaidHints.includes(level) && (
-                <div className="mb-4">
-                  <h3 className="text-yellow-400 text-sm font-bold uppercase mb-1">Indice Avancé :</h3>
-                  <p className="text-slate-300 leading-relaxed">
-                    {HINTS[level]?.paid || "Pas d'indice avancé pour ce niveau."}
-                  </p>
-                </div>
-              )}
-
-              <button 
-                onClick={() => setShowHint(false)}
-                className="w-full bg-yellow-600 hover:bg-yellow-500 text-white py-3 rounded-xl font-bold transition-all mt-4"
-              >
-                COMPRIS
-              </button>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      <div inert={isPauseOverlayVisible}>
+        <HUD
+          level={level}
+          timeLeft={timeLeft}
+          lives={lives}
+          waterSaved={waterSaved}
+          score={score}
+          isDevMode={isDevMode}
+          devAnswers={devAnswers}
+          isPaused={isPaused}
+          isTransitionPending={isTransitionPending}
+          isMuted={isMuted}
+          onTogglePause={() => {
+            if (isTransitionPending || level <= 0 || level >= 13) return;
+            setIsPaused((prev) => {
+              const next = !prev;
+              if (next) {
+                setShowHint(false);
+                setShowGlossary(false);
+              }
+              return next;
+            });
+          }}
+          setIsDevMode={setIsDevMode}
+          setShowDevModal={setShowDevModal}
+          setShowGlossary={setShowGlossary}
+          setLevel={setLevel}
+          prevLevelDev={prevLevelDev}
+          skipLevelDev={skipLevelDev}
+          buyHeart={() => {
+            if (level !== 13 && score >= 200 && lives < 3) {
+              setScore(s => s - 200);
+              setLives(l => l + 1);
+              soundManager.playSuccess();
+            }
+          }}
+          buyTime={() => {
+            if (level !== 13 && score >= 100 && timeLeft < MISSION_DURATION_SECONDS) {
+              setScore(s => s - 100);
+              setTimeLeft(t => t + 180); // Add 3 minutes
+              setExtraTimeBought(e => e + 180);
+              soundManager.playSuccess();
+            }
+          }}
+          onGoHome={() => {
+            if (transitionTimerRef.current) {
+              clearTimeout(transitionTimerRef.current);
+              transitionTimerRef.current = null;
+            }
+            isTransitionPendingRef.current = false;
+            if (persistProgress()) {
+              setHasSavedGame(true);
+              setSavedGameInfo({ level, score, timeLeft: timeLeftRef.current });
+            }
+            setIsTransitioning(false);
+            setPendingLevel(null);
+            setIsActive(false);
+            setIsPaused(false);
+            setLevel(0);
+          }}
+          onToggleMute={() => setIsMuted(m => !m)}
+        />
+      </div>
 
       {/* Glossary Modal */}
       <AnimatePresence>
         {showGlossary && (
           <div
             onClick={() => setShowGlossary(false)}
-            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/90"
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-sm"
           >
             <motion.div 
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-slate-900 border border-emerald-500/50 rounded-2xl max-w-3xl w-full max-h-[82vh] overflow-y-auto shadow-[0_0_50px_rgba(16,185,129,0.2)]"
+              className="bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-2xl max-w-3xl w-full max-h-[82vh] overflow-y-auto shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_24px_48px_rgba(0,0,0,0.65)]"
             >
-              <div className="flex justify-between items-center sticky top-0 bg-slate-900/95 backdrop-blur px-5 py-4 z-20 border-b border-emerald-900/50">
+              <div className="flex justify-between items-center sticky top-0 bg-slate-900/95 backdrop-blur px-5 py-4 z-20 border-b border-white/10">
                 <div className="flex items-center gap-3">
                   <h2 className="text-lg sm:text-xl font-bold text-emerald-400 flex items-center gap-2">
                     <BookOpen className="w-5 h-5 sm:w-6 sm:h-6" />
@@ -670,10 +800,10 @@ export default function App() {
                 })}
               </div>
               
-              <div className="sticky bottom-0 bg-slate-900/95 backdrop-blur px-5 py-3.5 border-t border-emerald-900/50 z-20">
+              <div className="sticky bottom-0 bg-slate-900/95 backdrop-blur px-5 py-3.5 border-t border-white/10 z-20">
                 <button 
                   onClick={() => setShowGlossary(false)}
-                  className="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 rounded-xl font-bold text-sm transition-all shadow-[0_0_20px_rgba(16,185,129,0.3)]"
+                  className="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 rounded-xl font-bold text-sm transition-all shadow-[inset_0_1px_0_rgba(255,255,255,0.2)] hover:shadow-[0_0_18px_rgba(16,185,129,0.35),inset_0_1px_0_rgba(255,255,255,0.25)]"
                 >
                   RETOUR À LA MISSION
                 </button>
@@ -691,22 +821,22 @@ export default function App() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={() => { setShowDevModal(false); setDevError(false); setDevPassword(''); }}
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/90 p-4"
+            onClick={() => { setShowDevModal(false); setDevError(null); setDevPassword(''); }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/85 backdrop-blur-sm p-4"
           >
             <motion.div
               initial={{ scale: 0.9, y: 20 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.9, y: 20 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-slate-900 border border-indigo-500/50 rounded-xl p-6 max-w-sm w-full shadow-[0_0_30px_rgba(99,102,241,0.25)]"
+              className="bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-2xl p-6 max-w-sm w-full shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_24px_48px_rgba(0,0,0,0.65)]"
             >
               <div className="flex justify-between items-center mb-4">
                 <div className="flex items-center gap-2 text-indigo-400 font-bold">
                   <Bug className="w-5 h-5" />
                   MODE ENSEIGNANT / DEV
                 </div>
-                <button onClick={() => { setShowDevModal(false); setDevError(false); setDevPassword(''); }} className="text-slate-500 hover:text-white">
+                <button onClick={() => { setShowDevModal(false); setDevError(null); setDevPassword(''); }} className="text-slate-500 hover:text-white">
                   <X className="w-5 h-5" />
                 </button>
               </div>
@@ -730,20 +860,70 @@ export default function App() {
                   <input
                     type="password"
                     value={devPassword}
-                    onChange={(e) => setDevPassword(e.target.value)}
+                    onChange={(e) => {
+                      setDevPassword(e.target.value);
+                      if (devError) setDevError(null);
+                    }}
                     placeholder="Mot de passe..."
                     className={`w-full bg-slate-950 border ${devError ? 'border-red-500' : 'border-slate-700'} rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-500 mb-4`}
                     autoFocus
                   />
-                  {devError && <p className="text-red-500 text-xs mb-4">Mot de passe incorrect.</p>}
+                  {devError && <p className="text-red-500 text-xs mb-4">{devError}</p>}
                   <button
                     type="submit"
-                    className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 rounded-lg transition-colors"
+                    disabled={isDevLoading}
+                    className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold py-2 rounded-lg transition-colors"
                   >
-                    ACTIVER
+                    {isDevLoading ? 'VÉRIFICATION...' : 'ACTIVER'}
                   </button>
                 </form>
               )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Pause Overlay (masks current level while teacher addresses the class) */}
+      <AnimatePresence>
+        {isPauseOverlayVisible && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="pause-modal-title"
+            className="fixed inset-0 z-[115] bg-slate-950/95 backdrop-blur-xl flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.92, y: 15, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1 }}
+              exit={{ scale: 0.92, y: 15, opacity: 0 }}
+              className="bg-slate-900/95 border border-white/10 rounded-2xl p-6 sm:p-8 max-w-md w-full text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_24px_48px_rgba(0,0,0,0.65)] flex flex-col items-center gap-4"
+            >
+              <div className="w-16 h-16 rounded-2xl bg-cyan-950/60 border border-cyan-500/30 flex items-center justify-center">
+                <Pause className="w-8 h-8 text-cyan-400" />
+              </div>
+              <div className="space-y-1.5">
+                <h2 id="pause-modal-title" className="text-2xl sm:text-3xl font-black text-white uppercase tracking-widest">
+                  Mission en Pause
+                </h2>
+                <p className="text-xs sm:text-sm font-bold text-cyan-400 uppercase tracking-wider">
+                  Niveau {level}/13 — {LEVEL_NAMES[level]}
+                </p>
+              </div>
+              <p className="text-slate-300 text-sm leading-relaxed">
+                Le chronomètre est suspendu (<span className="font-mono font-bold text-cyan-300">{formatTime(timeLeft)}</span>). Écoutez les consignes de votre enseignant avant de reprendre la mission.
+              </p>
+              <button
+                type="button"
+                autoFocus
+                onClick={() => setIsPaused(false)}
+                className="w-full mt-2 flex items-center justify-center gap-2.5 bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-slate-950 font-black py-3.5 px-6 rounded-xl uppercase tracking-widest text-xs sm:text-sm transition-all hover:shadow-[0_0_20px_rgba(16,185,129,0.35)] cursor-pointer"
+              >
+                <Play className="w-4 h-4 fill-current" />
+                <span>Reprendre la Mission</span>
+              </button>
             </motion.div>
           </motion.div>
         )}
@@ -765,12 +945,12 @@ export default function App() {
       </AnimatePresence>
 
       <motion.main 
+        inert={isPauseOverlayVisible}
         className="w-full pt-14 md:pt-16 pb-2 my-auto relative"
-        animate={isShaking ? { 
-          x: [-10, 10, -10, 10, 0], 
-          filter: ["hue-rotate(0deg)", "hue-rotate(90deg)", "hue-rotate(-90deg)", "hue-rotate(0deg)"],
-          transition: { duration: 0.4 } 
-        } : {}}
+        animate={isShaking && !prefersReducedMotion ? {
+          x: [-5, 5, -3, 3, 0],
+          transition: { duration: 0.3 }
+        } : { x: 0 }}
       >
         <AnimatePresence mode="wait" onExitComplete={() => window.scrollTo(0, 0)}>
           {(timeLeft === 0 || lives === 0) && level !== 14 ? (
@@ -839,46 +1019,63 @@ export default function App() {
 
       {/* Background moved to the top for z-index layering */}
 
-      <footer className="w-full max-w-4xl mx-auto flex justify-center relative z-20 pt-2">
+      <footer inert={isPauseOverlayVisible} className="w-full max-w-4xl mx-auto flex justify-center relative z-20 pt-2">
         <button 
           onClick={() => setShowDevModal(true)}
-          className="text-[10px] sm:text-xs font-sans text-emerald-500/35 hover:text-emerald-500/70 transition-colors duration-300 bg-transparent border-none px-3 py-1.5 focus:outline-none cursor-default"
+          className="text-[11px] font-sans text-slate-500/75 hover:text-emerald-400/80 transition-colors duration-300 bg-transparent border-none px-3 py-1.5 rounded-md cursor-default"
           aria-label="Mode Enseignant / Développeur"
         >
           Réalisé par la constellation Echo
         </button>
       </footer>
     </div>
+    </NaiaHintContext.Provider>
+    </MotionConfig>
   );
 }
+
+const BACKGROUND_PARTICLES = Array.from({ length: 15 }, (_, i) => {
+  const seed = (i * 37 + 13) % 100;
+  const size = 2 + ((i * 7) % 4);
+  return {
+    id: i,
+    size,
+    startX: `${seed}%`,
+    endX: `${(seed + Math.sin(i) * 5 + 100) % 100}%`,
+    opacity: 0.1 + ((i * 3) % 3) * 0.08,
+    duration: 12 + (i % 10),
+    delay: (i * 1.4) % 18
+  };
+});
 
 // Optimized Background Component
 const Background = React.memo(() => {
   return (
     <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden bg-slate-950">
-      {/* Subtle Vignette for depth */}
+      {/* Subtle atmospheric top glow + depth vignette */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(6,182,212,0.06),transparent_60%)]" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_20%,rgba(2,6,23,0.8)_100%)]" />
       
       {/* Dynamic Water Particles */}
-      {[...Array(15)].map((_, i) => (
+      {BACKGROUND_PARTICLES.map((p) => (
         <motion.div
-          key={i}
+          key={p.id}
           className="absolute rounded-full bg-cyan-500/10 blur-[1px]"
           initial={{ 
-            width: Math.random() * 4 + 2, 
-            height: Math.random() * 4 + 2,
-            x: Math.random() * 100 + '%',
+            width: p.size, 
+            height: p.size,
+            x: p.startX,
             y: '110%',
-            opacity: Math.random() * 0.3 + 0.1
+            opacity: p.opacity
           }}
           animate={{ 
             y: '-10%',
-            x: (Math.random() * 100 + (Math.sin(i) * 5)) + '%',
+            x: p.endX,
           }}
           transition={{ 
-            duration: Math.random() * 10 + 10,
+            duration: p.duration,
             repeat: Infinity,
-            delay: Math.random() * 20,
+            delay: p.delay,
             ease: "linear"
           }}
         />

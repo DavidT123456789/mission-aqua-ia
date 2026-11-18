@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Terminal, Cpu, ChevronRight, Star, ArrowUpRight } from 'lucide-react';
-import { soundManager } from '../utils/soundManager';
+import { Cpu, ChevronRight, Star, ArrowUpRight } from 'lucide-react';
+import { NaiaAvatar } from './NaiaDialogue';
 import { LEVEL_NAMES, MISSION_DURATION_SECONDS } from '../constants';
 
 interface TransitionScreenProps {
@@ -92,14 +92,13 @@ export default function TransitionScreen({ level, fact, onTransitionComplete, sc
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="max-w-2xl w-full sm:bg-slate-900/90 border-transparent sm:border-cyan-500/20 sm:border sm:px-8 sm:py-6 sm:rounded-3xl backdrop-blur-3xl relative overflow-hidden flex flex-col items-center gap-4 sm:gap-5 py-4 px-4 my-auto"
+        className="max-w-2xl w-full sm:bg-slate-900/90 border-transparent sm:border-white/10 sm:border sm:px-8 sm:py-6 sm:rounded-3xl backdrop-blur-3xl sm:shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_24px_48px_rgba(0,0,0,0.55)] relative overflow-hidden flex flex-col items-center gap-4 sm:gap-5 py-4 px-4 my-auto"
       >
         {/* Subtle Scan Line */}
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-cyan-500/20 to-transparent animate-pulse" />
 
         {/* Central Icon Section */}
         <motion.div variants={itemVariants} className="relative">
-          <div className="absolute inset-0 bg-emerald-500/20 rounded-full blur-xl scale-125 animate-pulse" />
           <div className="relative flex items-center justify-center">
             {/* Processing Rings */}
             <motion.div 
@@ -112,9 +111,9 @@ export default function TransitionScreen({ level, fact, onTransitionComplete, sc
               transition={{ duration: 12, repeat: Infinity, ease: "linear" }}
               className="absolute w-24 h-24 border border-cyan-500/15 rounded-full"
             />
-            <div className="p-4 bg-slate-950/80 border-2 border-emerald-500/30 rounded-2xl backdrop-blur-md shadow-xl relative overflow-hidden group">
+            <div className="p-4 bg-slate-950/80 border border-emerald-500/30 rounded-2xl backdrop-blur-md shadow-xl relative overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-transparent" />
-              <Cpu className="w-9 h-9 text-emerald-400 group-hover:scale-110 transition-transform duration-500" />
+              <Cpu className="w-9 h-9 text-emerald-400" />
             </div>
           </div>
         </motion.div>
@@ -123,9 +122,9 @@ export default function TransitionScreen({ level, fact, onTransitionComplete, sc
           <div className="space-y-1">
             <motion.h2 
               variants={itemVariants}
-              className="text-4xl sm:text-5xl font-black text-white tracking-widest uppercase leading-none block drop-shadow-lg"
+              className="text-4xl sm:text-5xl font-black text-white tracking-widest uppercase leading-none block"
             >
-              Niveau <span className="text-transparent bg-clip-text bg-gradient-to-b from-cyan-300 to-cyan-600 drop-shadow-[0_0_15px_rgba(34,211,238,0.4)]">{level}</span>
+              Niveau <span className="text-transparent bg-clip-text bg-gradient-to-b from-cyan-300 to-cyan-500">{level}</span>
               <span className="text-xl sm:text-2xl text-slate-400 font-bold ml-2">/ 13</span>
             </motion.h2>
             {LEVEL_NAMES[level] && (
@@ -185,15 +184,21 @@ export default function TransitionScreen({ level, fact, onTransitionComplete, sc
               {/* Technical Drawing */}
               <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_top_left,rgba(6,182,212,0.05)_0%,transparent_50%)] pointer-events-none" />
               
-              <div className="relative z-10">
-                <span className="inline-block px-3 py-1 bg-emerald-500 text-slate-950 text-[10px] font-black rounded-md uppercase tracking-[0.2em] shadow-md mb-2.5">
-                  Le saviez-vous ?
-                </span>
-                <p className="text-slate-200 text-sm sm:text-[15px] leading-relaxed font-sans font-normal flex items-start gap-2">
-                  <span className="text-emerald-500 text-xl font-serif leading-none select-none">"</span>
-                  <span>{fact}</span>
-                  <span className="text-emerald-500 text-xl font-serif self-end leading-none select-none">"</span>
-                </p>
+              <div className="relative z-10 flex items-start gap-3">
+                <NaiaAvatar emotion="happy" size="sm" />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span className="inline-block px-2.5 py-0.5 bg-emerald-500 text-slate-950 text-[10px] font-black rounded-md uppercase tracking-[0.18em] shadow-md">
+                      Le saviez-vous ?
+                    </span>
+                    <span className="font-mono text-[10px] text-cyan-400/80 uppercase tracking-wider">
+                      Mémo de NAÏA
+                    </span>
+                  </div>
+                  <p className="text-slate-200 text-sm sm:text-[15px] leading-relaxed font-sans font-normal">
+                    {fact}
+                  </p>
+                </div>
               </div>
 
               {/* Decorative corners */}
@@ -240,7 +245,7 @@ export default function TransitionScreen({ level, fact, onTransitionComplete, sc
             >
               <button
                 onClick={onTransitionComplete}
-                className="group relative flex items-center gap-3 bg-gradient-to-b from-emerald-400 to-emerald-600 hover:from-emerald-300 hover:to-emerald-500 text-slate-950 px-8 py-3.5 rounded-xl font-black text-xs sm:text-sm uppercase tracking-[0.2em] transition-all hover:scale-105 active:scale-95 shadow-[0_0_32px_rgba(16,185,129,0.4),inset_0_1px_0_rgba(255,255,255,0.4)] border border-emerald-400 overflow-hidden"
+                className="group relative flex items-center gap-3 bg-gradient-to-b from-emerald-400 to-emerald-600 hover:from-emerald-300 hover:to-emerald-500 text-slate-950 px-8 py-3.5 rounded-xl font-black text-xs sm:text-sm uppercase tracking-[0.2em] transition-all shadow-[inset_0_1px_0_rgba(255,255,255,0.4)] hover:shadow-[0_0_22px_rgba(16,185,129,0.35),inset_0_1px_0_rgba(255,255,255,0.4)] border border-emerald-400 overflow-hidden"
               >
                 <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent,25%,rgba(255,255,255,0.2)_50%,transparent_75%)] bg-[length:250%_250%] animate-[shimmer_2s_infinite] pointer-events-none" />
                 <span className="relative z-10">Continuer la Mission</span>

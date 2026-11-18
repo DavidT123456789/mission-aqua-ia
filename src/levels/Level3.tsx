@@ -4,11 +4,12 @@ import { Activity, Search, AlertCircle, CheckCircle2, Waves, Wrench, Droplets, S
 import NaiaDialogue from '../components/NaiaDialogue';
 import TechTerm from '../components/TechTerm';
 import { soundManager } from '../utils/soundManager';
+import { useErrorFeedback } from '../utils/useErrorFeedback';
 
 export default function Level3({ isDevMode, onComplete, onScoreUpdate, onMistake }: { isDevMode?: boolean; onComplete: () => void; onScoreUpdate: (points: number, water: number) => void; onMistake?: () => void; key?: string }) {
   const [selectedSensor, setSelectedSensor] = useState<string | null>(null);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const errorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [failedSensors, setFailedSensors] = useState<string[]>([]);
+  const { errorMsg, isErrorFlash, triggerError, clearError } = useErrorFeedback();
 
   // Repair phases: 'idle' | 'detecting' | 'repairing' | 'done'
   const [repairPhase, setRepairPhase] = useState<'idle' | 'detecting' | 'repairing' | 'done'>('idle');
@@ -20,6 +21,13 @@ export default function Level3({ isDevMode, onComplete, onScoreUpdate, onMistake
   onScoreUpdateRef.current = onScoreUpdate;
   const hasScoredRef = useRef(hasScored);
   hasScoredRef.current = hasScored;
+  const detectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (detectTimerRef.current) clearTimeout(detectTimerRef.current);
+    };
+  }, []);
 
   // Repair progress animation
   useEffect(() => {
@@ -56,27 +64,24 @@ export default function Level3({ isDevMode, onComplete, onScoreUpdate, onMistake
 
   const handleSelect = (id: string) => {
     if (repairPhase !== 'idle') return;
-    if (errorTimerRef.current) {
-      clearTimeout(errorTimerRef.current);
-      errorTimerRef.current = null;
-    }
+    if (id !== 'C' && failedSensors.includes(id)) return;
     soundManager.playClick();
     setSelectedSensor(id);
     if (id === 'C') {
-      setErrorMsg(null);
+      clearError();
       setRepairPhase('detecting');
       // After detection phase, start repair
-      setTimeout(() => {
+      detectTimerRef.current = setTimeout(() => {
         setRepairPhase('repairing');
       }, 1200);
     } else {
-      setErrorMsg(
+      setFailedSensors(prev => (prev.includes(id) ? prev : [...prev, id]));
+      triggerError(
         id === 'B'
           ? "Faux positif ! Le débit nocturne est modéré (26 L/min pour le nettoyage programmé), mais la pression reste normale (4,3 bar) : ce n'est pas une fuite."
           : "Erreur d'analyse. Ce secteur présente une pression et un débit nocturne normaux."
       );
       onMistake?.();
-      errorTimerRef.current = setTimeout(() => setErrorMsg(null), 2800);
     }
   };
 
@@ -96,40 +101,32 @@ export default function Level3({ isDevMode, onComplete, onScoreUpdate, onMistake
       initial={{ opacity: 0, x: 50 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -50 }}
-      className="sm:bg-slate-900 border-transparent sm:border-cyan-500/20 sm:border px-0 sm:px-6 py-4 sm:py-6 sm:rounded-xl max-w-4xl mx-auto font-mono relative flex flex-col"
+      className="sm:bg-slate-900/90 border-transparent sm:border-white/10 sm:border px-0 sm:px-6 py-4 sm:py-6 sm:rounded-2xl max-w-4xl mx-auto relative flex flex-col backdrop-blur-xl sm:shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_24px_48px_rgba(0,0,0,0.55)]"
     >
       
-      <div className="flex items-center gap-3 mb-3 border-b border-cyan-900/50 pb-3">
-        <Activity className="w-8 h-8 text-emerald-400" />
-        <h2 className="text-xl md:text-2xl font-bold text-white uppercase tracking-widest">
+      <div className="flex items-center gap-3 mb-3 border-b border-white/10 pb-3">
+        <Activity className="w-7 h-7 text-emerald-400 shrink-0" />
+        <h2 className="font-mono text-xl md:text-2xl font-bold text-white uppercase tracking-widest">
           Niveau 3 : Détection de Fuites
         </h2>
       </div>
 
-      <div className="mb-3">
+      <div className="mb-4">
         <NaiaDialogue 
           message={
             <>
-              Le refroidissement d'HYDRA est stabilisé, mais les réserves de la ville continuent de baisser : une fuite souterraine aggrave la pénurie ! Heureusement, l'<TechTerm term="IA" /> peut analyser des milliers de points de données instantanément. Utilisez le radar pour identifier et isoler le secteur en anomalie.
+              Le refroidissement d'HYDRA est stabilisé, mais les réserves continuent de baisser : une fuite souterraine aggrave la pénurie ! Heureusement, l'<TechTerm term="IA" /> croise la pression et le débit la nuit (03h00) pour éviter les faux positifs.
             </>
           }
-          emotion="neutral"
+          objective="Repérez et cliquez sur le capteur qui cumule une baisse de pression ET un débit nocturne anormalement élevé."
+          reaction={errorMsg ? { message: errorMsg, emotion: 'alert' } : null}
+          onDismissReaction={clearError}
+          emotion={isSuccess ? 'happy' : 'neutral'}
         />
       </div>
 
       <div className="space-y-4 text-slate-300">
-        <div className="bg-blue-950/30 border border-blue-500/50 p-4 rounded-lg flex items-start gap-4">
-          <Search className="w-6 h-6 text-blue-400 shrink-0 mt-1" />
-          <div>
-            <h3 className="text-blue-400 font-bold uppercase mb-2">Analyse du réseau municipal (Relevé 03h00)</h3>
-            <p className="text-sm font-sans mt-2 font-bold text-emerald-300">
-              Pour éviter les faux positifs, l'<TechTerm term="IA" /> croise deux grandeurs la nuit à 03h00 : une baisse de pression associée à un débit nocturne anormalement élevé révèle une fuite souterraine.
-              <span className="block mt-2 text-blue-300">Cliquez sur le capteur présentant une anomalie pour l'isoler.</span>
-            </p>
-          </div>
-        </div>
-
-        <div className="flex flex-col lg:flex-row gap-6 mt-5">
+        <div className="flex flex-col lg:flex-row gap-6">
           {/* Interactive Radar Map */}
           <div className="w-full lg:w-1/2 flex flex-col gap-0">
             <div className="relative bg-slate-950 rounded-xl border border-slate-800 min-h-[350px] overflow-hidden">
@@ -261,6 +258,8 @@ export default function Level3({ isDevMode, onComplete, onScoreUpdate, onMistake
               {sensors.map((sensor) => {
                 const isSelected = selectedSensor === sensor.id;
                 const isAnomaly = sensor.id === 'C';
+                const isFailed = failedSensors.includes(sensor.id);
+                const isLastFailed = isFailed && isSelected;
                 
                 return (
                   <div
@@ -299,19 +298,20 @@ export default function Level3({ isDevMode, onComplete, onScoreUpdate, onMistake
                     )}
                     <button
                       onClick={() => handleSelect(sensor.id)}
-                      disabled={repairPhase !== 'idle'}
+                      disabled={repairPhase !== 'idle' || isFailed}
+                      aria-label={isFailed ? `Capteur ${sensor.id} (${sensor.location}) — déjà écarté` : `Sélectionner le capteur ${sensor.id} (${sensor.location})`}
                       className="relative group"
                     >
                       <div className={`relative flex items-center justify-center w-10 h-10 rounded-full border-2 transition-all duration-300 ${
                         isAnomaly && isActive
-                          ? 'bg-amber-900 border-amber-400 scale-125 shadow-[0_0_20px_rgba(245,158,11,0.5)]'
-                          : isSelected
-                            ? isAnomaly
-                              ? 'bg-emerald-900 border-emerald-400 scale-125 shadow-[0_0_15px_rgba(16,185,129,0.5)]'
-                              : 'bg-red-900 border-red-500 animate-shake'
-                            : isAnomaly && isSuccess
-                              ? 'bg-emerald-900 border-emerald-400 scale-125 shadow-[0_0_15px_rgba(16,185,129,0.5)]'
-                              : 'bg-slate-800 border-blue-500/50 hover:border-blue-400 hover:scale-110'
+                          ? 'bg-amber-900 border-amber-400 scale-125'
+                          : isSelected && isAnomaly
+                            ? 'bg-emerald-900 border-emerald-400 scale-125'
+                            : isFailed
+                              ? `bg-red-950/75 border-red-500/50 opacity-60 ${isLastFailed && isErrorFlash ? 'animate-shake' : ''}`
+                              : isAnomaly && isSuccess
+                                ? 'bg-emerald-900 border-emerald-400 scale-125'
+                                : 'bg-slate-800 border-blue-500/50 hover:border-blue-400 hover:shadow-[0_0_14px_rgba(96,165,250,0.3)]'
                       }`}>
                         {/* Wrench icon during repair */}
                         {isAnomaly && isActive ? (
@@ -325,7 +325,7 @@ export default function Level3({ isDevMode, onComplete, onScoreUpdate, onMistake
                           <ShieldCheck className="w-4 h-4 text-emerald-400" />
                         ) : (
                           <span className={`font-bold text-sm ${
-                            isSelected && isAnomaly ? 'text-emerald-400' : isSelected ? 'text-red-400' : 'text-blue-400'
+                            isSelected && isAnomaly ? 'text-emerald-400' : isFailed ? 'text-red-400' : 'text-blue-400'
                           }`}>
                             {sensor.id}
                           </span>
@@ -443,21 +443,23 @@ export default function Level3({ isDevMode, onComplete, onScoreUpdate, onMistake
               {sensors.map((sensor) => {
                 const isSelected = selectedSensor === sensor.id;
                 const isAnomaly = sensor.id === 'C';
+                const isFailed = failedSensors.includes(sensor.id);
+                const isLastFailed = isFailed && isSelected;
                 const pressurePercent = (sensor.pressure / 5) * 100;
 
                 return (
                   <button
                     key={sensor.id}
                     onClick={() => handleSelect(sensor.id)}
-                    disabled={repairPhase !== 'idle'}
+                    disabled={repairPhase !== 'idle' || isFailed}
                     className={`relative p-3 rounded-lg border-2 flex flex-col items-start transition-all duration-300 ${
                       isAnomaly && isActive
                         ? 'bg-amber-900/30 border-amber-500/60 scale-[1.02]'
-                        : isSelected
-                          ? isAnomaly
-                            ? 'bg-emerald-900/40 border-emerald-500 scale-[1.02]'
-                            : 'bg-red-900/40 border-red-500 animate-shake'
-                          : 'bg-slate-900 border-slate-700 hover:border-slate-500'
+                        : isSelected && isAnomaly
+                          ? 'bg-emerald-900/40 border-emerald-500 scale-[1.02]'
+                          : isFailed
+                            ? `bg-red-950/25 border-red-500/45 opacity-65 ${isLastFailed && isErrorFlash ? 'animate-shake' : ''}`
+                            : 'bg-slate-900 border-slate-700 hover:border-slate-500'
                     }`}
                   >
                     <div className="flex justify-between w-full mb-2">
@@ -467,13 +469,19 @@ export default function Level3({ isDevMode, onComplete, onScoreUpdate, onMistake
                             ? 'bg-amber-500 text-slate-900' 
                             : isSelected && isAnomaly 
                               ? 'bg-emerald-500 text-slate-900' 
-                              : 'bg-slate-800 text-slate-300'
+                              : isFailed
+                                ? 'bg-red-950 text-red-300 border border-red-500/40'
+                                : 'bg-slate-800 text-slate-300'
                         }`}>
                           {sensor.id}
                         </div>
                         <span className="text-xs text-slate-400 uppercase tracking-wider">{sensor.location}</span>
                       </div>
-                      {isSelected && !isAnomaly && <AlertCircle className="w-4 h-4 text-red-500" />}
+                      {isFailed && (
+                        <span className="flex items-center gap-1 text-[10px] font-bold uppercase text-red-400 shrink-0">
+                          <AlertCircle className="w-3.5 h-3.5" /> Écarté
+                        </span>
+                      )}
                       {isAnomaly && isActive && (
                         <motion.div animate={{ rotate: [0, -15, 15, 0] }} transition={{ duration: 0.6, repeat: Infinity }}>
                           <Wrench className="w-4 h-4 text-amber-500" />
@@ -486,7 +494,7 @@ export default function Level3({ isDevMode, onComplete, onScoreUpdate, onMistake
                       <div className="flex justify-between text-xs">
                         <span className="text-slate-500 uppercase">Pression • <span className="normal-case text-slate-400">{sensor.note}</span></span>
                         <span className={`font-bold ${
-                          isSelected && !isAnomaly ? 'text-white' : 
+                          isFailed ? 'text-red-200' : 
                           isAnomaly && isActive ? 'text-amber-300' :
                           isSelected && isAnomaly ? 'text-white drop-shadow-md' : 'text-slate-300'
                         }`}>{sensor.pressure} bar</span>
@@ -494,7 +502,7 @@ export default function Level3({ isDevMode, onComplete, onScoreUpdate, onMistake
                       <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
                         <motion.div 
                           className={`h-full ${
-                            isSelected && !isAnomaly ? 'bg-red-500' : 
+                            isFailed ? 'bg-red-500/75' : 
                             isAnomaly && isActive ? 'bg-amber-500' :
                             isSelected && isAnomaly ? 'bg-emerald-500' : 
                             'bg-blue-600'
@@ -511,7 +519,7 @@ export default function Level3({ isDevMode, onComplete, onScoreUpdate, onMistake
                       <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
                         <motion.div
                           className={`h-full ${
-                            isSelected && !isAnomaly ? 'bg-red-500' :
+                            isFailed ? 'bg-red-500/75' :
                             isAnomaly && isActive ? 'bg-amber-500' :
                             isSelected && isAnomaly ? 'bg-emerald-500' :
                             'bg-cyan-500'
@@ -541,16 +549,6 @@ export default function Level3({ isDevMode, onComplete, onScoreUpdate, onMistake
           </div>
         </div>
 
-        {errorMsg && (
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-red-400 text-sm text-center mt-4 font-bold bg-red-950/30 border border-red-500/40 rounded-lg p-3"
-          >
-            {errorMsg}
-          </motion.p>
-        )}
-
         {/* Success panel — inline, no modal */}
         <AnimatePresence>
           {isSuccess && (
@@ -568,7 +566,7 @@ export default function Level3({ isDevMode, onComplete, onScoreUpdate, onMistake
               </p>
               <button
                 onClick={onComplete}
-                className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-3 rounded-lg font-bold transition-colors shadow-[0_0_20px_rgba(16,185,129,0.4)]"
+                className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-3 rounded-lg font-bold transition-all hover:shadow-[0_0_18px_rgba(16,185,129,0.35)]"
               >
                 PASSER À L'ÉTAPE SUIVANTE
               </button>

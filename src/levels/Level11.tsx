@@ -333,7 +333,7 @@ export default function Level11({ isDevMode, onComplete, onScoreUpdate, onMistak
         onDrop={(e) => handleDropOnBlank(e, id)}
         className={`inline-flex items-center justify-center min-w-[80px] h-7 px-2 mx-1 rounded transition-all focus:outline-none ${
           isDragTarget
-            ? 'bg-cyan-900/50 border-2 border-cyan-400 scale-105 z-10 shadow-[0_0_12px_rgba(34,211,238,0.4)]'
+            ? 'bg-cyan-900/50 border-2 border-cyan-400 scale-105 z-10'
             : isTargeted
             ? 'bg-emerald-900/50 border-2 border-emerald-400 z-10'
             : isFilled
@@ -367,23 +367,33 @@ export default function Level11({ isDevMode, onComplete, onScoreUpdate, onMistak
       initial={{ opacity: 0, x: 50 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -50 }}
-      className="sm:bg-slate-900 border-transparent sm:border-cyan-500/20 sm:border px-0 sm:px-6 py-4 sm:py-6 sm:rounded-xl max-w-4xl mx-auto font-mono relative flex flex-col"
+      className="sm:bg-slate-900/90 border-transparent sm:border-white/10 sm:border px-0 sm:px-6 py-4 sm:py-6 sm:rounded-2xl max-w-4xl mx-auto relative flex flex-col backdrop-blur-xl sm:shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_24px_48px_rgba(0,0,0,0.55)]"
     >
       
-      <div className="flex items-center gap-3 mb-3 border-b border-cyan-900/50 pb-3">
-        <Cpu className="w-8 h-8 text-emerald-400" />
-        <h2 className="text-xl md:text-2xl font-bold text-white uppercase tracking-widest">
+      <div className="flex items-center gap-3 mb-3 border-b border-white/10 pb-3">
+        <Cpu className="w-7 h-7 text-emerald-400 shrink-0" />
+        <h2 className="font-mono text-xl md:text-2xl font-bold text-white uppercase tracking-widest">
           Niveau 11 : L'Algorithme d'Arrosage
         </h2>
       </div>
 
-      <div className="mb-3 space-y-2.5">
+      <div className="mb-3 space-y-2">
         <HydraLog status="hostile" label="HYDRA // PARE-FEU" message="Déploiement automatique rejeté. Pare-feu actif : interfaces graphiques verrouillées." />
-        <NaiaDialogue message={
-          <>
-            Agent, le pare-feu d'HYDRA bloque l'installation automatique de nos nouveaux modules ! Nos raccourcis visuels sont verrouillés : vous devez compléter directement le script Python du <strong>module d'irrigation intelligente</strong> (<code className="text-cyan-300">aqua_farm.py</code>) pour forcer son intégration. L'agriculture consomme <strong>70 % de l'eau douce mondiale</strong> : chaque ligne doit être exacte !
-          </>
-        } emotion="alert" />
+        <NaiaDialogue
+          message={
+            success ? (
+              <>
+                Bravo Agent ! Le script <code className="font-mono text-emerald-300 bg-slate-900 px-1.5 py-0.5 rounded">aqua_farm.py</code> a passé les tests météo et est déployé malgré le pare-feu d'HYDRA.
+              </>
+            ) : (
+              <>
+                Le pare-feu d'HYDRA bloque nos raccourcis visuels ! L'agriculture consomme <strong className="text-white">70 % de l'eau douce mondiale</strong> : vous devez compléter directement le script Python <code className="font-mono text-cyan-300 bg-slate-900 px-1.5 py-0.5 rounded">aqua_farm.py</code> pour forcer l'intégration du module d'irrigation intelligente.
+              </>
+            )
+          }
+          objective={success ? undefined : "Complétez les 8 trous du code Python par glisser-déposer ou clic puis lancez la simulation."}
+          emotion={success ? 'happy' : 'alert'}
+        />
       </div>
 
       <div className="space-y-4 text-slate-300">
@@ -419,10 +429,6 @@ export default function Level11({ isDevMode, onComplete, onScoreUpdate, onMistak
             </div>
             <span className="font-bold text-xl text-white">{moisture}%</span>
           </div>
-        </div>
-
-        <div className="text-center mb-4 p-3 bg-emerald-950/30 border border-cyan-500/20 rounded-lg text-sm">
-          👆 <strong>Mission :</strong> Complétez le code par <strong>glisser-déposer</strong> (souris) ou par <strong>clic / toucher</strong> sur une étiquette puis sur un espace <span className="inline-block w-8 h-4 border border-dashed border-emerald-500 mx-1"></span>.
         </div>
 
         {/* Code Editor */}
@@ -506,23 +512,21 @@ export default function Level11({ isDevMode, onComplete, onScoreUpdate, onMistak
                   >
                     <motion.button
                       type="button"
-                      whileHover={w.used || success || isTesting ? {} : { scale: 1.05 }}
-                      whileTap={w.used || success || isTesting ? {} : { scale: 0.95 }}
                       animate={{ 
-                        scale: w.used ? 0.9 : activeWord?.id === w.id ? 1.1 : 1, 
+                        scale: w.used ? 0.9 : activeWord?.id === w.id ? 1.05 : 1, 
                         opacity: w.used ? 0.35 : 1 
                       }}
                       transition={{ type: "spring", stiffness: 400, damping: 25 }}
                       onClick={() => handleWordClick(w)}
                       disabled={w.used || success || isTesting}
-                      className={`px-4 py-2 rounded-full font-mono text-sm transition-colors focus:outline-none ${
+                      className={`px-4 py-2 rounded-full font-mono text-sm transition-all focus:outline-none ${
                         w.used 
                           ? 'bg-slate-900 text-slate-700 border border-slate-800 cursor-not-allowed' 
                           : activeWord?.id === w.id
                           ? 'bg-emerald-900/50 text-emerald-400 border border-emerald-400 z-10'
                           : activeBlank
-                          ? 'bg-emerald-900/20 text-emerald-400 border border-emerald-500/50 cursor-pointer'
-                          : 'bg-cyan-900/30 text-cyan-400 border border-cyan-500/50 cursor-grab active:cursor-grabbing'
+                          ? 'bg-emerald-900/20 text-emerald-400 border border-emerald-500/50 hover:shadow-[0_0_12px_rgba(16,185,129,0.25)] cursor-pointer'
+                          : 'bg-cyan-900/30 text-cyan-400 border border-cyan-500/50 hover:shadow-[0_0_12px_rgba(6,182,212,0.25)] cursor-grab active:cursor-grabbing'
                       }`}
                     >
                       {w.word}
@@ -651,7 +655,7 @@ export default function Level11({ isDevMode, onComplete, onScoreUpdate, onMistak
                   ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
                   : showError
                   ? 'bg-red-600 text-white animate-shake'
-                  : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-[0_0_20px_rgba(16,185,129,0.3)]'
+                  : 'bg-emerald-600 hover:bg-emerald-500 text-white hover:shadow-[0_0_18px_rgba(16,185,129,0.35)]'
               }`}
             >
               {isTesting ? 'EXÉCUTION DES TESTS...' : showError ? 'ERREUR LOGIQUE' : 'TESTER LE CODE'}
@@ -676,7 +680,7 @@ export default function Level11({ isDevMode, onComplete, onScoreUpdate, onMistak
               </div>
               <button
                 onClick={onComplete}
-                className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-3 rounded-lg font-bold transition-colors shadow-[0_0_20px_rgba(16,185,129,0.4)]"
+                className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-3 rounded-lg font-bold transition-all hover:shadow-[0_0_18px_rgba(16,185,129,0.35)]"
               >
                 PASSER AU NIVEAU SUIVANT
               </button>

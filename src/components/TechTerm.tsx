@@ -121,8 +121,8 @@ export default function TechTerm({ term, children, className = '' }: TechTermPro
 
   // Listen for global discovery and reset events to keep all instances in sync
   useEffect(() => {
-    const handleDiscovery = (e: any) => {
-      if (e.detail === term) {
+    const handleDiscovery = (e: Event) => {
+      if ((e as CustomEvent<string>).detail === term) {
         setIsDiscovered(true);
       }
     };
@@ -287,7 +287,11 @@ export default function TechTerm({ term, children, className = '' }: TechTermPro
             startDiscoveryTimer();
           }
         }}
-        className={`cursor-help border-b border-dotted ${isDiscovered ? 'border-emerald-400 text-emerald-300' : 'border-amber-400 text-amber-300'} hover:text-emerald-200 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:rounded transition-colors inline-flex items-center`}
+        className={`cursor-help px-1 py-[1px] rounded-sm border-b ${
+          isDiscovered
+            ? 'bg-emerald-400/10 border-emerald-400/60 text-emerald-300 hover:bg-emerald-400/15 hover:text-emerald-200'
+            : 'bg-amber-400/10 border-amber-400/60 text-amber-300 hover:bg-amber-400/15 hover:text-amber-200'
+        } focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 transition-colors inline-flex items-center`}
       >
         {children || term}
       </span>

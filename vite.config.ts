@@ -18,7 +18,7 @@ export default defineConfig(({mode}) => {
           manualChunks: {
             react: ['react', 'react-dom'],
             motion: ['motion'],
-            ui: ['lucide-react', 'canvas-confetti', 'html-to-image'],
+            ui: ['lucide-react', 'canvas-confetti'],
           },
         },
       },

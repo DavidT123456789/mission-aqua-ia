@@ -4,6 +4,7 @@ import { Map, CheckCircle2, Snowflake, Sun, Building2, Compass, Wind, Droplets, 
 import NaiaDialogue from '../components/NaiaDialogue';
 import TechTerm from '../components/TechTerm';
 import { soundManager } from '../utils/soundManager';
+import { useErrorFeedback } from '../utils/useErrorFeedback';
 
 type CoolingMode = 'evaporative' | 'chiller' | 'free_cooling';
 
@@ -102,7 +103,7 @@ const COOLING_MODES: { id: CoolingMode; label: string; detail: string }[] = [
 export default function Level4({ isDevMode: _isDevMode, onComplete, onScoreUpdate, onMistake }: { isDevMode?: boolean; onComplete: () => void; onScoreUpdate: (points: number, water: number) => void; onMistake?: () => void; key?: string }) {
   const [selectedSite, setSelectedSite] = useState<SiteOption['id'] | null>(null);
   const [selectedCooling, setSelectedCooling] = useState<CoolingMode | null>(null);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const { errorMsg, isErrorFlash, triggerError, clearError } = useErrorFeedback();
   const [hasScored, setHasScored] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
@@ -111,13 +112,13 @@ export default function Level4({ isDevMode: _isDevMode, onComplete, onScoreUpdat
   const selectSite = (id: SiteOption['id']) => {
     if (isSuccess) return;
     setSelectedSite(id);
-    setErrorMsg(null);
+    clearError();
   };
 
   const selectCooling = (id: CoolingMode) => {
     if (isSuccess) return;
     setSelectedCooling(id);
-    setErrorMsg(null);
+    clearError();
   };
 
   const checkAnswer = () => {
@@ -125,7 +126,7 @@ export default function Level4({ isDevMode: _isDevMode, onComplete, onScoreUpdat
 
     if (selectedSite === 'lulea' && selectedCooling === 'free_cooling') {
       setIsSuccess(true);
-      setErrorMsg(null);
+      clearError();
       soundManager.playSuccess();
       if (!hasScored) {
         setHasScored(true);
@@ -147,9 +148,8 @@ export default function Level4({ isDevMode: _isDevMode, onComplete, onScoreUpdat
       feedback = "À Paris-Nord (13°C), le Free Cooling nécessite un appoint une grande partie de l'année : l'Eau (180 L/MWh) et le PUE (1.28) restent hors seuils.";
     }
 
-    setErrorMsg(feedback);
+    triggerError(feedback);
     onMistake?.();
-    setTimeout(() => setErrorMsg(null), 4000);
   };
 
   return (
@@ -157,23 +157,26 @@ export default function Level4({ isDevMode: _isDevMode, onComplete, onScoreUpdat
       initial={{ opacity: 0, x: 50 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -50 }}
-      className="sm:bg-slate-900 border-transparent sm:border-cyan-500/20 sm:border px-0 sm:px-6 py-2.5 sm:py-4 sm:rounded-xl max-w-4xl mx-auto font-mono relative flex flex-col"
+      className="sm:bg-slate-900/90 border-transparent sm:border-white/10 sm:border px-0 sm:px-6 py-2.5 sm:py-4 sm:rounded-2xl max-w-4xl mx-auto relative flex flex-col backdrop-blur-xl sm:shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_24px_48px_rgba(0,0,0,0.55)]"
     >
-      <div className="flex items-center gap-3 mb-2 border-b border-cyan-900/50 pb-2">
-        <Map className="w-7 h-7 text-emerald-400" />
-        <h2 className="text-lg md:text-2xl font-bold text-white uppercase tracking-widest">
+      <div className="flex items-center gap-3 mb-2 border-b border-white/10 pb-2">
+        <Map className="w-7 h-7 text-emerald-400 shrink-0" />
+        <h2 className="font-mono text-lg md:text-2xl font-bold text-white uppercase tracking-widest">
           Niveau 4 : Stratégie d'Implantation
         </h2>
       </div>
 
-      <div className="mb-2">
+      <div className="mb-3">
         <NaiaDialogue
           message={
             <>
-              HYDRA construit un nouveau <TechTerm term="Datacenter">data center</TechTerm> d'entraînement (<TechTerm term="Latence">latence</TechTerm> tolérée jusqu'à 40 ms). Testez les systèmes de <TechTerm term="Refroidissement" /> ci-dessous pour simuler l'eau et le <TechTerm term="PUE" /> des 4 sites, puis sélectionnez la combinaison respectant nos 3 seuils stricts.
+              HYDRA construit un nouveau <TechTerm term="Datacenter">data center</TechTerm> d'entraînement (<TechTerm term="Latence">latence</TechTerm> tolérée jusqu'à 40 ms). Testez les systèmes de <TechTerm term="Refroidissement" /> pour simuler l'eau et le <TechTerm term="PUE" /> des 4 sites.
             </>
           }
-          emotion="neutral"
+          objective="Sélectionnez le site et le refroidissement qui respectent les 3 seuils du cahier des charges."
+          reaction={errorMsg ? { message: errorMsg, emotion: 'alert' } : null}
+          onDismissReaction={clearError}
+          emotion={isSuccess ? 'happy' : 'neutral'}
         />
       </div>
 
@@ -269,8 +272,8 @@ export default function Level4({ isDevMode: _isDevMode, onComplete, onScoreUpdat
                 >
                   <div className={`relative flex items-center justify-center w-9 h-9 rounded-full transition-all duration-300 ${
                     isSelected
-                      ? 'bg-cyan-950/95 border-cyan-400 border-2 scale-115 shadow-[0_0_18px_rgba(34,211,238,0.5)]'
-                      : 'bg-slate-900/95 border border-slate-700 hover:border-slate-400 hover:scale-105'
+                      ? 'bg-cyan-950/95 border-cyan-400 border-2 scale-115 hover:shadow-[0_0_16px_rgba(34,211,238,0.35)]'
+                      : 'bg-slate-900/95 border border-slate-700 hover:border-slate-400 hover:shadow-[0_0_12px_rgba(148,163,184,0.25)]'
                   }`}>
                     <Icon className={`w-4 h-4 ${isSelected ? 'text-cyan-300' : 'text-slate-400 group-hover:text-slate-200'}`} />
                   </div>
@@ -304,7 +307,7 @@ export default function Level4({ isDevMode: _isDevMode, onComplete, onScoreUpdat
                   onClick={() => selectSite(loc.id)}
                   className={`p-3 rounded-xl border-2 text-left transition-all flex flex-col justify-between ${
                     isSelected
-                      ? 'bg-cyan-950/30 border-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.15)]'
+                      ? 'bg-cyan-950/30 border-cyan-400'
                       : 'bg-slate-950 border-slate-800 hover:border-slate-600'
                   }`}
                 >
@@ -390,7 +393,7 @@ export default function Level4({ isDevMode: _isDevMode, onComplete, onScoreUpdat
                   onClick={() => selectCooling(mode.id)}
                   className={`p-2.5 rounded-lg border text-left transition-all ${
                     isSelected
-                      ? 'bg-emerald-950/30 border-emerald-400 text-white shadow-[0_0_12px_rgba(16,185,129,0.15)]'
+                      ? 'bg-emerald-950/30 border-emerald-400 text-white'
                       : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-600'
                   }`}
                 >
@@ -402,17 +405,6 @@ export default function Level4({ isDevMode: _isDevMode, onComplete, onScoreUpdat
           </div>
         </div>
 
-        {errorMsg && (
-          <motion.div
-            initial={{ opacity: 0, y: -5 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="p-2.5 bg-red-950/40 border border-red-500/50 rounded-lg text-red-300 text-xs font-bold flex items-center justify-center gap-2 text-center"
-          >
-            <AlertTriangle className="w-4 h-4 shrink-0 text-red-400" />
-            <span>{errorMsg}</span>
-          </motion.div>
-        )}
-
         {!isSuccess && (
           <div className="flex justify-center">
             <button
@@ -421,9 +413,9 @@ export default function Level4({ isDevMode: _isDevMode, onComplete, onScoreUpdat
               className={`px-7 py-2.5 rounded-lg font-bold text-base transition-all ${
                 !selectedSite || !selectedCooling
                   ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                  : errorMsg
+                  : isErrorFlash
                   ? 'bg-red-600 text-white animate-shake'
-                  : 'bg-emerald-600 hover:bg-emerald-500 text-white hover:scale-105'
+                  : 'bg-emerald-600 hover:bg-emerald-500 text-white hover:shadow-[0_0_18px_rgba(16,185,129,0.35)]'
               }`}
             >
               VALIDER L'IMPLANTATION
@@ -447,7 +439,7 @@ export default function Level4({ isDevMode: _isDevMode, onComplete, onScoreUpdat
               </p>
               <button
                 onClick={onComplete}
-                className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-3 rounded-lg font-bold transition-colors shadow-[0_0_20px_rgba(16,185,129,0.4)]"
+                className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-3 rounded-lg font-bold transition-all hover:shadow-[0_0_18px_rgba(16,185,129,0.35)]"
               >
                 CONTINUER LE DÉPLOIEMENT
               </button>
