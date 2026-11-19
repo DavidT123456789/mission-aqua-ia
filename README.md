@@ -8,6 +8,12 @@ Un escape game éducatif sur l'intelligence artificielle et la consommation d'ea
 
 **Développé par David Trafial**
 
+## ⏱️ Organisation en classe & Kit Enseignant
+
+- **Chronomètre de mission (40 min)** : couvre les **Niveaux 1 à 12** hors écrans de transition (le chrono se met automatiquement en pause pendant chaque transition et pendant tout le Niveau 13).
+- **Durée réelle du parcours complet** : compter **55 à 75 minutes** en incluant les lectures, les 12 écrans de transition, l'Innovation Lab (Niveau 13), les 2 défis bonus de fin et l'export du dossier A4 — soit idéalement **2 séances de 55 min** (progression sauvegardée automatiquement sur le poste + bouton **Pause** classe dans le HUD).
+- **Kit Enseignant intégré (sans corrigés)** : déroulé 1 h / 2 h, ancrage programmes (Maths, Techno, SVT, EMI, SNT, Pix) et pistes de débat oral sur les biais et le greenwashing — consultable dans [KIT_ENSEIGNANT.md](./KIT_ENSEIGNANT.md) ou directement dans l'application via `Alt+Shift+P` (ou double-clic sur le pied de page) et le **Menu Enseignant** (avec export **Imprimer / PDF A4**).
+
 ## 🚀 Lancer en local
 
 ### Prérequis
@@ -31,9 +37,9 @@ Un escape game éducatif sur l'intelligence artificielle et la consommation d'ea
    Créez un fichier `.env.local` à la racine du projet :
    ```env
    GEMINI_API_KEY=votre_clé_api_ici
-   DEV_PASSWORD=mot_de_passe_prof_optionnel
+   DEV_PASSWORD=votre_mot_de_passe_enseignant
    ```
-   *(Si `DEV_PASSWORD` est omis, le mot de passe par défaut côté serveur est `dev123`.)*
+   *(Optionnel : si `DEV_PASSWORD` est omis, le mot de passe par défaut côté serveur est utilisé. Pour ouvrir la fenêtre enseignant dans l'application : double-clic sur le crédit en pied de page ou raccourci `Alt+Shift+P`.)*
 
 4. **Lancer l'application :**
    ```bash
@@ -71,4 +77,4 @@ Un escape game éducatif sur l'intelligence artificielle et la consommation d'ea
 
 L'application est déployable sur **Cloudflare Pages** :
 - Les fichiers dans `functions/api/` servent d'endpoints serverless
-- La variable d'environnement `GEMINI_API_KEY` doit être configurée dans les paramètres Cloudflare (et `DEV_PASSWORD` en option pour personnaliser le mot de passe du mode enseignant, sinon `dev123` par défaut)
+- La variable d'environnement `GEMINI_API_KEY` doit être configurée dans les paramètres Cloudflare (et `DEV_PASSWORD` en option pour personnaliser le mot de passe du mode enseignant)

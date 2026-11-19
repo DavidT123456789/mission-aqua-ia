@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Cpu, ChevronRight, Star, ArrowUpRight } from 'lucide-react';
+import { ChevronRight, Star, ArrowUpRight, Heart } from 'lucide-react';
 import { NaiaAvatar } from './NaiaDialogue';
-import { LEVEL_NAMES, MISSION_DURATION_SECONDS } from '../constants';
+import { getLevelIcon } from './levelIcons';
+import { LEVEL_NAMES, MISSION_DURATION_SECONDS, getActForLevel } from '../constants';
+import { soundManager } from '../utils/soundManager';
 
 interface TransitionScreenProps {
   level: number;
@@ -11,12 +13,16 @@ interface TransitionScreenProps {
   score: number;
   pointsGained: number;
   timeRemaining: number;
+  lifeRestored?: boolean;
   key?: string;
 }
 
-export default function TransitionScreen({ level, fact, onTransitionComplete, score, pointsGained, timeRemaining }: TransitionScreenProps) {
+export default function TransitionScreen({ level, fact, onTransitionComplete, score, pointsGained, timeRemaining, lifeRestored = false }: TransitionScreenProps) {
   const [isComplete, setIsComplete] = useState(false);
   const [displayScore, setDisplayScore] = useState(score - pointsGained);
+  const currentAct = getActForLevel(level);
+  const isNewAct = Boolean(currentAct && level === currentAct.startLevel);
+  const LevelIcon = getLevelIcon(level);
 
   useEffect(() => {
     // Prevent body scroll when transition screen is mounted
@@ -35,12 +41,21 @@ export default function TransitionScreen({ level, fact, onTransitionComplete, sc
   }, []);
 
   useEffect(() => {
+    if (!lifeRestored) return;
+    const timer = setTimeout(() => {
+      soundManager.playHeartRestore();
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [lifeRestored]);
+
+  useEffect(() => {
     if (pointsGained <= 0) return;
     
     const duration = 1500;
     const start = score - pointsGained;
     const end = score;
     const startTime = performance.now();
+    let rafId = 0;
 
     const animate = (currentTime: number) => {
       const elapsed = currentTime - startTime;
@@ -51,11 +66,12 @@ export default function TransitionScreen({ level, fact, onTransitionComplete, sc
       setDisplayScore(currentScore);
 
       if (progress < 1) {
-        requestAnimationFrame(animate);
+        rafId = requestAnimationFrame(animate);
       }
     };
 
-    requestAnimationFrame(animate);
+    rafId = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(rafId);
   }, [score, pointsGained]);
 
   const containerVariants = {
@@ -72,7 +88,7 @@ export default function TransitionScreen({ level, fact, onTransitionComplete, sc
       opacity: 1, 
       y: 0, 
       scale: 1,
-      transition: { type: "spring", stiffness: 100, damping: 15 }
+      transition: { type: "spring" as const, stiffness: 100, damping: 15 }
     }
   };
 
@@ -113,12 +129,31 @@ export default function TransitionScreen({ level, fact, onTransitionComplete, sc
             />
             <div className="p-4 bg-slate-950/80 border border-emerald-500/30 rounded-2xl backdrop-blur-md shadow-xl relative overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-transparent" />
-              <Cpu className="w-9 h-9 text-emerald-400" />
+              <LevelIcon className="w-9 h-9 text-emerald-400" />
             </div>
           </div>
         </motion.div>
         
         <div className="text-center space-y-3 w-full">
+          {currentAct && (
+            <motion.div
+              variants={itemVariants}
+              className={`inline-flex flex-col items-center gap-0.5 px-3.5 py-1.5 rounded-xl border text-center ${
+                isNewAct
+                  ? 'bg-emerald-950/60 border-emerald-400/50 text-emerald-300 shadow-[0_0_20px_rgba(16,185,129,0.2)]'
+                  : 'bg-slate-950/60 border-white/10 text-slate-300'
+              }`}
+            >
+              <span className="text-[10px] font-black uppercase tracking-[0.22em]">
+                {isNewAct ? `Nouveau Chapitre · ${currentAct.label} : ${currentAct.title}` : `${currentAct.label} · ${currentAct.title}`}
+              </span>
+              {isNewAct && (
+                <span className="text-[11px] font-sans text-emerald-100/90 font-normal">
+                  {currentAct.subtitle}
+                </span>
+              )}
+            </motion.div>
+          )}
           <div className="space-y-1">
             <motion.h2 
               variants={itemVariants}
@@ -138,12 +173,21 @@ export default function TransitionScreen({ level, fact, onTransitionComplete, sc
           </div>
 
           {/* Stats Dashboard */}
+          {lifeRestored && (
+            <motion.div
+              variants={itemVariants}
+              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-rose-950/60 border border-rose-400/45 text-rose-200 text-xs font-mono font-bold shadow-[0_0_16px_rgba(244,63,94,0.2)]"
+            >
+              <Heart className="w-3.5 h-3.5 text-rose-400 fill-rose-400 shrink-0" />
+              <span>+1 vie restaurée — Palier niveau {level}</span>
+            </motion.div>
+          )}
           <motion.div 
             variants={itemVariants}
             className="grid grid-cols-2 gap-3 sm:gap-4 mt-3"
           >
             <div className="bg-slate-950/60 border border-white/10 backdrop-blur-md p-3 sm:p-3.5 rounded-2xl flex flex-col items-center justify-center shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_8px_32px_rgba(0,0,0,0.4)] relative overflow-hidden">
-              <span className="text-[9px] text-slate-500 uppercase tracking-widest font-bold mb-1">Score Total</span>
+              <span className="text-[11px] text-slate-400 uppercase tracking-widest font-bold mb-1">Score Total</span>
               <div className="flex items-center gap-2.5">
                 <Star className="w-5 h-5 fill-yellow-400 text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.5)]" />
                 <span className="text-2xl sm:text-3xl font-black text-white tabular-nums">{displayScore}</span>
@@ -155,20 +199,20 @@ export default function TransitionScreen({ level, fact, onTransitionComplete, sc
                   className="mt-1.5 flex items-center gap-1 text-emerald-400 font-bold text-xs bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20"
                 >
                   <ArrowUpRight className="w-3 h-3" />
-                  <span className="text-[10px]">+ {pointsGained}</span>
-                  <span className="text-[8px] uppercase opacity-80">bonus</span>
+                  <span className="text-[11px]">+ {pointsGained}</span>
+                  <span className="text-[10px] uppercase opacity-85">pts</span>
                 </motion.div>
               )}
             </div>
             
             <div className="bg-slate-950/60 border border-white/10 backdrop-blur-md p-3 sm:p-3.5 rounded-2xl flex flex-col items-center justify-center shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_8px_32px_rgba(0,0,0,0.4)] relative overflow-hidden">
-              <span className="text-[9px] text-slate-500 uppercase tracking-widest font-bold mb-1">Chronoscope</span>
+              <span className="text-[11px] text-slate-400 uppercase tracking-widest font-bold mb-1">Temps restant</span>
               <div className="flex items-center gap-2">
                 <span className={`text-2xl sm:text-3xl font-black tabular-nums ${timeRemaining < 300 ? 'text-red-400' : 'text-cyan-400'}`}>
                   {Math.floor(timeRemaining / 60)}:{(timeRemaining % 60).toString().padStart(2, '0')}
                 </span>
               </div>
-              <div className="mt-1.5 text-[8px] text-slate-400 uppercase tracking-widest flex items-center gap-1 bg-white/5 px-2 py-0.5 rounded-full border border-white/10">
+              <div className="mt-1.5 text-[10px] text-slate-300 uppercase tracking-widest flex items-center gap-1 bg-white/5 px-2.5 py-0.5 rounded-full border border-white/10">
                 <span>Efficacité:</span>
                 <span className="text-cyan-300 font-black ml-1">{Math.min(100, Math.round((timeRemaining / MISSION_DURATION_SECONDS) * 100))}%</span>
                 <ArrowUpRight className="w-2.5 h-2.5 text-cyan-400" />
@@ -209,13 +253,14 @@ export default function TransitionScreen({ level, fact, onTransitionComplete, sc
 
         <div className="w-full mt-1">
           {!isComplete ? (
-            <div
+            <button
+              type="button"
               onClick={() => setIsComplete(true)}
-              className="flex flex-col items-center gap-3 w-full cursor-pointer"
+              className="flex flex-col items-center gap-3 w-full cursor-pointer bg-transparent border-0 p-0 text-left"
               title="Cliquer pour passer"
             >
               <div className="w-full space-y-2">
-                <div className="flex justify-between text-[9px] text-emerald-500/70 font-bold uppercase tracking-widest px-1">
+                <div className="flex justify-between text-[11px] text-emerald-400/85 font-bold uppercase tracking-widest px-1">
                   <span>Synchronisation des protocoles...</span>
                   <span>CLIQUER POUR PASSER</span>
                 </div>
@@ -237,7 +282,7 @@ export default function TransitionScreen({ level, fact, onTransitionComplete, sc
                   ))}
                 </div>
               </div>
-            </div>
+            </button>
           ) : (
             <motion.div 
               variants={itemVariants}

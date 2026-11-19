@@ -1,10 +1,15 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Cpu, CheckCircle2, RotateCcw, CloudRain, Sun, Play, Loader2, XCircle } from 'lucide-react';
+import { Code2, BrainCircuit, BookOpen, CheckCircle2, RotateCcw, CloudRain, Sun, Play, Loader2, XCircle, Droplets } from 'lucide-react';
 import NaiaDialogue from '../components/NaiaDialogue';
 import HydraLog from '../components/HydraLog';
 import TechTerm from '../components/TechTerm';
+import LevelHeader from '../components/LevelHeader';
+import LevelShell from '../components/LevelShell';
+import ActionButton from '../components/ActionButton';
+import LevelSuccessCard from '../components/LevelSuccessCard';
 import { soundManager } from '../utils/soundManager';
+import { useErrorFeedback } from '../utils/useErrorFeedback';
 
 // --- Constantes et utilitaires extraits hors du composant pour éviter de recréer les références à chaque rendu ---
 const THE_BLANKS = [
@@ -50,13 +55,15 @@ interface TestBenchState {
   message: string | null;
 }
 
-export default function Level11({ isDevMode, onComplete, onScoreUpdate, onMistake }: { isDevMode?: boolean; onComplete: () => void; onScoreUpdate: (points: number, water: number) => void; onMistake?: () => void; key?: string }) {
+export default function Level11({ onComplete, onScoreUpdate, onMistake }: { onComplete: () => void; onScoreUpdate: (points: number, water: number) => void; onMistake?: () => void; key?: string }) {
   const [activeWord, setActiveWord] = useState<{ id: number, word: string } | null>(null);
   const [activeBlank, setActiveBlank] = useState<number | null>(null);
   const [draggedWord, setDraggedWord] = useState<{ id: number, word: string, fromBlankId?: number } | null>(null);
   const [dragOverBlank, setDragOverBlank] = useState<number | null>(null);
-  const [showError, setShowError] = useState(false);
+  const { errorMsg, isErrorFlash: showError, triggerError, clearError } = useErrorFeedback(2200);
   const [success, setSuccess] = useState(false);
+  const [showFrenchHelp, setShowFrenchHelp] = useState(false);
+  const [helpAutoOpened, setHelpAutoOpened] = useState(false);
   const [moisture, setMoisture] = useState(20);
   const [isTesting, setIsTesting] = useState(false);
   const [testBench, setTestBench] = useState<TestBenchState>({
@@ -89,7 +96,7 @@ export default function Level11({ isDevMode, onComplete, onScoreUpdate, onMistak
     }
     setBlanks(prev => prev.map(b => b.id === blankId ? { ...b, val: wordObj.word } : b));
     setWords(prev => prev.map(w => w.id === wordObj.id ? { ...w, used: true } : w));
-    setShowError(false);
+    clearError();
     setTestBench({ case1: 'idle', case2: 'idle', message: null });
   };
 
@@ -106,7 +113,7 @@ export default function Level11({ isDevMode, onComplete, onScoreUpdate, onMistak
       setWords(prev => prev.map(w => w.word === blank.val ? { ...w, used: false } : w));
       setBlanks(prev => prev.map(b => b.id === id ? { ...b, val: '' } : b));
       setActiveBlank(null);
-      setShowError(false);
+      clearError();
       setTestBench({ case1: 'idle', case2: 'idle', message: null });
     } else {
       setActiveBlank(activeBlank === id ? null : id);
@@ -192,7 +199,7 @@ export default function Level11({ isDevMode, onComplete, onScoreUpdate, onMistak
           return b;
         })
       );
-      setShowError(false);
+      clearError();
       setTestBench({ case1: 'idle', case2: 'idle', message: null });
       return;
     }
@@ -213,7 +220,7 @@ export default function Level11({ isDevMode, onComplete, onScoreUpdate, onMistak
     setActiveBlank(null);
     setDraggedWord(null);
     setDragOverBlank(null);
-    setShowError(false);
+    clearError();
     setTestBench({ case1: 'idle', case2: 'idle', message: null });
     setMoisture(20);
   };
@@ -224,11 +231,13 @@ export default function Level11({ isDevMode, onComplete, onScoreUpdate, onMistak
     if (isTesting || success) return;
     clearTestTimers();
 
-    const isCase1Correct = blanks.slice(0, 5).every(b => b.val === b.ans);
-    const isCase2Correct = blanks.slice(5, 8).every(b => b.val === b.ans);
+    const case1Matches = blanks.slice(0, 5).filter(b => b.val === b.ans).length;
+    const case2Matches = blanks.slice(5, 8).filter(b => b.val === b.ans).length;
+    const isCase1Correct = case1Matches === 5;
+    const isCase2Correct = case2Matches === 3;
 
     setIsTesting(true);
-    setShowError(false);
+    clearError();
     setActiveWord(null);
     setActiveBlank(null);
     setMoisture(45);
@@ -240,16 +249,20 @@ export default function Level11({ isDevMode, onComplete, onScoreUpdate, onMistak
 
     const t1 = setTimeout(() => {
       if (!isCase1Correct) {
+        const msg = `Échec Cas 1 (${case1Matches}/5 trous justes dans la lecture et le bloc if) : avec de la pluie annoncée, la pompe doit rester coupée (vérifiez la condition if et arrosage = False).`;
         setIsTesting(false);
-        setShowError(true);
+        setShowFrenchHelp(prev => {
+          if (!prev) setHelpAutoOpened(true);
+          return true;
+        });
+        triggerError(msg);
         setTestBench({
           case1: 'fail',
           case2: 'skipped',
-          message: 'Échec Cas 1 : avec de la pluie annoncée, la pompe doit rester coupée (vérifiez la condition if et arrosage = False).',
+          message: msg,
         });
         onMistake?.();
         const tErr = setTimeout(() => {
-          setShowError(false);
           setMoisture(20);
         }, 2200);
         testTimersRef.current.push(tErr);
@@ -267,16 +280,20 @@ export default function Level11({ isDevMode, onComplete, onScoreUpdate, onMistak
       const t2 = setTimeout(() => {
         setIsTesting(false);
         if (!isCase2Correct) {
+          const msg = `Échec Cas 2 (${case2Matches}/3 trous justes dans le bloc else) : sur sol sec sans pluie, il faut calculer le besoin en eau, activer arrosage = True et arroser à l'aube.`;
           setMoisture(10);
-          setShowError(true);
+          setShowFrenchHelp(prev => {
+            if (!prev) setHelpAutoOpened(true);
+            return true;
+          });
+          triggerError(msg);
           setTestBench({
             case1: 'pass',
             case2: 'fail',
-            message: 'Échec Cas 2 : sur sol sec sans pluie, il faut calculer le besoin en eau, activer arrosage = True et arroser à l\'aube.',
+            message: msg,
           });
           onMistake?.();
           const tErr2 = setTimeout(() => {
-            setShowError(false);
             setMoisture(20);
           }, 2200);
           testTimersRef.current.push(tErr2);
@@ -363,89 +380,106 @@ export default function Level11({ isDevMode, onComplete, onScoreUpdate, onMistak
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, x: 50 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -50 }}
-      className="sm:bg-slate-900/90 border-transparent sm:border-white/10 sm:border px-0 sm:px-6 py-4 sm:py-6 sm:rounded-2xl max-w-4xl mx-auto relative flex flex-col backdrop-blur-xl sm:shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_24px_48px_rgba(0,0,0,0.55)]"
-    >
+    <LevelShell>
       
-      <div className="flex items-center gap-3 mb-3 border-b border-white/10 pb-3">
-        <Cpu className="w-7 h-7 text-emerald-400 shrink-0" />
-        <h2 className="font-mono text-xl md:text-2xl font-bold text-white uppercase tracking-widest">
-          Niveau 11 : L'Algorithme d'Arrosage
-        </h2>
-      </div>
+      <LevelHeader level={11} icon={Code2} />
 
       <div className="mb-3 space-y-2">
-        <HydraLog status="hostile" label="HYDRA // PARE-FEU" message="Déploiement automatique rejeté. Pare-feu actif : interfaces graphiques verrouillées." />
+        <HydraLog status="warning" label="HYDRA // CONTRÔLE CHARTE" message="Module externe AQUA-FARM détecté. Conformément à la Charte (Art. 1), validation manuelle du code requise avant déploiement." />
         <NaiaDialogue
           message={
             success ? (
               <>
-                Bravo Agent ! Le script <code className="font-mono text-emerald-300 bg-slate-900 px-1.5 py-0.5 rounded">aqua_farm.py</code> a passé les tests météo et est déployé malgré le pare-feu d'HYDRA.
+                Bravo Agent ! Le script <code className="font-mono text-emerald-300 bg-slate-900 px-1.5 py-0.5 rounded">aqua_farm.py</code> est audité, validé par les tests météo et actif en mode Symbiose.
               </>
             ) : (
               <>
-                Le pare-feu d'HYDRA bloque nos raccourcis visuels ! L'agriculture consomme <strong className="text-white">70 % de l'eau douce mondiale</strong> : vous devez compléter directement le script Python <code className="font-mono text-cyan-300 bg-slate-900 px-1.5 py-0.5 rounded">aqua_farm.py</code> pour forcer l'intégration du module d'irrigation intelligente.
+                HYDRA est désormais sobre et encadrée par notre Charte : passons à l'offensive pour économiser l'eau ailleurs ! L'agriculture consomme <strong className="text-white">70 % de l'eau douce mondiale</strong>, mais la Charte impose de vérifier le code source de <code className="font-mono text-cyan-300 bg-slate-900 px-1.5 py-0.5 rounded">aqua_farm.py</code> avant son déploiement.
               </>
             )
           }
           objective={success ? undefined : "Complétez les 8 trous du code Python par glisser-déposer ou clic puis lancez la simulation."}
-          emotion={success ? 'happy' : 'alert'}
+          reaction={errorMsg ? { message: errorMsg, emotion: 'alert' } : null}
+          onDismissReaction={clearError}
+          emotion={success ? 'happy' : 'neutral'}
         />
       </div>
 
       <div className="space-y-4 text-slate-300">
 
-        <div className="bg-slate-950/50 border border-cyan-500/20 p-5 rounded-xl mb-6 shadow-[0_0_15px_rgba(6,182,212,0.1)] flex flex-col md:flex-row gap-6">
-          <div className="flex-1">
-            <h3 className="text-cyan-400 font-bold uppercase mb-3 flex items-center gap-2">
-              <span className="bg-cyan-900/50 p-1 rounded">🧠</span> Comment fonctionne l'algorithme ?
-            </h3>
-            <ul className="space-y-3 text-sm">
-              <li className="flex gap-3">
-                <span className="w-6 h-6 rounded-full bg-cyan-900/50 flex items-center justify-center text-cyan-400 shrink-0">1</span>
-                <span>L'<TechTerm term="IA" /> récupère deux informations sur la parcelle : l'humidité actuelle du sol et le bulletin météorologique à venir.</span>
-              </li>
-              <li className="flex gap-3">
-                <span className="w-6 h-6 rounded-full bg-cyan-900/50 flex items-center justify-center text-cyan-400 shrink-0">2</span>
-                <span>Elle vérifie deux conditions : si la terre dépasse déjà la limite tolérée par la plante, ou si la pluie est annoncée, l'irrigation reste coupée.</span>
-              </li>
-              <li className="flex gap-3">
-                <span className="w-6 h-6 rounded-full bg-cyan-900/50 flex items-center justify-center text-cyan-400 shrink-0">3</span>
-                <span>Uniquement si nécessaire, le système évalue la quantité à apporter et déclenche l'arrosage tôt le matin pour éviter l'évaporation et les maladies.</span>
-              </li>
-            </ul>
-          </div>
-          
-          <div className="w-full md:w-48 flex flex-col items-center justify-center bg-slate-900/50 rounded-lg p-4 border border-slate-800">
-            <span className="text-xs text-slate-400 uppercase mb-2">Humidité du sol</span>
-            <div className="w-full h-4 bg-slate-800 rounded-full overflow-hidden mb-2">
-              <motion.div 
-                className={`h-full ${moisture < 30 ? 'bg-red-500' : 'bg-emerald-500'}`}
-                animate={{ width: `${moisture}%` }}
-              />
-            </div>
-            <span className="font-bold text-xl text-white">{moisture}%</span>
-          </div>
+        <div className="bg-slate-950/50 border border-cyan-500/20 p-5 rounded-xl shadow-[0_0_15px_rgba(6,182,212,0.1)]">
+          <h3 className="text-cyan-400 font-bold uppercase mb-3 flex items-center gap-2">
+            <span className="bg-cyan-900/50 p-1.5 rounded inline-flex items-center justify-center">
+              <BrainCircuit className="w-4 h-4 text-cyan-400" />
+            </span>
+            <span>Comment fonctionne l'<TechTerm term="Algorithme">algorithme</TechTerm> ?</span>
+          </h3>
+          <ul className="space-y-2.5 text-sm">
+            <li className="flex gap-3">
+              <span className="w-6 h-6 rounded-full bg-cyan-900/50 flex items-center justify-center text-cyan-400 shrink-0">1</span>
+              <span>L'<TechTerm term="IA" /> récupère deux informations sur la parcelle : l'humidité actuelle du sol et le bulletin météorologique à venir.</span>
+            </li>
+            <li className="flex gap-3">
+              <span className="w-6 h-6 rounded-full bg-cyan-900/50 flex items-center justify-center text-cyan-400 shrink-0">2</span>
+              <span>Elle vérifie deux conditions : si la terre dépasse déjà la limite tolérée par la plante, ou si la pluie est annoncée, l'irrigation reste coupée.</span>
+            </li>
+            <li className="flex gap-3">
+              <span className="w-6 h-6 rounded-full bg-cyan-900/50 flex items-center justify-center text-cyan-400 shrink-0">3</span>
+              <span>Uniquement si nécessaire, le système évalue la quantité à apporter et déclenche l'arrosage tôt le matin pour éviter l'évaporation et les maladies.</span>
+            </li>
+          </ul>
         </div>
 
         {/* Code Editor */}
         <div className="bg-[#080c14] border border-slate-800 rounded-xl font-mono text-sm md:text-base">
-          <div className="flex items-center gap-2 px-4 py-2 bg-[#0a1020] border-b border-slate-800">
-            <div className="w-3 h-3 rounded-full bg-red-500"></div>
-            <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-            <div className="w-3 h-3 rounded-full bg-green-500"></div>
-            <span className="ml-2 text-slate-500 text-xs">aqua_farm.py</span>
+          <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 bg-[#0a1020] border-b border-slate-800">
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full bg-red-500"></div>
+              <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+              <div className="w-3 h-3 rounded-full bg-green-500"></div>
+              <span className="ml-2 text-slate-400 text-xs">aqua_farm.py</span>
+            </div>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+              <div className="text-[11px] font-sans text-slate-400 flex flex-wrap items-center gap-x-3 gap-y-0.5">
+                <span><strong className="font-mono text-pink-400">if</strong> = Si</span>
+                <span><strong className="font-mono text-pink-400">else</strong> = Sinon</span>
+                <span><strong className="font-mono text-orange-300">plante.x</strong> = propriété de la plante</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  soundManager.playClick();
+                  setHelpAutoOpened(false);
+                  setShowFrenchHelp((v) => !v);
+                }}
+                aria-pressed={showFrenchHelp}
+                className={`inline-flex items-center gap-1.5 text-xs font-sans font-bold px-3 py-1.5 rounded-lg border transition-all ${
+                  showFrenchHelp
+                    ? 'bg-cyan-950/80 border-cyan-400 text-cyan-200 shadow-[0_0_12px_rgba(34,211,238,0.2)]'
+                    : 'bg-amber-950/40 border-amber-400/60 text-amber-200 hover:bg-amber-950/70 hover:border-amber-300'
+                }`}
+              >
+                <BookOpen className="w-3.5 h-3.5 shrink-0" />
+                <span>{showFrenchHelp ? 'Aide Scratch → Python active' : 'Activer aide Scratch → Python'}</span>
+              </button>
+            </div>
           </div>
+          {helpAutoOpened && showFrenchHelp && (
+            <div className="px-4 py-1.5 bg-cyan-950/40 border-b border-cyan-500/25 text-[11px] font-sans text-cyan-200 flex items-center gap-2">
+              <BookOpen className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+              <span>Aide Français (Scratch → Python) activée automatiquement dans le code ci-dessous pour vous guider.</span>
+            </div>
+          )}
           
           <div className="p-3 sm:p-6 overflow-x-auto pt-6 sm:pt-10">
             <div className="text-xs sm:text-sm md:text-base">
-              <div className="text-slate-500 italic mb-2"># 🌱 Programme AQUA-FARM</div>
-              <div className="mb-2"><span className="text-pink-500 font-bold">def</span> <span className="text-emerald-400">decider_arrosage</span>(<span className="text-orange-300">plante</span>):</div>
+              <div className="text-slate-400 italic mb-2"># Programme AQUA-FARM</div>
+              <div className="mb-2">
+                <span className="text-pink-500 font-bold">def</span> <span className="text-emerald-400">decider_arrosage</span>(<span className="text-orange-300">plante</span>):
+                {showFrenchHelp && <span className="ml-2 text-[11px] font-sans text-cyan-300/80 italic">← définir le bloc « décider_arrosage »</span>}
+              </div>
               
-              <div className="pl-6 mb-2 text-slate-500 italic"># Étape 1 : Lire les données</div>
+              <div className="pl-6 mb-2 text-slate-400 italic"># Étape 1 : Lire les données</div>
               <div className="pl-6 mb-1 flex items-center flex-wrap gap-y-2">
                 <span className="text-blue-300 mr-2">humidite</span> = lire_
                 {renderBlankSlot(1)}
@@ -457,10 +491,11 @@ export default function Level11({ isDevMode, onComplete, onScoreUpdate, onMistak
                 (<span className="text-yellow-300">"pluie_demain"</span>)
               </div>
 
-              <div className="pl-6 mb-2 text-slate-500 italic"># Étape 2 : Décider</div>
+              <div className="pl-6 mb-2 text-slate-400 italic"># Étape 2 : Décider</div>
               <div className="pl-6 mb-1 flex items-center flex-wrap gap-y-2">
                 <span className="text-pink-500 font-bold mr-2">if</span> <span className="text-blue-300 mr-2">humidite</span> {'>'} <span className="text-orange-300">plante</span>.
-                {renderBlankSlot(3)} {renderBlankSlot(4)} <span className="text-blue-300 mx-2">meteo</span> == <span className="text-yellow-300">"pluie"</span>: <span className="text-slate-500 italic ml-2"># Pas besoin d'eau</span>
+                {renderBlankSlot(3)} {renderBlankSlot(4)} <span className="text-blue-300 mx-2">meteo</span> == <span className="text-yellow-300">"pluie"</span>: <span className="text-slate-400 italic ml-2"># Pas besoin d'eau</span>
+                {showFrenchHelp && <span className="ml-2 text-[11px] font-sans text-cyan-300/80 italic">(Si humidité &gt; limite … météo est « pluie »)</span>}
               </div>
               <div className="pl-12 mb-1 flex items-center flex-wrap gap-y-2">
                 <span className="mr-2">arrosage =</span> {renderBlankSlot(5)}
@@ -470,10 +505,12 @@ export default function Level11({ isDevMode, onComplete, onScoreUpdate, onMistak
               </div>
               <div className="pl-12 mb-2 flex items-center flex-wrap gap-y-2">
                 <span className="mr-2">heure =</span> <span className="text-yellow-300">None</span>
+                {showFrenchHelp && <span className="ml-2 text-[11px] font-sans text-cyan-300/80 italic">← aucune heure (arrosage coupé)</span>}
               </div>
 
               <div className="pl-6 mb-1">
-                <span className="text-pink-500 font-bold">else</span>: <span className="text-slate-500 italic"># Sol sec + pas de pluie</span>
+                <span className="text-pink-500 font-bold">else</span>: <span className="text-slate-400 italic"># Sol sec + pas de pluie</span>
+                {showFrenchHelp && <span className="ml-2 text-[11px] font-sans text-cyan-300/80 italic">(Sinon)</span>}
               </div>
               <div className="pl-12 mb-1 flex items-center flex-wrap gap-y-2">
                 <span className="mr-2">besoin = calcul_</span>{renderBlankSlot(6)}(<span className="text-orange-300">plante</span>)
@@ -482,11 +519,12 @@ export default function Level11({ isDevMode, onComplete, onScoreUpdate, onMistak
                 <span className="mr-2">arrosage =</span> {renderBlankSlot(7)}
               </div>
               <div className="pl-12 mb-4 flex items-center flex-wrap gap-y-2">
-                <span className="mr-2">heure =</span> <span className="text-yellow-300">"</span>{renderBlankSlot(8)}<span className="text-yellow-300">"</span> <span className="text-slate-500 italic ml-2"># Évite les maladies !</span>
+                <span className="mr-2">heure =</span> <span className="text-yellow-300">"</span>{renderBlankSlot(8)}<span className="text-yellow-300">"</span> <span className="text-slate-400 italic ml-2"># Évite les maladies !</span>
               </div>
               
               <div className="pl-6 mb-2 flex items-center flex-wrap gap-y-2">
                 <span className="text-pink-500 font-bold mr-2">return</span> {'{'} <span className="text-yellow-300">"arrosage"</span>: arrosage, <span className="text-yellow-300">"besoin"</span>: besoin, <span className="text-yellow-300">"heure"</span>: heure {'}'}
+                {showFrenchHelp && <span className="ml-2 text-[11px] font-sans text-cyan-300/80 italic">← renvoyer la décision finale</span>}
               </div>
             </div>
           </div>
@@ -551,144 +589,129 @@ export default function Level11({ isDevMode, onComplete, onScoreUpdate, onMistak
                 <strong className="text-emerald-400 font-mono">{activeWord.word}</strong> : {wordDescriptions[activeWord.word]}
               </span>
             ) : (
-              <span className="text-slate-500">Glissez ou touchez une étiquette pour voir son rôle et la placer dans le code.</span>
+              <span className="text-slate-400">Glissez ou touchez une étiquette pour voir son rôle et la placer dans le code.</span>
             )}
           </div>
         </div>
 
-        {/* Animated Weather Test Bench */}
-        <AnimatePresence>
-          {testBench.case1 !== 'idle' && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-3"
-            >
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-2">
-                  <Play className="w-3.5 h-3.5" /> Banc de test météo (Exécution pas à pas)
-                </span>
-                {isTesting && (
-                  <span className="text-[11px] text-amber-400 flex items-center gap-1.5 font-sans">
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" /> Exécution...
-                  </span>
-                )}
+        {/* Animated Weather Test Bench + Live Soil Moisture Gauge */}
+        <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <span className="text-xs font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-2">
+              <Play className="w-3.5 h-3.5" /> Banc de test météo (Exécution pas à pas)
+            </span>
+            <div className="flex items-center gap-2.5 bg-slate-900/80 border border-slate-800 rounded-lg px-3 py-1.5">
+              <Droplets className={`w-3.5 h-3.5 shrink-0 ${moisture < 30 ? 'text-red-400' : 'text-emerald-400'}`} />
+              <span className="text-[11px] uppercase tracking-wider text-slate-400 font-sans">Humidité sol</span>
+              <div className="w-24 sm:w-28 h-2.5 bg-slate-800 rounded-full overflow-hidden">
+                <motion.div
+                  className={`h-full ${moisture < 30 ? 'bg-red-500' : 'bg-emerald-500'}`}
+                  animate={{ width: `${moisture}%` }}
+                  transition={{ duration: 0.4 }}
+                />
               </div>
+              <span className={`font-mono font-bold tabular-nums text-xs min-w-[34px] text-right ${moisture < 30 ? 'text-red-300' : 'text-emerald-300'}`}>
+                {moisture} %
+              </span>
+            </div>
+          </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {[
-                  {
-                    title: 'Cas 1 : Pluie annoncée (45 %)',
-                    expect: 'Attendu : arrosage = False (0 L)',
-                    status: testBench.case1,
-                    icon: CloudRain,
-                  },
-                  {
-                    title: 'Cas 2 : Sol sec (18 %) + Soleil',
-                    expect: 'Attendu : arrosage = True à l\'aube',
-                    status: testBench.case2,
-                    icon: Sun,
-                  },
-                ].map((item, idx) => {
-                  const Icon = item.icon;
-                  const statusStyle =
-                    item.status === 'pass'
-                      ? 'bg-emerald-950/30 border-emerald-500/50 text-emerald-300'
-                      : item.status === 'fail'
-                      ? 'bg-red-950/40 border-red-500/60 text-red-300'
-                      : item.status === 'running'
-                      ? 'bg-amber-950/30 border-amber-400/60 text-amber-200'
-                      : 'bg-slate-900/50 border-slate-800 text-slate-500';
-                  return (
-                    <div key={idx} className={`p-3 rounded-lg border flex items-center justify-between gap-3 transition-colors ${statusStyle}`}>
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <Icon className="w-5 h-5 shrink-0" />
-                        <div className="min-w-0">
-                          <div className="text-xs font-bold truncate">{item.title}</div>
-                          <div className="text-[11px] opacity-80 font-sans truncate">{item.expect}</div>
-                        </div>
-                      </div>
-                      <div className="shrink-0">
-                        {item.status === 'running' && <Loader2 className="w-4 h-4 animate-spin text-amber-400" />}
-                        {item.status === 'pass' && <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
-                        {item.status === 'fail' && <XCircle className="w-4 h-4 text-red-400" />}
-                      </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {[
+              {
+                title: 'Cas 1 : Pluie annoncée (45 %)',
+                expect: 'Attendu : arrosage = False (0 L)',
+                status: testBench.case1,
+                icon: CloudRain,
+              },
+              {
+                title: 'Cas 2 : Sol sec (18 %) + Soleil',
+                expect: 'Attendu : arrosage = True à l\'aube',
+                status: testBench.case2,
+                icon: Sun,
+              },
+            ].map((item, idx) => {
+              const Icon = item.icon;
+              const statusStyle =
+                item.status === 'pass'
+                  ? 'bg-emerald-950/30 border-emerald-500/50 text-emerald-300'
+                  : item.status === 'fail'
+                  ? 'bg-red-950/40 border-red-500/60 text-red-300'
+                  : item.status === 'running'
+                  ? 'bg-amber-950/30 border-amber-400/60 text-amber-200'
+                  : 'bg-slate-900/50 border-slate-800 text-slate-400';
+              return (
+                <div key={idx} className={`p-3 rounded-lg border flex items-center justify-between gap-3 transition-colors ${statusStyle}`}>
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <Icon className="w-5 h-5 shrink-0" />
+                    <div className="min-w-0">
+                      <div className="text-xs font-bold truncate">{item.title}</div>
+                      <div className="text-[11px] opacity-80 font-sans truncate">{item.expect}</div>
                     </div>
-                  );
-                })}
-              </div>
-
-              {testBench.message && (
-                <div className={`text-xs font-sans font-semibold px-3 py-2 rounded-lg border ${
-                  testBench.case1 === 'fail' || testBench.case2 === 'fail'
-                    ? 'bg-red-950/40 border-red-500/40 text-red-300'
-                    : testBench.case1 === 'pass' && testBench.case2 === 'pass'
-                    ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-300'
-                    : 'bg-slate-900 border-slate-800 text-slate-300'
-                }`}>
-                  {testBench.message}
+                  </div>
+                  <div className="shrink-0">
+                    {item.status === 'running' && <Loader2 className="w-4 h-4 animate-spin text-amber-400" />}
+                    {item.status === 'pass' && <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
+                    {item.status === 'fail' && <XCircle className="w-4 h-4 text-red-400" />}
+                  </div>
                 </div>
-              )}
-            </motion.div>
+              );
+            })}
+          </div>
+
+          {testBench.message && (
+            <div className={`text-xs font-sans font-semibold px-3 py-2 rounded-lg border ${
+              testBench.case1 === 'fail' || testBench.case2 === 'fail'
+                ? 'bg-red-950/40 border-red-500/40 text-red-300'
+                : testBench.case1 === 'pass' && testBench.case2 === 'pass'
+                ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-300'
+                : 'bg-slate-900 border-slate-800 text-slate-300'
+            }`}>
+              {testBench.message}
+            </div>
           )}
-        </AnimatePresence>
+        </div>
 
         {!success && (
-          <div className="flex justify-center gap-4 mt-6">
-            <button
+          <div className="flex justify-center gap-3 mt-6">
+            <ActionButton
+              variant="secondary"
+              size="md"
               onClick={resetCode}
               disabled={isTesting}
-              className={`px-4 py-3 rounded-lg font-bold transition-all flex items-center gap-2 ${
-                isTesting
-                  ? 'bg-slate-900 text-slate-600 cursor-not-allowed'
-                  : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
-              }`}
             >
               <RotateCcw className="w-4 h-4" /> RESET
-            </button>
-            <button
+            </ActionButton>
+            <ActionButton
               onClick={checkAnswers}
               disabled={!allFilled || success || isTesting}
-              className={`px-8 py-3 rounded-lg font-bold transition-all flex items-center gap-2 ${
-                !allFilled || isTesting
-                  ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                  : showError
-                  ? 'bg-red-600 text-white animate-shake'
-                  : 'bg-emerald-600 hover:bg-emerald-500 text-white hover:shadow-[0_0_18px_rgba(16,185,129,0.35)]'
-              }`}
+              isError={showError}
+              size="md"
             >
               {isTesting ? 'EXÉCUTION DES TESTS...' : showError ? 'ERREUR LOGIQUE' : 'TESTER LE CODE'}
-            </button>
+            </ActionButton>
           </div>
         )}
 
         <AnimatePresence>
           {success && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex flex-col items-center mt-5 p-6 bg-emerald-950/30 border border-emerald-500/50 rounded-lg"
-            >
-              <div className="flex items-center gap-2 text-emerald-400 font-bold text-xl mb-3">
-                <CheckCircle2 className="w-7 h-7" />
-                ALGORITHME DÉPLOYÉ
-              </div>
-              <p className="text-emerald-200 mb-4 text-center text-sm">L'irrigation intelligente est active. Économie estimée : 30 à 50% d'eau !</p>
-              <div className="bg-emerald-900/30 border border-emerald-500/20 p-3 rounded text-xs sm:text-sm text-left text-emerald-100 mb-6 max-w-xl">
-                <strong>📚 À retenir :</strong> L'opérateur <strong>OR</strong> permet de combiner plusieurs conditions. Arroser à l'<strong>aube</strong> empêche la stagnation d'eau sur les feuilles !
-              </div>
-              <button
-                onClick={onComplete}
-                className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-3 rounded-lg font-bold transition-all hover:shadow-[0_0_18px_rgba(16,185,129,0.35)]"
-              >
-                PASSER AU NIVEAU SUIVANT
-              </button>
-            </motion.div>
+            <LevelSuccessCard
+              title="ALGORITHME DÉPLOYÉ"
+              description="L'irrigation intelligente est active. Économie estimée : 30 à 50 % d'eau !"
+              extra={
+                <div className="bg-emerald-900/30 border border-emerald-500/20 p-3 rounded-lg text-xs sm:text-sm text-left text-emerald-100 mb-5 max-w-xl flex items-start gap-2">
+                  <BookOpen className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                  <span>
+                    <strong>À retenir :</strong> L'opérateur <strong>OR</strong> permet de combiner plusieurs conditions. Arroser à l'<strong>aube</strong> empêche la stagnation d'eau sur les feuilles !
+                  </span>
+                </div>
+              }
+              onContinue={onComplete}
+            />
           )}
         </AnimatePresence>
       </div>
-    </motion.div>
+    </LevelShell>
   );
 
 }

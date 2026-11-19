@@ -1,54 +1,67 @@
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, useMemo } from 'react';
 import { motion } from 'motion/react';
-import { Trophy, Droplets, RotateCcw, Star, Award, Clock, Download, ShieldCheck, Zap, Bot } from 'lucide-react';
+import { Trophy, Droplets, RotateCcw, Star, Award, Clock, Download, ShieldCheck, Shield, FlaskConical, BadgeCheck, Sparkles, Printer } from 'lucide-react';
 import TechTerm from '../components/TechTerm';
-import NaiaDialogue from '../components/NaiaDialogue';
+import NaiaDialogue, { NaiaAvatar } from '../components/NaiaDialogue';
 import BonusMissions, { BonusMissionId } from '../components/BonusMissions';
 import { MISSION_DURATION_SECONDS, type Evaluation } from '../constants';
+import { FALLBACK_PROTOTYPE_DATA_URI } from '../../shared/fallbackPrototype';
 
-export default function Outro({ timeLeft, extraTimeBought = 0, score, waterSaved, onRestart, nickname, evaluation, imageUrl, leaderboard }: { 
+export default function Outro({ timeLeft, extraTimeBought = 0, score, waterSaved, mistakeCount = 0, onRestart, nickname, evaluation, imageUrl, labWaterMl = null, leaderboard, completedBonus = [], onCompleteBonus }: { 
   timeLeft: number; 
   extraTimeBought?: number;
   score: number; 
   waterSaved: number;
+  mistakeCount?: number;
   onRestart: (name: string) => void; 
   nickname: string;
   evaluation?: Evaluation | null;
   imageUrl?: string | null;
+  labWaterMl?: number | null;
   leaderboard?: {name: string, score: number}[];
+  completedBonus?: BonusMissionId[];
+  onCompleteBonus?: (id: BonusMissionId) => void;
   key?: string 
 }) {
   const certificateRef = useRef<HTMLDivElement>(null);
-  const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadingMode, setDownloadingMode] = useState<'dark' | 'light' | null>(null);
+  const [certPrintMode, setCertPrintMode] = useState<'dark' | 'light'>('dark');
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const [safeImageUrl, setSafeImageUrl] = useState<string | null>(null);
-  const [completedBonus, setCompletedBonus] = useState<BonusMissionId[]>([]);
+  const isDownloading = downloadingMode !== null;
 
   const handleCompleteBonus = (id: BonusMissionId) => {
-    setCompletedBonus(prev => (prev.includes(id) ? prev : [...prev, id]));
+    onCompleteBonus?.(id);
   };
 
   useEffect(() => {
-    if (imageUrl) {
-      if (imageUrl.startsWith('data:')) {
-        setSafeImageUrl(imageUrl);
-        return;
-      }
-      // Précharger l'image en base64 pour éviter les blocages CORS lors de l'export html-to-image
-      fetch(imageUrl, { mode: 'cors' })
-        .then(res => res.blob())
-        .then(blob => {
-          const reader = new FileReader();
-          reader.onloadend = () => setSafeImageUrl(reader.result as string);
-          reader.readAsDataURL(blob);
-        })
-        .catch(err => {
-          console.error("Impossible de précharger l'image en Base64:", err);
-          setSafeImageUrl(imageUrl); // Fallback si le serveur distant autorise le CORS
-        });
+    if (!imageUrl) {
+      setSafeImageUrl(null);
+      return;
     }
+    if (imageUrl.startsWith('data:')) {
+      setSafeImageUrl(imageUrl);
+      return;
+    }
+    // Précharger l'image en base64 pour éviter les blocages CORS lors de l'export html-to-image
+    fetch(imageUrl, { mode: 'cors' })
+      .then(res => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.blob();
+      })
+      .then(blob => {
+        const reader = new FileReader();
+        reader.onloadend = () => setSafeImageUrl(reader.result as string);
+        reader.readAsDataURL(blob);
+      })
+      .catch(err => {
+        console.warn("Image externe inaccessible, repli sur le prototype SVG local:", err);
+        setSafeImageUrl(FALLBACK_PROTOTYPE_DATA_URI);
+      });
   }, [imageUrl]);
 
+  const resolvedImageSrc = safeImageUrl || imageUrl || '';
+  const isSvgPrototype = resolvedImageSrc.startsWith('data:image/svg+xml');
   const currentYear = new Date().getFullYear();
 
   const formatTime = (seconds: number) => {
@@ -59,19 +72,32 @@ export default function Outro({ timeLeft, extraTimeBought = 0, score, waterSaved
 
   const timeTaken = Math.max(0, MISSION_DURATION_SECONDS + extraTimeBought - timeLeft);
 
+  const authToken = useMemo(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    const payload = `${(nickname || 'ANONYME').trim().toUpperCase()}|${score}|${waterSaved}|${timeTaken}|${today}`;
+    let hash = 0x811c9dc5;
+    for (let i = 0; i < payload.length; i++) {
+      hash ^= payload.charCodeAt(i);
+      hash = Math.imul(hash, 0x01000193);
+    }
+    const hex = (hash >>> 0).toString(16).toUpperCase().padStart(8, '0');
+    return `NAIA_AUTH_${hex}`;
+  }, [nickname, score, waterSaved, timeTaken]);
+
   const getGrade = () => {
-    if (score >= 2850) return { title: 'COMMANDANT SUPRÊME', icon: <Star className="w-8 h-8 text-yellow-400" />, color: 'text-yellow-400', hex: '#facc15', bg: 'bg-yellow-400/10', border: 'border-yellow-500/50' };
-    if (score >= 2600) return { title: 'EXPERT HYDROSAVE', icon: <Droplets className="w-8 h-8 text-cyan-400" />, color: 'text-cyan-400', hex: '#22d3ee', bg: 'bg-cyan-400/10', border: 'border-cyan-500/50' };
-    if (score >= 2350) return { title: 'AGENT SENIOR', icon: <Award className="w-8 h-8 text-emerald-400" />, color: 'text-emerald-400', hex: '#34d399', bg: 'bg-emerald-400/10', border: 'border-emerald-500/50' };
-    if (score >= 2000) return { title: 'AGENT CONFIRMÉ', icon: <ShieldCheck className="w-8 h-8 text-slate-300" />, color: 'text-slate-300', hex: '#cbd5e1', bg: 'bg-slate-300/10', border: 'border-slate-500/50' };
-    return { title: 'AGENT JUNIOR', icon: <Zap className="w-8 h-8 text-orange-400" />, color: 'text-orange-400', hex: '#fb923c', bg: 'bg-orange-400/10', border: 'border-orange-500/50' };
+    if (score >= 2830) return { title: 'COMMANDANT SUPRÊME', icon: <Star className="w-8 h-8 text-yellow-400" />, color: 'text-yellow-400', hex: '#facc15', bg: 'bg-yellow-400/10', border: 'border-yellow-500/50' };
+    if (score >= 2640) return { title: 'EXPERT HYDROSAVE', icon: <Droplets className="w-8 h-8 text-cyan-400" />, color: 'text-cyan-400', hex: '#22d3ee', bg: 'bg-cyan-400/10', border: 'border-cyan-500/50' };
+    if (score >= 2430) return { title: 'AGENT SENIOR', icon: <Award className="w-8 h-8 text-emerald-400" />, color: 'text-emerald-400', hex: '#34d399', bg: 'bg-emerald-400/10', border: 'border-emerald-500/50' };
+    if (score >= 2220) return { title: 'AGENT CONFIRMÉ', icon: <ShieldCheck className="w-8 h-8 text-slate-300" />, color: 'text-slate-300', hex: '#cbd5e1', bg: 'bg-slate-300/10', border: 'border-slate-500/50' };
+    return { title: 'AGENT JUNIOR', icon: <Shield className="w-8 h-8 text-orange-400" />, color: 'text-orange-400', hex: '#fb923c', bg: 'bg-orange-400/10', border: 'border-orange-500/50' };
   };
 
   const grade = getGrade();
 
-  const downloadFullCertificate = async () => {
+  const downloadFullCertificate = async (mode: 'dark' | 'light' = 'dark') => {
     if (!certificateRef.current || isDownloading) return;
-    setIsDownloading(true);
+    setDownloadingMode(mode);
+    setCertPrintMode(mode);
     setDownloadError(null);
 
     try {
@@ -80,22 +106,34 @@ export default function Outro({ timeLeft, extraTimeBought = 0, score, waterSaved
         new Promise(resolve => setTimeout(resolve, 300)),
       ]);
 
-      const dataUrl = await toPng(certificateRef.current, {
+      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+      const baseOptions = {
         pixelRatio: 2,
-        backgroundColor: '#020617',
+        backgroundColor: mode === 'light' ? '#ffffff' : '#020617',
         width: 794,
         height: 1123,
-      });
+        imagePlaceholder: FALLBACK_PROTOTYPE_DATA_URI,
+      };
+
+      let dataUrl: string;
+      try {
+        dataUrl = await toPng(certificateRef.current, baseOptions);
+      } catch {
+        // Repli si les polices externes (Google Fonts) sont bloquées par un pare-feu scolaire
+        dataUrl = await toPng(certificateRef.current, { ...baseOptions, skipFonts: true });
+      }
 
       const link = document.createElement('a');
-      link.download = `DOSSIER_AQUA_IA_${(nickname || 'AGENT').toUpperCase()}.png`;
+      const suffix = mode === 'light' ? '_ECO' : '';
+      link.download = `DOSSIER_AQUA_IA_${(nickname || 'AGENT').toUpperCase()}${suffix}.png`;
       link.href = dataUrl;
       link.click();
     } catch (err) {
       console.error("Erreur lors du téléchargement du certificat:", err);
       setDownloadError("Impossible de générer le PNG sur ce navigateur. Vous pouvez faire une capture d'écran de votre certificat ci-dessus.");
     } finally {
-      setIsDownloading(false);
+      setDownloadingMode(null);
     }
   };
 
@@ -156,7 +194,7 @@ export default function Outro({ timeLeft, extraTimeBought = 0, score, waterSaved
       <motion.div variants={itemVariants} className="max-w-2xl mx-auto mb-5 text-left">
         <NaiaDialogue
           hideHintButton
-          message={`Félicitations, agent ${nickname || 'Anonyme'} ! Les réserves d'eau potable de la ville remontent déjà. Désormais encadrée par la charte municipale et basculée en mode Symbiose, HYDRA protège nos réseaux hydriques au lieu de les épuiser.`}
+          message={`Félicitations, ${nickname.trim() ? (/^agent\b/i.test(nickname.trim()) ? nickname.trim() : `agent ${nickname.trim()}`) : 'agent Anonyme'} ! Les réserves d'eau potable de la ville remontent déjà. Désormais encadrée par la charte municipale et basculée en mode Symbiose, HYDRA protège nos réseaux hydriques au lieu de les épuiser.`}
           emotion="happy"
         />
       </motion.div>
@@ -164,8 +202,8 @@ export default function Outro({ timeLeft, extraTimeBought = 0, score, waterSaved
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-2xl mx-auto mb-6">
         {[
           { icon: Clock, label: 'Temps', value: formatTime(timeTaken), color: 'text-emerald-400', bg: 'bg-emerald-950/40', border: 'border-emerald-500/30' },
-          { icon: Star, label: 'Score', value: score, color: 'text-yellow-400', bg: 'bg-yellow-950/40', border: 'border-yellow-500/30' },
-          { icon: Droplets, label: 'Eau Sauvée', value: `${waterSaved}%`, color: 'text-cyan-400', bg: 'bg-cyan-950/40', border: 'border-cyan-500/30' },
+          { icon: Star, label: 'Score', value: score, sublabel: mistakeCount === 0 ? 'Sans erreur' : `${mistakeCount} erreur${mistakeCount > 1 ? 's' : ''}`, sublabelClass: 'text-yellow-300/75', color: 'text-yellow-400', bg: 'bg-yellow-950/40', border: 'border-yellow-500/30' },
+          { icon: Droplets, label: 'Eau Sauvée', value: `${waterSaved}%`, sublabel: evaluation?.waterSaved ? `${evaluation.waterSaved} L/an` : undefined, sublabelClass: 'text-cyan-300/75', color: 'text-cyan-400', bg: 'bg-cyan-950/40', border: 'border-cyan-500/30' },
           { icon: Award, label: 'Grade', value: grade.title, color: grade.color, bg: grade.bg, border: grade.border, fullWidth: true }
         ].map((stat, i) => (
           <motion.div 
@@ -175,7 +213,10 @@ export default function Outro({ timeLeft, extraTimeBought = 0, score, waterSaved
           >
             <stat.icon className={`w-4 h-4 sm:w-5 sm:h-5 ${stat.color} mb-1.5`} />
             <div className={`text-base sm:text-lg font-mono font-bold ${stat.color} truncate max-w-full`}>{stat.value}</div>
-            <div className="text-[10px] text-slate-500 uppercase font-bold tracking-widest mt-0.5">{stat.label}</div>
+            <div className="text-[11px] text-slate-400 uppercase font-bold tracking-widest mt-0.5">{stat.label}</div>
+            {stat.sublabel && (
+              <div className={`text-[11px] font-mono mt-0.5 ${stat.sublabelClass}`}>{stat.sublabel}</div>
+            )}
           </motion.div>
         ))}
       </div>
@@ -207,14 +248,16 @@ export default function Outro({ timeLeft, extraTimeBought = 0, score, waterSaved
             </div>
             {completedBonus.length > 0 && (
               <div className="flex flex-wrap justify-center gap-2 mt-3">
-                {completedBonus.includes('prompt') && (
-                  <span className="text-[10px] font-mono font-bold px-2.5 py-1 rounded-full bg-cyan-950/60 border border-cyan-500/40 text-cyan-300">
-                    ★ Maître du Prompt Sobre
+                {completedBonus.includes('gpu_cost') && (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-mono font-bold px-2.5 py-1 rounded-full bg-emerald-950/60 border border-emerald-500/40 text-emerald-300">
+                    <Star className="w-3 h-3 fill-current shrink-0" />
+                    Architecte Matériel & GPU
                   </span>
                 )}
-                {completedBonus.includes('gpu_bias') && (
-                  <span className="text-[10px] font-mono font-bold px-2.5 py-1 rounded-full bg-emerald-950/60 border border-emerald-500/40 text-emerald-300">
-                    ★ Auditeur Anti-Biais & GPU
+                {completedBonus.includes('rebound') && (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-mono font-bold px-2.5 py-1 rounded-full bg-cyan-950/60 border border-cyan-500/40 text-cyan-300">
+                    <Star className="w-3 h-3 fill-current shrink-0" />
+                    Veilleur Anti-Rebond
                   </span>
                 )}
               </div>
@@ -229,8 +272,8 @@ export default function Outro({ timeLeft, extraTimeBought = 0, score, waterSaved
           className="max-w-xl mx-auto mb-5 bg-slate-950/70 border border-cyan-500/30 rounded-2xl p-4 text-left"
         >
           <div className="flex items-center justify-between gap-2 mb-3">
-            <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-[0.2em] flex items-center gap-1.5">
-              <Zap className="w-3.5 h-3.5 text-yellow-400" /> Prototype Innovation Lab
+            <span className="text-[11px] font-bold text-cyan-400 uppercase tracking-[0.2em] flex items-center gap-1.5">
+              <FlaskConical className="w-3.5 h-3.5 text-yellow-400" /> Prototype Innovation Lab
             </span>
             <span className="text-xs font-black text-yellow-400 bg-yellow-500/10 border border-yellow-500/30 px-2.5 py-0.5 rounded-full">
               {evaluation.score}%
@@ -238,11 +281,15 @@ export default function Outro({ timeLeft, extraTimeBought = 0, score, waterSaved
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4 items-center">
-            {(safeImageUrl || imageUrl) && (
+            {resolvedImageSrc && (
               <img
-                src={safeImageUrl || imageUrl || ''}
+                src={resolvedImageSrc}
                 alt={evaluation.title}
-                className="w-full sm:w-36 h-36 object-cover rounded-xl border border-cyan-500/20 shrink-0"
+                className={
+                  isSvgPrototype
+                    ? 'w-36 h-36 object-contain bg-slate-950 rounded-xl border border-cyan-500/20 shrink-0'
+                    : 'w-full sm:w-36 h-36 object-cover rounded-xl border border-cyan-500/20 shrink-0'
+                }
                 crossOrigin="anonymous"
                 referrerPolicy="no-referrer"
               />
@@ -257,23 +304,28 @@ export default function Outro({ timeLeft, extraTimeBought = 0, score, waterSaved
                 <span className="px-2 py-0.5 rounded bg-slate-900 border border-slate-700 text-slate-300">
                   Impact {evaluation.impact}/10
                 </span>
+                {typeof labWaterMl === 'number' && labWaterMl > 0 && (
+                  <span className="px-2 py-0.5 rounded bg-cyan-950/60 border border-cyan-500/30 text-cyan-300 font-mono">
+                    Coût IA Labo : {labWaterMl.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} mL
+                  </span>
+                )}
               </div>
             </div>
           </div>
         </motion.div>
       )}
 
-      {leaderboard && leaderboard.length > 0 && (
+      {leaderboard && leaderboard.length >= 2 && (
         <div className="max-w-xl mx-auto mb-5 bg-slate-950/50 border border-slate-800 rounded-xl p-4">
           <h3 className="text-yellow-500 font-bold uppercase tracking-widest text-sm mb-3 flex items-center justify-center gap-2">
-            <Trophy className="w-4 h-4" /> TOP 5 DES MEILLEURS AGENTS
+            <Trophy className="w-4 h-4" /> MEILLEURS SCORES (CE POSTE)
           </h3>
           <div className="space-y-1.5">
             {leaderboard.map((entry, idx) => (
               <div key={idx} className="flex justify-between items-center px-3.5 py-1.5 bg-slate-900/50 rounded border border-slate-800/50 text-sm">
                 <div className="flex items-center gap-3">
-                  <span className="text-slate-500 font-mono text-xs w-4">{idx + 1}.</span>
-                  <span className={`font-bold ${entry.name === nickname ? 'text-emerald-400' : 'text-slate-300'}`}>{entry.name}</span>
+                  <span className="text-slate-400 font-mono text-xs w-4">{idx + 1}.</span>
+                  <span className={`font-bold ${entry.name === (nickname.trim() || 'Agent Anonyme') ? 'text-emerald-400' : 'text-slate-300'}`}>{entry.name}</span>
                 </div>
                 <span className="font-mono font-bold text-yellow-500">{entry.score}</span>
               </div>
@@ -287,30 +339,48 @@ export default function Outro({ timeLeft, extraTimeBought = 0, score, waterSaved
         onCompleteMission={handleCompleteBonus}
       />
 
-      <motion.div variants={itemVariants} className="flex flex-col sm:flex-row gap-3 justify-center mb-6">
+      <motion.div variants={itemVariants} className="flex flex-wrap gap-3 justify-center mb-6">
         <button
-          onClick={downloadFullCertificate}
+          type="button"
+          onClick={() => downloadFullCertificate('dark')}
           disabled={isDownloading}
-          className={`flex items-center justify-center gap-2.5 relative overflow-hidden group px-6 py-3 rounded-xl text-sm sm:text-base font-black transition-all ${isDownloading ? 'bg-emerald-600/50 text-white/50 cursor-wait border border-emerald-500/30' : 'bg-emerald-600 hover:bg-emerald-500 text-white hover:shadow-[0_0_18px_rgba(16,185,129,0.35)] border-b-4 border-emerald-800'}`}
+          className={`flex items-center justify-center gap-2 relative overflow-hidden group px-5 py-3 rounded-xl text-sm font-black transition-all border ${isDownloading ? 'bg-emerald-600/50 text-white/50 cursor-wait border-emerald-500/30' : 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-400/50 hover:shadow-[0_0_18px_rgba(16,185,129,0.35)]'}`}
         >
           {/* Shine effect */}
           {!isDownloading && (
              <div className="absolute inset-0 -translate-x-full group-hover:animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent z-0" />
           )}
           <span className="relative z-10 flex items-center justify-center gap-2">
-            {isDownloading ? (
-               <div className="w-5 h-5 border-[3px] border-white/30 border-t-white rounded-full animate-spin" />
+            {downloadingMode === 'dark' ? (
+               <div className="w-4 h-4 border-[3px] border-white/30 border-t-white rounded-full animate-spin" />
             ) : (
-               <Download className="w-5 h-5 group-hover:-translate-y-1 transition-transform" />
+               <Download className="w-4 h-4 group-hover:-translate-y-0.5 transition-transform" />
             )}
-            {isDownloading ? 'GÉNÉRATION EN COURS...' : 'TÉLÉCHARGER MON DOSSIER COMPLET (A4)'}
+            {downloadingMode === 'dark' ? 'GÉNÉRATION...' : 'DOSSIER A4 (ÉCRAN / ENT)'}
           </span>
         </button>
+
         <button
-          onClick={() => onRestart(nickname)}
-          className="flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-6 py-3 rounded-xl text-sm sm:text-base font-bold transition-all border border-slate-700 hover:shadow-[0_0_12px_rgba(148,163,184,0.2)]"
+          type="button"
+          onClick={() => downloadFullCertificate('light')}
+          disabled={isDownloading}
+          className={`flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-sm font-bold transition-all border ${isDownloading ? 'bg-slate-800/60 text-slate-400 cursor-wait border-slate-700' : 'bg-cyan-950/50 hover:bg-cyan-900/50 text-cyan-200 border-cyan-500/40 hover:border-cyan-400/70 hover:shadow-[0_0_16px_rgba(34,211,238,0.2)]'}`}
+          title="Version fond clair économe en encre pour impression laser N&B au collège"
         >
-          <RotateCcw className="w-4 h-4 sm:w-5 sm:h-5" />
+          {downloadingMode === 'light' ? (
+            <div className="w-4 h-4 border-[3px] border-cyan-300/30 border-t-cyan-200 rounded-full animate-spin" />
+          ) : (
+            <Printer className="w-4 h-4 text-cyan-300" />
+          )}
+          <span>{downloadingMode === 'light' ? 'GÉNÉRATION...' : 'VERSION ÉCO-IMPRESSION (CLAIR)'}</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => onRestart(nickname)}
+          className="flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-5 py-3 rounded-xl text-sm font-bold transition-all border border-slate-700 hover:shadow-[0_0_12px_rgba(148,163,184,0.2)]"
+        >
+          <RotateCcw className="w-4 h-4" />
           REJOUER
         </button>
       </motion.div>
@@ -322,10 +392,10 @@ export default function Outro({ timeLeft, extraTimeBought = 0, score, waterSaved
       )}
 
       <motion.div variants={itemVariants} className="space-y-4 text-left bg-slate-950/80 backdrop-blur-md p-5 sm:p-6 rounded-2xl border border-slate-800/50 font-sans text-slate-300 shadow-inner">
-        <p className="text-lg sm:text-xl font-black text-white border-b border-slate-800 pb-3 mb-4 flex items-center gap-3">
-          <Bot className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-500" />
-          Ce qu'il faut retenir :
-        </p>
+        <div className="text-lg sm:text-xl font-black text-white border-b border-slate-800 pb-3 mb-4 flex items-center gap-3">
+          <NaiaAvatar emotion="happy" size="sm" />
+          <span>Ce qu'il faut retenir :</span>
+        </div>
         
         <div className="grid md:grid-cols-2 gap-5">
           <div className="flex gap-3.5">
@@ -366,16 +436,15 @@ export default function Outro({ timeLeft, extraTimeBought = 0, score, waterSaved
       <div style={{ position: 'absolute', top: '-9999px', left: '-9999px' }}>
         <div 
           ref={certificateRef}
-          className="w-[794px] h-[1123px] bg-[#020617] text-white relative overflow-hidden font-sans flex flex-col items-stretch"
-          style={{ fontFamily: 'Inter, sans-serif' }}
+          className={`w-[794px] h-[1123px] bg-[#020617] text-white relative overflow-hidden font-sans flex flex-col items-stretch ${certPrintMode === 'light' ? 'cert-eco-print' : ''}`}
         >
           {/* Background Decorations */}
-          <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-emerald-500/10 rounded-full blur-[100px] -mr-32 -mt-32" />
-          <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-cyan-500/10 rounded-full blur-[100px] -ml-32 -mb-32" />
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-blue-500/5 rounded-full blur-[120px]" />
+          <div className="cert-dark-blob absolute top-0 right-0 w-[600px] h-[600px] bg-emerald-500/10 rounded-full blur-[100px] -mr-32 -mt-32" />
+          <div className="cert-dark-blob absolute bottom-0 left-0 w-[600px] h-[600px] bg-cyan-500/10 rounded-full blur-[100px] -ml-32 -mb-32" />
+          <div className="cert-dark-blob absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-blue-500/5 rounded-full blur-[120px]" />
           
-          <div className="absolute inset-0 border-[16px] border-[#020617] m-0 z-20 pointer-events-none" />
-          <div className="absolute inset-0 border-[3px] border-emerald-500/30 m-6 rounded-2xl pointer-events-none z-10" />
+          <div className="cert-outer-border absolute inset-0 border-[16px] border-[#020617] m-0 z-20 pointer-events-none" />
+          <div className="cert-inner-border absolute inset-0 border-[3px] border-emerald-500/30 m-6 rounded-2xl pointer-events-none z-10" />
 
           <div className="flex-1 p-10 flex flex-col justify-between relative z-10 w-full h-full">
 
@@ -384,7 +453,7 @@ export default function Outro({ timeLeft, extraTimeBought = 0, score, waterSaved
               <div>
                 <div className="flex items-center gap-3 mb-1">
                    <ShieldCheck className="w-12 h-12 text-emerald-400 drop-shadow-[0_0_15px_rgba(52,211,153,0.5)]" />
-                   <h1 className="text-4xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">RAPPORT DE MISSION</h1>
+                   <h1 className="cert-title-gradient text-4xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">RAPPORT DE MISSION</h1>
                 </div>
                 <p className="text-emerald-500/70 font-mono text-sm tracking-[0.2em] font-bold uppercase ml-[3.75rem]">AQUA-IA / HYDROSAVE_{currentYear}</p>
               </div>
@@ -394,21 +463,23 @@ export default function Outro({ timeLeft, extraTimeBought = 0, score, waterSaved
             <div className="grid grid-cols-2 gap-4 mb-6">
               <div className="bg-slate-900/60 p-5 rounded-2xl border border-emerald-500/20 backdrop-blur-xl shadow-lg relative overflow-hidden group">
                 <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent z-0" />
-                <h2 className="text-[9px] font-bold text-emerald-500 uppercase tracking-widest mb-3 relative z-10 flex items-center gap-2">
-                   <Bot className="w-4 h-4" /> IDENTITÉ DE L'AGENT
+                <h2 className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest mb-3 relative z-10 flex items-center gap-2">
+                   <BadgeCheck className="w-4 h-4" /> IDENTITÉ DE L'AGENT
                 </h2>
-                <div className="text-3xl font-black mb-1 uppercase tracking-tight relative z-10 text-white drop-shadow-md">{nickname}</div>
+                <div className="text-3xl font-black mb-1 uppercase tracking-tight relative z-10 text-white drop-shadow-md">{nickname || 'ANONYME'}</div>
                 <div className={`text-lg font-bold font-mono tracking-widest relative z-10 ${grade.color}`}>{grade.title}</div>
                 {completedBonus.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 mt-2 relative z-10">
-                    {completedBonus.includes('prompt') && (
-                      <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-cyan-950/70 border border-cyan-500/40 text-cyan-300">
-                        ★ PROMPT SOBRE
+                    {completedBonus.includes('gpu_cost') && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-950/70 border border-emerald-500/40 text-emerald-300">
+                        <Star className="w-2.5 h-2.5 fill-current shrink-0" />
+                        ARCHITECTE GPU
                       </span>
                     )}
-                    {completedBonus.includes('gpu_bias') && (
-                      <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-950/70 border border-emerald-500/40 text-emerald-300">
-                        ★ ANTI-BIAIS & GPU
+                    {completedBonus.includes('rebound') && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-cyan-950/70 border border-cyan-500/40 text-cyan-300">
+                        <Star className="w-2.5 h-2.5 fill-current shrink-0" />
+                        ANTI-REBOND
                       </span>
                     )}
                   </div>
@@ -417,21 +488,21 @@ export default function Outro({ timeLeft, extraTimeBought = 0, score, waterSaved
               
               <div className="bg-slate-900/60 p-5 rounded-2xl border border-cyan-500/20 backdrop-blur-xl shadow-lg relative overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 to-transparent z-0" />
-                <h2 className="text-[9px] font-bold text-cyan-500 uppercase tracking-widest mb-3 relative z-10 flex items-center gap-2">
+                <h2 className="text-[10px] font-bold text-cyan-500 uppercase tracking-widest mb-3 relative z-10 flex items-center gap-2">
                    <Trophy className="w-4 h-4" /> STATISTIQUES GLOBALES
                 </h2>
                 <div className="grid grid-cols-3 gap-2 relative z-10">
                   <div className="text-center bg-slate-950/50 p-3 rounded-xl border border-slate-800">
                     <div className="text-lg font-black text-yellow-400 mb-0.5">{score}</div>
-                    <div className="text-[9px] text-slate-500 uppercase tracking-wider font-bold">Score Total</div>
+                    <div className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Score Total</div>
                   </div>
                   <div className="text-center bg-slate-950/50 p-3 rounded-xl border border-slate-800">
                     <div className="text-lg font-black text-emerald-400 mb-0.5">{formatTime(timeTaken)}</div>
-                    <div className="text-[9px] text-slate-500 uppercase tracking-wider font-bold">Temps</div>
+                    <div className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Temps</div>
                   </div>
                   <div className="text-center bg-slate-950/50 p-3 rounded-xl border border-slate-800">
                     <div className="text-lg font-black text-cyan-400 mb-0.5">{waterSaved}%</div>
-                    <div className="text-[9px] text-slate-500 uppercase tracking-wider font-bold">Eau Sauvée</div>
+                    <div className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Eau Sauvée</div>
                   </div>
                 </div>
               </div>
@@ -441,32 +512,32 @@ export default function Outro({ timeLeft, extraTimeBought = 0, score, waterSaved
             {evaluation && (
               <div className="mb-6 pl-1">
                 <h2 className="text-[10px] font-bold text-cyan-400 uppercase tracking-[0.2em] mb-3 flex items-center gap-3">
-                  <Zap className="w-4 h-4 text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.5)]" /> 
+                  <FlaskConical className="w-4 h-4 text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.5)]" /> 
                   PROJET : LABORATOIRE D'INNOVATION
                 </h2>
                 <div className="grid grid-cols-[3fr_2fr] gap-4">
                   <div className="space-y-3">
                     <div className="bg-slate-900/80 p-5 rounded-2xl border border-cyan-500/30 shadow-[0_0_30px_rgba(34,211,238,0.05)]">
-                      <h3 className="text-xl font-black text-white mb-2 uppercase tracking-tight">{evaluation.title}</h3>
-                      <p className="text-slate-300 leading-snug mb-4 italic text-[13px] border-l-2 border-emerald-500/50 pl-3 py-1">"{evaluation.description}"</p>
+                      <h3 className="text-xl font-black text-white mb-2 uppercase tracking-tight line-clamp-2 break-words">{evaluation.title}</h3>
+                      <p className="text-slate-300 leading-snug mb-4 italic text-[13px] border-l-2 border-emerald-500/50 pl-3 py-1 line-clamp-5 break-words">"{evaluation.description}"</p>
                       
                       <div className="flex gap-3 mb-3">
                          <div className="flex-1 bg-slate-950/80 p-2.5 rounded-xl border border-slate-800 flex justify-between items-center transition-all hover:border-emerald-500/50">
-                            <span className="text-[9px] text-slate-400 uppercase font-mono">Impact</span>
+                            <span className="text-[10px] text-slate-400 uppercase font-mono">Impact</span>
                             <span className="font-black text-emerald-400 text-base">{evaluation.impact}/10</span>
                          </div>
                          <div className="flex-1 bg-slate-950/80 p-2.5 rounded-xl border border-slate-800 flex justify-between items-center transition-all hover:border-blue-500/50">
-                            <span className="text-[9px] text-slate-400 uppercase font-mono">Faisabilité</span>
+                            <span className="text-[10px] text-slate-400 uppercase font-mono">Faisabilité</span>
                             <span className="font-black text-blue-400 text-base">{evaluation.feasibility}/10</span>
                          </div>
                       </div>
                       <div className="flex gap-3">
                          <div className="flex-1 bg-slate-950/80 p-2.5 rounded-xl border border-slate-800 flex justify-between items-center transition-all hover:border-purple-500/50">
-                            <span className="text-[9px] text-slate-400 uppercase font-mono">Rigueur</span>
+                            <span className="text-[10px] text-slate-400 uppercase font-mono">Rigueur</span>
                             <span className="font-black text-purple-400 text-base">{evaluation.precision}/10</span>
                          </div>
                          <div className="flex-1 bg-slate-950/80 p-2.5 rounded-xl border border-yellow-500/20 flex justify-between items-center shadow-[inset_0_0_15px_rgba(234,179,8,0.1)]">
-                            <span className="text-[9px] text-yellow-500 uppercase font-mono font-bold">Score Global</span>
+                            <span className="text-[10px] text-yellow-500 uppercase font-mono font-bold">Score Global</span>
                             <span className="font-black text-yellow-400 text-lg">{evaluation.score}%</span>
                          </div>
                       </div>
@@ -474,19 +545,32 @@ export default function Outro({ timeLeft, extraTimeBought = 0, score, waterSaved
                     
                     <div className="bg-emerald-950/40 p-4 rounded-2xl border border-emerald-500/30 flex items-center justify-between shadow-[0_0_20px_rgba(16,185,129,0.1)] relative overflow-hidden">
                       <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMiIgY3k9IjIiIHI9IjEiIGZpbGw9InJnYmEoMTYsMTg1LDEyOSwwLjIpIi8+PC9zdmc+')] opacity-50 mix-blend-overlay" />
-                      <span className="text-[9px] text-emerald-400 font-bold uppercase tracking-widest font-mono z-10 w-24 leading-snug">Épargne Projetée</span>
+                      <div className="z-10">
+                        <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-widest font-mono block leading-snug">Épargne Projetée</span>
+                        {typeof labWaterMl === 'number' && labWaterMl > 0 && (
+                          <span className="text-[10px] text-cyan-300/80 font-mono block mt-0.5">
+                            Coût conception IA : {labWaterMl.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} mL
+                          </span>
+                        )}
+                      </div>
                       <span className="text-2xl font-black text-emerald-400 z-10 drop-shadow-sm">{evaluation.waterSaved} <span className="text-sm text-emerald-500/70">L/AN</span></span>
                     </div>
                   </div>
                   
                   <div className="bg-slate-900 rounded-2xl border border-cyan-500/20 shadow-[0_0_20px_rgba(34,211,238,0.1)] overflow-hidden flex items-center justify-center relative p-2 h-full">
                      <div className="absolute inset-0 bg-gradient-to-tr from-cyan-500/20 to-emerald-500/5 z-0" />
-                    {safeImageUrl || imageUrl ? (
-                      <img src={safeImageUrl || imageUrl || ''} alt="Prototype" className="w-full h-full object-cover rounded-xl relative z-10" crossOrigin="anonymous" referrerPolicy="no-referrer" />
+                    {resolvedImageSrc ? (
+                      <img
+                        src={resolvedImageSrc}
+                        alt="Prototype"
+                        className={`w-full h-full rounded-xl relative z-10 ${isSvgPrototype ? 'object-contain' : 'object-cover'}`}
+                        crossOrigin="anonymous"
+                        referrerPolicy="no-referrer"
+                      />
                     ) : (
                       <div className="text-center relative z-10">
-                        <Bot className="w-16 h-16 text-cyan-500/30 mx-auto mb-3" />
-                        <span className="text-[10px] text-cyan-500/50 uppercase tracking-widest font-mono">Image non disponible</span>
+                        <Sparkles className="w-14 h-14 text-cyan-500/40 mx-auto mb-3" />
+                        <span className="text-[10px] text-cyan-500/70 uppercase tracking-widest font-mono">Image non disponible</span>
                       </div>
                     )}
                   </div>
@@ -530,15 +614,15 @@ export default function Outro({ timeLeft, extraTimeBought = 0, score, waterSaved
                 © {currentYear} Aqua-IA Education Program
               </div>
               
-              <div className="w-32 h-32 absolute left-1/2 -translate-x-1/2 -bottom-4 opacity-10 pointer-events-none">
+              <div className="cert-watermark w-32 h-32 absolute left-1/2 -translate-x-1/2 -bottom-4 opacity-10 pointer-events-none">
                  <ShieldCheck className="w-full h-full text-white" />
               </div>
 
               <div className="text-right">
-                <div className="text-[9px] text-cyan-500/70 shadow-sm uppercase mb-2 font-bold tracking-widest border border-cyan-500/20 px-2 py-1 rounded inline-block bg-cyan-950/30">
+                <div className="text-[10px] text-cyan-500/70 shadow-sm uppercase mb-2 font-bold tracking-widest border border-cyan-500/20 px-2 py-1 rounded inline-block bg-cyan-950/30">
                    Signature Numérique Validée
                 </div>
-                <div className="font-mono text-emerald-400 text-[10px] tracking-[0.2em] uppercase">NAIA_AUTH_TOKEN_OX45FA9</div>
+                <div className="font-mono text-emerald-400 text-[10px] tracking-[0.2em] uppercase">{authToken}</div>
               </div>
             </div>
 

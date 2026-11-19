@@ -1,8 +1,13 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Flame, CheckCircle2, Home, Droplets, ArrowUp, ArrowDown, RefreshCw, Wind, Server, ArrowRight } from 'lucide-react';
+import { Flame, Home, Droplets, ArrowUp, ArrowDown, RefreshCw, Wind, Server, ArrowRight, Thermometer } from 'lucide-react';
 import NaiaDialogue from '../components/NaiaDialogue';
+import HydraLog from '../components/HydraLog';
 import TechTerm from '../components/TechTerm';
+import LevelHeader from '../components/LevelHeader';
+import LevelShell from '../components/LevelShell';
+import ActionButton from '../components/ActionButton';
+import LevelSuccessCard from '../components/LevelSuccessCard';
 import { soundManager } from '../utils/soundManager';
 import { useErrorFeedback } from '../utils/useErrorFeedback';
 
@@ -10,13 +15,14 @@ interface LoopStep {
   id: number;
   label: string;
   detail: string;
+  tempBadge: string;
 }
 
 const CORRECT_LOOP_STEPS: LoopStep[] = [
-  { id: 1, label: 'Captage thermique', detail: 'L\'eau du circuit absorbe la chaleur dégagée par les serveurs via un échangeur interne.' },
-  { id: 2, label: 'Acheminement isolé', detail: 'L\'eau circule dans des conduites souterraines isolées en direction du quartier.' },
-  { id: 3, label: 'Transfert aux logements', detail: 'Un second échangeur transmet la chaleur au chauffage et à l\'eau chaude des habitants.' },
-  { id: 4, label: 'Retour en boucle fermée', detail: 'Après avoir cédé ses calories, l\'eau repart par une conduite dédiée sans contact avec l\'air.' }
+  { id: 1, label: 'Échangeur côté serveurs', detail: 'L\'eau du circuit interne capte la chaleur dégagée par les baies informatiques.', tempBadge: '25 → 65 °C' },
+  { id: 2, label: 'Conduite isolée haute température', detail: 'L\'eau chaude est acheminée sous terre vers les immeubles voisins sans déperdition.', tempBadge: '62 °C' },
+  { id: 3, label: 'Échangeur côté logements', detail: 'La chaleur est transférée au réseau de chauffage et d\'eau chaude des habitants.', tempBadge: '62 → 28 °C' },
+  { id: 4, label: 'Conduite froide en boucle fermée', detail: 'L\'eau refroidie circule vers le datacenter en conduite étanche, sans contact avec l\'air.', tempBadge: '25 °C ↺' }
 ];
 
 // Ordre initial volontairement mélangé (non résolu)
@@ -29,13 +35,45 @@ const INITIAL_LOOP_ORDER: LoopStep[] = [
 
 type OutletId = 'towers' | 'river' | 'district_heating';
 
-const OUTLETS: { id: OutletId; name: string; icon: typeof Flame; loss: string; recovery: string }[] = [
-  { id: 'towers', name: 'Tours d\'évaporation', icon: Wind, loss: 'Évaporation continue', recovery: '0% récupérée' },
-  { id: 'river', name: 'Rejet en rivière', icon: Droplets, loss: 'Réchauffement fluvial', recovery: '0% récupérée' },
-  { id: 'district_heating', name: 'Réseau de chaleur urbain', icon: Home, loss: 'Circuit fermé (≈ 0%)', recovery: '85% valorisée' }
+const OUTLETS: {
+  id: OutletId;
+  name: string;
+  icon: typeof Flame;
+  principle: string;
+  destination: string;
+  loss: string;
+  recovery: string;
+}[] = [
+  {
+    id: 'towers',
+    name: 'Aéroréfrigérants humides',
+    icon: Wind,
+    principle: 'Échange thermique par évaporation',
+    destination: 'Dispersion de vapeur dans l\'atmosphère',
+    loss: 'Évaporation continue',
+    recovery: '0 % récupérée'
+  },
+  {
+    id: 'river',
+    name: 'Prélèvement fluvial ouvert',
+    icon: Droplets,
+    principle: 'Pompage et rejet sur cours d\'eau',
+    destination: 'Évacuation d\'eau tiède en aval',
+    loss: 'Réchauffement fluvial',
+    recovery: '0 % récupérée'
+  },
+  {
+    id: 'district_heating',
+    name: 'Réseau de chaleur urbain',
+    icon: Home,
+    principle: 'Échangeur thermique en boucle fermée',
+    destination: 'Chauffage des logements voisins',
+    loss: 'Circuit fermé (≈ 0 %)',
+    recovery: '85 % valorisée'
+  }
 ];
 
-export default function Level8({ isDevMode, onComplete, onScoreUpdate, onMistake }: { isDevMode?: boolean; onComplete: () => void; onScoreUpdate: (points: number, water: number) => void; onMistake?: () => void; key?: string }) {
+export default function Level8({ onComplete, onScoreUpdate, onMistake }: { onComplete: () => void; onScoreUpdate: (points: number, water: number) => void; onMistake?: () => void; key?: string }) {
   const [phase, setPhase] = useState<1 | 2>(1);
   const [steps, setSteps] = useState<LoopStep[]>(INITIAL_LOOP_ORDER);
   const [selectedOutlet, setSelectedOutlet] = useState<OutletId | null>(null);
@@ -59,7 +97,7 @@ export default function Level8({ isDevMode, onComplete, onScoreUpdate, onMistake
   const validateOutlet = () => {
     if (!selectedOutlet) return;
     if (selectedOutlet === 'district_heating') {
-      soundManager.playSuccess();
+      soundManager.playStep();
       clearError();
       setPhase(2);
     } else {
@@ -87,25 +125,26 @@ export default function Level8({ isDevMode, onComplete, onScoreUpdate, onMistake
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, x: 50 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -50 }}
-      className="sm:bg-slate-900/90 border-transparent sm:border-white/10 sm:border px-0 sm:px-6 py-4 sm:py-6 sm:rounded-2xl max-w-4xl mx-auto relative flex flex-col backdrop-blur-xl sm:shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_24px_48px_rgba(0,0,0,0.55)]"
-    >
-      <div className="flex items-center justify-between gap-3 mb-3 border-b border-white/10 pb-3">
-        <div className="flex items-center gap-3">
-          <Flame className="w-7 h-7 text-emerald-400 shrink-0" />
-          <h2 className="font-mono text-xl md:text-2xl font-bold text-white uppercase tracking-widest">
-            Niveau 8 : Valorisation Thermique
-          </h2>
-        </div>
-        <span className="font-mono text-xs px-2.5 py-1 rounded-full bg-slate-950 border border-cyan-500/30 text-cyan-300 shrink-0">
-          Étape {phase} / 2
-        </span>
-      </div>
+    <LevelShell>
+      <LevelHeader
+        level={8}
+        icon={Flame}
+        rightSlot={
+          <span className="font-mono text-xs px-2.5 py-1 rounded-full bg-slate-950 border border-cyan-500/30 text-cyan-300 shrink-0">
+            Étape {phase} / 2
+          </span>
+        }
+      />
 
-      <div className="mb-3">
+      <div className="mb-3 space-y-2">
+        <HydraLog
+          status="warning"
+          message={
+            phase === 1
+              ? "Dissipation thermique urbaine à 65°C : rejet direct par évaporation actif en attente de raccordement."
+              : "Raccordement au réseau de chaleur urbain détecté. Validation de l'ordre du circuit fermé requise."
+          }
+        />
         <NaiaDialogue
           message={
             phase === 1 ? (
@@ -151,15 +190,24 @@ export default function Level8({ isDevMode, onComplete, onScoreUpdate, onMistake
                         ? 'bg-emerald-950/30 border-emerald-400'
                         : 'bg-cyan-950/30 border-cyan-400'
                       : 'bg-slate-900/60 border-slate-800 hover:border-slate-600'
-                  } ${phase === 2 ? 'cursor-default' : ''}`}
+                  } ${phase === 2 ? 'cursor-default' : 'active:scale-[0.985]'}`}
                 >
                   <div className="flex items-center gap-2">
                     <Icon className={`w-5 h-5 ${isSelected ? (phase === 2 ? 'text-emerald-400' : 'text-cyan-400') : 'text-slate-400'}`} />
                     <span className="font-bold text-sm text-white">{outlet.name}</span>
                   </div>
                   <div className="text-[11px] text-slate-400 space-y-0.5">
-                    <div>Eau : <span className="text-slate-200">{outlet.loss}</span></div>
-                    <div>Énergie : <span className="text-slate-200">{outlet.recovery}</span></div>
+                    {phase === 2 ? (
+                      <>
+                        <div>Eau : <span className="text-slate-200">{outlet.loss}</span></div>
+                        <div>Énergie : <span className="text-slate-200">{outlet.recovery}</span></div>
+                      </>
+                    ) : (
+                      <>
+                        <div>Principe : <span className="text-slate-200">{outlet.principle}</span></div>
+                        <div>Sortie : <span className="text-slate-200">{outlet.destination}</span></div>
+                      </>
+                    )}
                   </div>
                 </button>
               );
@@ -182,32 +230,44 @@ export default function Level8({ isDevMode, onComplete, onScoreUpdate, onMistake
                 </h3>
               </div>
 
-              {/* Schéma synoptique de la boucle fermée */}
+              {/* Schéma synoptique de la boucle fermée (lieux et températures révélés une fois l'ordre validé) */}
               <div className="mb-4 p-3 rounded-xl bg-slate-900/70 border border-slate-800">
-                <div className="text-[10px] uppercase tracking-wider text-slate-500 mb-2 text-center">
-                  Schéma de la boucle : Datacenter → Conduite Aller → Logements → Conduite Retour
+                <div className="text-[11px] uppercase tracking-wider text-slate-400 mb-2 text-center">
+                  {isSuccess
+                    ? 'Boucle validée : 65 °C (Serveurs) → 62 °C (Aller) → 28 °C (Logements) → 25 °C (Retour fermé)'
+                    : 'Aperçu de votre séquence (reconstituez le cycle thermique en circuit fermé)'}
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 items-center">
                   {steps.map((s, idx) => {
-                    const slotLabels = ['1. Datacenter', '2. Conduite Aller', '3. Quartier', '4. Conduite Retour'];
+                    const revealedSlotLabels = ['1. Datacenter', '2. Conduite Aller', '3. Quartier', '4. Conduite Retour'];
                     return (
                       <div key={`schema-${s.id}`} className="flex items-center gap-1.5">
                         <div className={`flex-1 px-2.5 py-2 rounded-lg border text-center transition-colors ${
                           isSuccess
                             ? idx < 2
-                              ? 'bg-orange-950/30 border-orange-500/40 text-orange-200'
-                              : 'bg-cyan-950/30 border-cyan-500/40 text-cyan-200'
+                              ? 'bg-orange-950/35 border-orange-500/45 text-orange-200'
+                              : idx === 2
+                                ? 'bg-amber-950/30 border-amber-500/40 text-amber-200'
+                                : 'bg-cyan-950/35 border-cyan-500/45 text-cyan-200'
                             : 'bg-slate-950 border-slate-700 text-slate-300'
                         }`}>
                           <div className="flex items-center justify-center gap-1 text-[10px] text-slate-400 mb-0.5">
-                            {idx === 0 && <Server className="w-3 h-3 text-orange-400" />}
-                            {idx === 2 && <Home className="w-3 h-3 text-emerald-400" />}
-                            <span>{slotLabels[idx]}</span>
+                            {isSuccess && idx === 0 && <Server className="w-3 h-3 text-orange-400" />}
+                            {isSuccess && idx === 2 && <Home className="w-3 h-3 text-emerald-400" />}
+                            <span>{isSuccess ? revealedSlotLabels[idx] : `Étape ${idx + 1}`}</span>
                           </div>
                           <div className="text-[11px] font-bold truncate">{s.label}</div>
+                          {isSuccess && (
+                            <div className={`mt-1 inline-flex items-center gap-1 text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${
+                              idx < 2 ? 'bg-orange-500/15 text-orange-300' : idx === 2 ? 'bg-amber-500/15 text-amber-300' : 'bg-cyan-500/15 text-cyan-300'
+                            }`}>
+                              <Thermometer className="w-2.5 h-2.5" />
+                              {s.tempBadge}
+                            </div>
+                          )}
                         </div>
                         {idx < steps.length - 1 && (
-                          <ArrowRight className="hidden sm:block w-3.5 h-3.5 text-slate-600 shrink-0" />
+                          <ArrowRight className={`hidden sm:block w-3.5 h-3.5 shrink-0 ${isSuccess ? (idx === 0 ? 'text-orange-400' : idx === 1 ? 'text-amber-400' : 'text-cyan-400') : 'text-slate-600'}`} />
                         )}
                       </div>
                     );
@@ -270,46 +330,30 @@ export default function Level8({ isDevMode, onComplete, onScoreUpdate, onMistake
 
         {!isSuccess && (
           <div className="flex justify-center mt-4">
-            <button
+            <ActionButton
               onClick={phase === 1 ? validateOutlet : checkAnswer}
               disabled={phase === 1 && !selectedOutlet}
-              className={`px-8 py-4 rounded-lg font-bold text-lg transition-all ${
-                phase === 1 && !selectedOutlet
-                  ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                  : isErrorFlash
-                  ? 'bg-red-600 text-white animate-shake'
-                  : 'bg-emerald-600 hover:bg-emerald-500 text-white hover:shadow-[0_0_18px_rgba(16,185,129,0.35)]'
-              }`}
+              isError={isErrorFlash}
             >
               {phase === 1 ? 'VALIDER LE RACCORDEMENT' : 'ACTIVER LA BOUCLE THERMIQUE'}
-            </button>
+            </ActionButton>
           </div>
         )}
 
         <AnimatePresence>
           {isSuccess && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex flex-col items-center mt-5 p-6 bg-emerald-950/30 border border-emerald-500/50 rounded-lg"
-            >
-              <div className="flex items-center gap-2 text-emerald-400 font-bold text-xl mb-4">
-                <CheckCircle2 className="w-6 h-6" />
-                SYMBIOSE URBAINE ÉTABLIE
-              </div>
-              <p className="text-center mb-6 text-sm">
-                Parfait ! En raccordant le <TechTerm term="Datacenter">data center</TechTerm> au réseau de chaleur urbain en boucle fermée, l'eau chaude chauffe les habitations puis revient refroidie sans aucune évaporation. Zéro gaspillage d'eau et 85% de chaleur valorisée !
-              </p>
-              <button
-                onClick={onComplete}
-                className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-3 rounded-lg font-bold transition-all hover:shadow-[0_0_18px_rgba(16,185,129,0.35)]"
-              >
-                PASSER AU NIVEAU SUIVANT
-              </button>
-            </motion.div>
+            <LevelSuccessCard
+              title="SYMBIOSE URBAINE ÉTABLIE"
+              description={
+                <>
+                  Parfait ! En raccordant le <TechTerm term="Datacenter">data center</TechTerm> au réseau de chaleur urbain en boucle fermée, l'eau chaude chauffe les habitations puis revient refroidie sans aucune évaporation. Zéro gaspillage d'eau et 85 % de chaleur valorisée !
+                </>
+              }
+              onContinue={onComplete}
+            />
           )}
         </AnimatePresence>
       </div>
-    </motion.div>
+    </LevelShell>
   );
 }

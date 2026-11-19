@@ -1,15 +1,20 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { BrainCircuit, CheckCircle2, Zap, Scale, Cpu, Database, Target } from 'lucide-react';
+import { BrainCircuit, Zap, GitFork, Cpu, ListChecks, Target } from 'lucide-react';
 import NaiaDialogue from '../components/NaiaDialogue';
+import HydraLog from '../components/HydraLog';
 import TechTerm from '../components/TechTerm';
+import LevelHeader from '../components/LevelHeader';
+import LevelShell from '../components/LevelShell';
+import ActionButton from '../components/ActionButton';
+import LevelSuccessCard from '../components/LevelSuccessCard';
 import { soundManager } from '../utils/soundManager';
 import { useErrorFeedback } from '../utils/useErrorFeedback';
 
 type ArchId = 'heuristic' | 'specialized' | 'llm';
 
 interface TaskFlow {
-  id: 'blacklist' | 'tickets' | 'legal';
+  id: 'alerts' | 'tickets' | 'legal' | 'blacklist';
   title: string;
   volumeLabel: string;
   volumePerDay: number;
@@ -29,7 +34,7 @@ const ARCHITECTURES: Record<ArchId, {
     id: 'heuristic',
     label: 'Règles Heuristiques (Sans IA)',
     shortLabel: 'Sans IA (Règles)',
-    icon: Database,
+    icon: ListChecks,
     whPerReq: 0.001,
     strength: 'Exactitude sur motifs connus, coût quasi nul'
   },
@@ -39,7 +44,7 @@ const ARCHITECTURES: Record<ArchId, {
     shortLabel: 'Modèle Spécialisé',
     icon: Cpu,
     whPerReq: 0.05,
-    strength: 'Classification & tri ciblé à 98,5% de précision'
+    strength: 'Classification & tri ciblé à 98,5 % de précision'
   },
   llm: {
     id: 'llm',
@@ -53,11 +58,11 @@ const ARCHITECTURES: Record<ArchId, {
 
 const TASKS: TaskFlow[] = [
   {
-    id: 'blacklist',
-    title: '1. Filtrage d\'URLs malveillantes connues',
-    volumeLabel: '10 000 000 req/jour',
-    volumePerDay: 10_000_000,
-    requirement: 'Vérification exacte par mots-clés et liste noire fixe.',
+    id: 'alerts',
+    title: '1. Alertes sur seuils de pression des capteurs',
+    volumeLabel: '4 000 000 req/jour',
+    volumePerDay: 4_000_000,
+    requirement: 'Déclencher une alerte dès que la pression descend sous 3,8 bar.',
     expected: 'heuristic'
   },
   {
@@ -75,19 +80,29 @@ const TASKS: TaskFlow[] = [
     volumePerDay: 2_000,
     requirement: 'Analyser des documents de 80 pages et rédiger un résumé.',
     expected: 'llm'
+  },
+  {
+    id: 'blacklist',
+    title: '4. Filtrage d\'URLs malveillantes connues',
+    volumeLabel: '10 000 000 req/jour',
+    volumePerDay: 10_000_000,
+    requirement: 'Vérification exacte par mots-clés et liste noire fixe.',
+    expected: 'heuristic'
   }
 ];
 
 const QUALITY_MATRIX: Record<TaskFlow['id'], Record<ArchId, number>> = {
-  blacklist: { heuristic: 100, specialized: 97, llm: 96 },
+  alerts: { heuristic: 100, specialized: 98, llm: 97 },
   tickets: { heuristic: 52, specialized: 98, llm: 99 },
-  legal: { heuristic: 18, specialized: 58, llm: 97 }
+  legal: { heuristic: 18, specialized: 58, llm: 97 },
+  blacklist: { heuristic: 100, specialized: 97, llm: 96 }
 };
 
 const TARGET_MIN_QUALITY = 95;
 
-export default function Level6({ isDevMode, onComplete, onScoreUpdate, onMistake }: { isDevMode?: boolean; onComplete: () => void; onScoreUpdate: (points: number, water: number) => void; onMistake?: () => void; key?: string }) {
+export default function Level6({ onComplete, onScoreUpdate, onMistake }: { onComplete: () => void; onScoreUpdate: (points: number, water: number) => void; onMistake?: () => void; key?: string }) {
   const [assignments, setAssignments] = useState<Partial<Record<TaskFlow['id'], ArchId>>>({});
+  const [measured, setMeasured] = useState<{ dailyKwh: number; avgQuality: number } | null>(null);
   const { errorMsg, isErrorFlash, triggerError, clearError } = useErrorFeedback();
   const [hasScored, setHasScored] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -114,12 +129,14 @@ export default function Level6({ isDevMode, onComplete, onScoreUpdate, onMistake
     if (isSuccess) return;
     soundManager.playClick();
     setAssignments(prev => ({ ...prev, [taskId]: archId }));
+    setMeasured(null);
     clearError();
   };
 
   const checkAnswer = () => {
     if (!allAssigned) return;
 
+    setMeasured({ dailyKwh, avgQuality });
     const isAllCorrect = TASKS.every(t => assignments[t.id] === t.expected);
     if (isAllCorrect) {
       setIsSuccess(true);
@@ -133,8 +150,8 @@ export default function Level6({ isDevMode, onComplete, onScoreUpdate, onMistake
     }
 
     // Feedback ciblé selon le type d'erreur
-    if (assignments.blacklist !== 'heuristic' || assignments.tickets === 'llm') {
-      triggerError("Surcharge énergétique : vous utilisez une architecture surdimensionnée sur un flux massif.");
+    if (dailyKwh > 50) {
+      triggerError("Surcharge énergétique : vous utilisez une architecture surdimensionnée sur un flux massif (une même architecture sobre peut servir plusieurs fois).");
     } else {
       triggerError("Qualité insuffisante : un outil trop simple échoue à comprendre ou synthétiser ces données.");
     }
@@ -142,29 +159,23 @@ export default function Level6({ isDevMode, onComplete, onScoreUpdate, onMistake
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, x: 50 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -50 }}
-      className="sm:bg-slate-900/90 border-transparent sm:border-white/10 sm:border px-0 sm:px-6 py-4 sm:py-6 sm:rounded-2xl max-w-4xl mx-auto relative flex flex-col backdrop-blur-xl sm:shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_24px_48px_rgba(0,0,0,0.55)]"
-    >
-      <div className="flex items-center gap-3 mb-3 border-b border-white/10 pb-3">
-        <Scale className="w-7 h-7 text-emerald-400 shrink-0" />
-        <h2 className="font-mono text-xl md:text-2xl font-bold text-white uppercase tracking-widest">
-          Niveau 6 : Sobriété Algorithmique
-        </h2>
-      </div>
+    <LevelShell>
+      <LevelHeader level={6} icon={GitFork} />
 
-      <div className="mb-3">
+      <div className="mb-3 space-y-2">
+        <HydraLog
+          status="hostile"
+          message="Routage par défaut actif : 100 % des requêtes dirigées vers le LLM 175B (36 255 kWh/jour)."
+        />
         <NaiaDialogue
           message={
             <>
-              HYDRA envoie encore toutes ses requêtes vers un énorme <TechTerm term="LLM" />, même pour de simples filtres !
+              HYDRA envoie encore toutes ses requêtes vers un énorme <TechTerm term="LLM" />, même pour de simples filtres ! La télémétrie se met à jour lorsque vous testez le déploiement.
             </>
           }
           objective={
             <>
-              Associez chacun des 3 flux à l'architecture la plus adaptée pour rester sous <strong className="font-mono text-white">50 kWh/jour</strong> avec au moins <strong className="font-mono text-white">{TARGET_MIN_QUALITY} % de qualité</strong>.
+              Associez chacun des 4 flux à l'architecture adaptée (une même architecture peut servir plusieurs fois) pour rester sous <strong className="font-mono text-white">50 kWh/jour</strong> avec au moins <strong className="font-mono text-white">{TARGET_MIN_QUALITY} % de qualité</strong>.
             </>
           }
           reaction={errorMsg ? { message: errorMsg, emotion: 'alert' } : null}
@@ -195,24 +206,26 @@ export default function Level6({ isDevMode, onComplete, onScoreUpdate, onMistake
           })}
         </div>
 
-        {/* Live Energy & Quality Gauges */}
+        {/* Telemetry Gauges (measured on deployment test to prevent blind click trial-and-error) */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div className="bg-slate-950 border border-slate-800 rounded-xl p-3.5 space-y-2.5">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <span className="text-xs uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                <Zap className="w-3.5 h-3.5 text-amber-400" /> Consommation estimée
+                <Zap className="w-3.5 h-3.5 text-amber-400" /> Consommation mesurée
               </span>
-              <span className={`text-base sm:text-lg font-black ${
+              <span className={`text-base sm:text-lg font-black font-mono tabular-nums ${
                 isSuccess
                   ? 'text-emerald-400'
-                  : assignedTasks.length === 0
-                  ? 'text-slate-400'
-                  : dailyKwh > 50
+                  : measured === null
+                  ? 'text-slate-500'
+                  : measured.dailyKwh > 50
                   ? 'text-red-400'
                   : 'text-cyan-300'
               }`}>
-                {dailyKwh.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} kWh/j
-                <span className="text-[11px] font-normal text-slate-500 ml-1.5">(max 50)</span>
+                {measured === null
+                  ? '--- kWh/j'
+                  : `${measured.dailyKwh.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} kWh/j`}
+                <span className="text-[11px] font-sans font-normal text-slate-400 ml-1.5">(max 50)</span>
               </span>
             </div>
             <div className="w-full h-3 bg-slate-900 rounded-full border border-slate-800 relative">
@@ -221,19 +234,19 @@ export default function Level6({ isDevMode, onComplete, onScoreUpdate, onMistake
                   className={`h-full rounded-full ${
                     isSuccess
                       ? 'bg-emerald-500'
-                      : dailyKwh > 50
+                      : measured === null
+                      ? 'bg-slate-700'
+                      : measured.dailyKwh > 50
                       ? 'bg-red-500'
-                      : dailyKwh > 0
-                      ? 'bg-cyan-500'
-                      : 'bg-slate-700'
+                      : 'bg-cyan-500'
                   }`}
                   initial={{ width: 0 }}
-                  animate={{ width: `${Math.min((dailyKwh / 100) * 100, 100)}%` }}
+                  animate={{ width: measured !== null ? `${Math.min((measured.dailyKwh / 100) * 100, 100)}%` : '0%' }}
                   transition={{ duration: 0.35 }}
                 />
               </div>
               <div
-                className="absolute -top-0.5 -bottom-0.5 w-0.5 bg-amber-400 z-10"
+                className="absolute -top-0.5 -bottom-0.5 w-0.5 -translate-x-1/2 bg-amber-400 z-10"
                 style={{ left: '50%' }}
                 title="Plafond : 50 kWh/jour"
               />
@@ -245,17 +258,17 @@ export default function Level6({ isDevMode, onComplete, onScoreUpdate, onMistake
               <span className="text-xs uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
                 <Target className="w-3.5 h-3.5 text-emerald-400" /> Précision / Qualité
               </span>
-              <span className={`text-base sm:text-lg font-black ${
+              <span className={`text-base sm:text-lg font-black font-mono tabular-nums ${
                 isSuccess
                   ? 'text-emerald-400'
-                  : assignedTasks.length === 0
-                  ? 'text-slate-400'
-                  : avgQuality < TARGET_MIN_QUALITY
+                  : measured === null
+                  ? 'text-slate-500'
+                  : measured.avgQuality < TARGET_MIN_QUALITY
                   ? 'text-red-400'
                   : 'text-cyan-300'
               }`}>
-                {assignedTasks.length === 0 ? '--' : `${avgQuality} %`}
-                <span className="text-[11px] font-normal text-slate-500 ml-1.5">(min {TARGET_MIN_QUALITY} %)</span>
+                {measured === null ? '-- %' : `${measured.avgQuality} %`}
+                <span className="text-[11px] font-sans font-normal text-slate-400 ml-1.5">(min {TARGET_MIN_QUALITY} %)</span>
               </span>
             </div>
             <div className="w-full h-3 bg-slate-900 rounded-full border border-slate-800 relative">
@@ -264,19 +277,19 @@ export default function Level6({ isDevMode, onComplete, onScoreUpdate, onMistake
                   className={`h-full rounded-full ${
                     isSuccess
                       ? 'bg-emerald-500'
-                      : assignedTasks.length === 0
+                      : measured === null
                       ? 'bg-slate-700'
-                      : avgQuality < TARGET_MIN_QUALITY
+                      : measured.avgQuality < TARGET_MIN_QUALITY
                       ? 'bg-red-500'
                       : 'bg-cyan-500'
                   }`}
                   initial={{ width: 0 }}
-                  animate={{ width: `${avgQuality}%` }}
+                  animate={{ width: measured !== null ? `${measured.avgQuality}%` : '0%' }}
                   transition={{ duration: 0.35 }}
                 />
               </div>
               <div
-                className="absolute -top-0.5 -bottom-0.5 w-0.5 bg-amber-400 z-10"
+                className="absolute -top-0.5 -bottom-0.5 w-0.5 -translate-x-1/2 bg-amber-400 z-10"
                 style={{ left: `${TARGET_MIN_QUALITY}%` }}
                 title={`Seuil minimum : ${TARGET_MIN_QUALITY} %`}
               />
@@ -313,7 +326,7 @@ export default function Level6({ isDevMode, onComplete, onScoreUpdate, onMistake
                         type="button"
                         disabled={isSuccess}
                         onClick={() => handleAssign(task.id, archId)}
-                        className={`px-2.5 py-2 rounded-lg border text-[11px] font-bold transition-all ${
+                        className={`px-2.5 py-2 rounded-lg border text-[11px] font-bold transition-all active:scale-[0.98] ${
                           isPicked
                             ? 'bg-cyan-950/60 border-cyan-400 text-cyan-200'
                             : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-slate-500 hover:text-slate-200'
@@ -331,46 +344,30 @@ export default function Level6({ isDevMode, onComplete, onScoreUpdate, onMistake
 
         {!isSuccess && (
           <div className="flex justify-center mt-4">
-            <button
+            <ActionButton
               onClick={checkAnswer}
               disabled={!allAssigned}
-              className={`px-8 py-4 rounded-lg font-bold text-lg transition-all flex items-center gap-2 ${
-                !allAssigned
-                  ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                  : isErrorFlash
-                  ? 'bg-red-600 text-white animate-shake'
-                  : 'bg-emerald-600 hover:bg-emerald-500 text-white hover:shadow-[0_0_18px_rgba(16,185,129,0.35)]'
-              }`}
+              isError={isErrorFlash}
             >
               DÉPLOYER LE ROUTAGE
-            </button>
+            </ActionButton>
           </div>
         )}
 
         <AnimatePresence>
           {isSuccess && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex flex-col items-center mt-5 p-6 bg-emerald-950/30 border border-emerald-500/50 rounded-lg"
-            >
-              <div className="flex items-center gap-2 text-emerald-400 font-bold text-xl mb-4">
-                <CheckCircle2 className="w-6 h-6" />
-                ROUTAGE SOBRE ACTIVÉ (40 kWh/jour)
-              </div>
-              <p className="text-center mb-6 text-sm">
-                C'est la <strong>Sobriété Algorithmique</strong> (Green AI) : sans <TechTerm term="IA" /> quand des règles suffisent, un petit modèle spécialisé pour trier efficacement, et le grand <TechTerm term="LLM" /> réservé aux rares analyses complexes !
-              </p>
-              <button
-                onClick={onComplete}
-                className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-3 rounded-lg font-bold transition-all hover:shadow-[0_0_18px_rgba(16,185,129,0.35)]"
-              >
-                PASSER AU NIVEAU SUIVANT
-              </button>
-            </motion.div>
+            <LevelSuccessCard
+              title="ROUTAGE SOBRE ACTIVÉ (44 kWh/jour)"
+              description={
+                <>
+                  C'est la <strong>Sobriété Algorithmique</strong> (Green AI) : sans <TechTerm term="IA" /> quand des règles suffisent, un petit modèle spécialisé pour trier efficacement, et le grand <TechTerm term="LLM" /> réservé aux rares analyses complexes !
+                </>
+              }
+              onContinue={onComplete}
+            />
           )}
         </AnimatePresence>
       </div>
-    </motion.div>
+    </LevelShell>
   );
 }

@@ -1,6 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { createPortal } from 'react-dom';
+import { X, Check } from 'lucide-react';
+import { TERM_DISCOVERY_DELAY_MS, TERM_DISCOVERY_POINTS } from '../constants';
+import { useNaiaHints } from './NaiaContext';
 
 
 export const TERMS_DICTIONARY: Record<string, { title: string; definition: string }> = {
@@ -48,9 +51,9 @@ export const TERMS_DICTIONARY: Record<string, { title: string; definition: strin
     title: 'IA Générative',
     definition: 'Une technologie d\'IA capable de créer du contenu original (texte, image, son) à partir de données existantes.'
   },
-  'Mème': {
-    title: 'Mème',
-    definition: 'Une image, une vidéo ou un texte humoristique qui est détourné et partagé massivement sur internet.'
+  'Biais': {
+    title: 'Biais de représentativité',
+    definition: 'Distorsion dans les décisions d\'une IA lorsque certaines zones ou populations sont sous-représentées dans ses données d\'entraînement.'
   },
   'Topographie': {
     title: 'Topographie',
@@ -93,16 +96,19 @@ interface TechTermProps {
 }
 
 export default function TechTerm({ term, children, className = '' }: TechTermProps) {
+  const hintCtx = useNaiaHints();
+  const awardsPoints = (hintCtx?.level ?? 0) < 14;
+
   const [isHovered, setIsHovered] = useState(false);
   const [isPinned, setIsPinned] = useState(false);
   const [isDiscovered, setIsDiscovered] = useState(false);
+  const [justDiscovered, setJustDiscovered] = useState(false);
   const isOpen = isHovered || isPinned;
 
   // Tracking the precise on-screen coordinates for the portal
   const [tooltipPos, setTooltipPos] = useState({ top: 0, left: 0, arrowLeft: 144, placeBelow: false });
   const spanRef = useRef<HTMLSpanElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
-  const discoveryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const info = TERMS_DICTIONARY[term] || { title: term, definition: 'Terme technique lié à l\'IA ou à l\'écologie.' };
 
@@ -128,6 +134,7 @@ export default function TechTerm({ term, children, className = '' }: TechTermPro
     };
     const handleReset = () => {
       setIsDiscovered(false);
+      setJustDiscovered(false);
     };
     window.addEventListener('discoverTerm', handleDiscovery);
     window.addEventListener('resetDiscoveredTerms', handleReset);
@@ -137,22 +144,20 @@ export default function TechTerm({ term, children, className = '' }: TechTermPro
     };
   }, [term]);
 
-  const startDiscoveryTimer = () => {
-    if (!isDiscovered && !discoveryTimerRef.current) {
-      discoveryTimerRef.current = setTimeout(() => {
-        window.dispatchEvent(new CustomEvent('discoverTerm', { detail: term }));
-        setIsDiscovered(true);
-        discoveryTimerRef.current = null;
-      }, 1000); // 1 seconde de délai avant de valider la découverte
-    }
-  };
+  // Silent reading timer while tooltip stays open (no distracting bar during reading)
+  useEffect(() => {
+    if (!isOpen || isDiscovered) return;
 
-  const clearDiscoveryTimer = () => {
-    if (discoveryTimerRef.current) {
-      clearTimeout(discoveryTimerRef.current);
-      discoveryTimerRef.current = null;
-    }
-  };
+    const timeoutId = setTimeout(() => {
+      setJustDiscovered(true);
+      setIsDiscovered(true);
+      window.dispatchEvent(new CustomEvent('discoverTerm', { detail: term }));
+    }, TERM_DISCOVERY_DELAY_MS);
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, [isOpen, isDiscovered, term]);
 
   const updatePosition = () => {
     if (isOpen && spanRef.current) {
@@ -210,14 +215,12 @@ export default function TechTerm({ term, children, className = '' }: TechTermPro
       }
       setIsPinned(false);
       setIsHovered(false);
-      clearDiscoveryTimer();
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setIsPinned(false);
         setIsHovered(false);
-        clearDiscoveryTimer();
       }
     };
 
@@ -229,22 +232,12 @@ export default function TechTerm({ term, children, className = '' }: TechTermPro
     };
   }, [isPinned]);
 
-  useEffect(() => {
-    return () => {
-      clearDiscoveryTimer();
-    };
-  }, []);
-
   const handleMouseEnter = () => {
     setIsHovered(true);
-    startDiscoveryTimer();
   };
 
   const handleMouseLeave = () => {
     setIsHovered(false);
-    if (!isPinned) {
-      clearDiscoveryTimer();
-    }
   };
 
   const handleClick = (e: React.MouseEvent) => {
@@ -253,11 +246,8 @@ export default function TechTerm({ term, children, className = '' }: TechTermPro
     e.preventDefault();
     setIsPinned(prev => {
       const next = !prev;
-      if (next) {
-        startDiscoveryTimer();
-      } else {
+      if (!next) {
         setIsHovered(false);
-        clearDiscoveryTimer();
       }
       return next;
     });
@@ -283,8 +273,13 @@ export default function TechTerm({ term, children, className = '' }: TechTermPro
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
             e.stopPropagation();
-            setIsPinned(prev => !prev);
-            startDiscoveryTimer();
+            setIsPinned(prev => {
+              const next = !prev;
+              if (!next) {
+                setIsHovered(false);
+              }
+              return next;
+            });
           }
         }}
         className={`cursor-help px-1 py-[1px] rounded-sm border-b ${
@@ -298,7 +293,7 @@ export default function TechTerm({ term, children, className = '' }: TechTermPro
 
       {/* Render the tooltip at the document body level using a React Portal so it bypasses all z-index stacking context restrictions */}
       {typeof document !== 'undefined' && createPortal(
-        <AnimatePresence>
+        <AnimatePresence onExitComplete={() => setJustDiscovered(false)}>
           {isOpen && (
             <motion.div
               ref={tooltipRef}
@@ -330,8 +325,20 @@ export default function TechTerm({ term, children, className = '' }: TechTermPro
                 scale: 0.95
               }}
               transition={{ duration: 0.2 }}
-              className="w-72 p-4 bg-slate-900 border border-slate-700 rounded-lg shadow-2xl block text-left font-normal tracking-normal absolute"
+              className={`w-72 p-4 bg-slate-900 border ${
+                justDiscovered ? 'border-emerald-500/60' : 'border-slate-700'
+              } rounded-lg shadow-2xl block text-left font-normal tracking-normal absolute transition-colors duration-300`}
             >
+              {justDiscovered && (
+                <span
+                  className={`absolute ${
+                    tooltipPos.placeBelow ? '-bottom-3' : '-top-3'
+                  } right-3 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-950 border border-emerald-400/60 text-emerald-300 text-[11px] font-mono font-bold shadow-lg normal-case not-italic tracking-normal`}
+                >
+                  <Check className="w-3 h-3 shrink-0" />
+                  <span>{awardsPoints ? `+${TERM_DISCOVERY_POINTS} pts` : 'Glossaire'}</span>
+                </span>
+              )}
               <span className="text-emerald-400 font-bold text-sm mb-1.5 flex items-center justify-between gap-2 normal-case font-sans not-italic tracking-normal">
                 <span>{info.title}</span>
                 {isPinned && (
@@ -341,12 +348,11 @@ export default function TechTerm({ term, children, className = '' }: TechTermPro
                       e.stopPropagation();
                       setIsPinned(false);
                       setIsHovered(false);
-                      clearDiscoveryTimer();
                     }}
-                    className="text-[10px] text-slate-400 hover:text-white px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 sm:hidden"
+                    className="inline-flex items-center justify-center text-slate-400 hover:text-white p-1 rounded bg-slate-800 border border-slate-700 sm:hidden"
                     aria-label="Fermer la définition"
                   >
-                    ✕
+                    <X className="w-3.5 h-3.5" />
                   </button>
                 )}
               </span>
@@ -358,7 +364,9 @@ export default function TechTerm({ term, children, className = '' }: TechTermPro
               {tooltipPos.placeBelow ? (
                 <>
                   <span
-                    className="absolute bottom-full border-8 border-transparent border-b-slate-700 -translate-x-1/2"
+                    className={`absolute bottom-full border-8 border-transparent -translate-x-1/2 transition-colors duration-300 ${
+                      justDiscovered ? 'border-b-emerald-500/60' : 'border-b-slate-700'
+                    }`}
                     style={{ left: `${tooltipPos.arrowLeft}px` }}
                   ></span>
                   <span
@@ -369,7 +377,9 @@ export default function TechTerm({ term, children, className = '' }: TechTermPro
               ) : (
                 <>
                   <span
-                    className="absolute top-full border-8 border-transparent border-t-slate-700 -translate-x-1/2"
+                    className={`absolute top-full border-8 border-transparent -translate-x-1/2 transition-colors duration-300 ${
+                      justDiscovered ? 'border-t-emerald-500/60' : 'border-t-slate-700'
+                    }`}
                     style={{ left: `${tooltipPos.arrowLeft}px` }}
                   ></span>
                   <span

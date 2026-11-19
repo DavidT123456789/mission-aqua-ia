@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ShieldCheck, Sparkles, Cpu, MessageSquareText, CheckCircle2, AlertTriangle, Droplets, Award, ChevronRight, LockOpen } from 'lucide-react';
+import { ShieldCheck, Sparkles, Cpu, TrendingUp, CheckCircle2, AlertTriangle, Droplets, Award, ChevronRight, LockOpen } from 'lucide-react';
 import TechTerm from './TechTerm';
+import ActionButton from './ActionButton';
 import { soundManager } from '../utils/soundManager';
 
-export type BonusMissionId = 'prompt' | 'gpu_bias';
+export type BonusMissionId = 'gpu_cost' | 'rebound';
 
 interface BonusOption {
   id: string;
@@ -33,81 +34,12 @@ interface BonusMissionDef {
 
 const BONUS_MISSIONS: BonusMissionDef[] = [
   {
-    id: 'prompt',
-    badgeTitle: 'Maître du Prompt Sobre',
-    title: 'Dossier #1 : L\'Art du Prompt Sobre',
+    id: 'gpu_cost',
+    badgeTitle: 'Architecte Matériel & GPU',
+    title: 'Dossier #1 : Coût des Puces (GPU) & Eau Ultra-Pure',
     subtitle: (
       <>
-        Savoir quand se passer d'<TechTerm term="IA Générative">IA générative</TechTerm> et rédiger un{' '}
-        <TechTerm term="Prompt">prompt</TechTerm> précis du premier coup.
-      </>
-    ),
-    icon: MessageSquareText,
-    accentClass: 'text-cyan-400',
-    steps: [
-      {
-        title: 'Cas 1/2 — Requête factuelle simple',
-        prompt: 'Votre équipe a besoin d\'un chiffre officiel : « Quelle est la consommation moyenne d\'eau par habitant en France ? » Quelle méthode choisissez-vous ?',
-        options: [
-          {
-            id: 'a',
-            label: 'Demander à un grand LLM puis générer une infographie par IA',
-            waterCostLabel: '~18 mL d\'eau',
-            isCorrect: false,
-            feedback: 'Gaspillage : générer une image et solliciter un grand modèle pour un simple chiffre multiplie la facture hydrique par 60 !'
-          },
-          {
-            id: 'b',
-            label: 'Poser une question floue à un chatbot sans préciser pays ni unité (3 relances)',
-            waterCostLabel: '~9 mL d\'eau',
-            isCorrect: false,
-            feedback: 'Chaque relance oblige le modèle à relire tout l\'historique de la discussion. Pour un fait connu, ce n\'est pas nécessaire.'
-          },
-          {
-            id: 'c',
-            label: 'Moteur de recherche classique ou site public (Sans IA générative)',
-            waterCostLabel: '~0,3 mL d\'eau',
-            isCorrect: true,
-            feedback: 'Exact ! Pour retrouver une information factuelle ou un site officiel, la recherche classique consomme 10 à 30 fois moins qu\'un LLM.'
-          }
-        ]
-      },
-      {
-        title: 'Cas 2/2 — Synthèse municipale cadrée',
-        prompt: 'Vous devez maintenant rédiger une note de 10 lignes pour la mairie à partir de 3 chiffres clés d\'HYDRA. Quel usage est le plus sobre ?',
-        options: [
-          {
-            id: 'a',
-            label: 'Conversation en 5 relances floues (« écris », « plus court », « plus formel », « ajoute les chiffres », « fais une image »)',
-            waterCostLabel: '~28 mL d\'eau',
-            isCorrect: false,
-            feedback: '5 relances + une image superflue ! À chaque tour, l\'IA recalcule toute la conversation et gaspille eau et électricité.'
-          },
-          {
-            id: 'b',
-            label: '1 prompt structuré (Rôle + Contexte + 3 chiffres + Format 10 lignes, sans image)',
-            waterCostLabel: '~2,5 mL d\'eau',
-            isCorrect: true,
-            feedback: 'Bravo ! Un prompt complet et cadré dès le premier envoi (one-shot) supprime les relances inutiles et divise l\'empreinte par 10.'
-          },
-          {
-            id: 'c',
-            label: 'Copier-coller 60 pages de logs bruts dans le chat et demander « résume + illustre en 4K »',
-            waterCostLabel: '~22 mL d\'eau',
-            isCorrect: false,
-            feedback: 'Envoyer un contexte massif et demander une image décorative alourdit inutilement les calculs sur les serveurs.'
-          }
-        ]
-      }
-    ]
-  },
-  {
-    id: 'gpu_bias',
-    badgeTitle: 'Auditeur Anti-Biais & GPU',
-    title: 'Dossier #2 : Coût des Puces (GPU) & Biais d\'IA',
-    subtitle: (
-      <>
-        Éviter la fabrication inutile de <TechTerm term="GPU">GPU</TechTerm> et repérer les biais dans les données d'entraînement.
+        Éviter la fabrication inutile de <TechTerm term="GPU">GPU</TechTerm> et économiser l'<TechTerm term="Eau virtuelle">eau virtuelle</TechTerm> des usines.
       </>
     ),
     icon: Cpu,
@@ -147,41 +79,103 @@ const BONUS_MISSIONS: BonusMissionDef[] = [
         ]
       },
       {
-        title: 'Cas 2/2 — Détection d\'un biais hydrique',
-        prompt: 'En période de sécheresse, l\'IA d\'HYDRA réduit automatiquement la pression d\'eau dans le « Quartier Nord », estimant qu\'il en a moins besoin. Identifiez l\'origine du problème :',
+        title: 'Cas 2/2 — Mutualisation & Taux d\'utilisation',
+        prompt: 'Le lycée et la mairie veulent chacun un modèle d\'IA pour optimiser le chauffage de leurs bâtiments 2 heures par jour. Comment déployer ?',
+        options: [
+          {
+            id: 'a',
+            label: 'Installer un serveur GPU dédié dans chaque bâtiment (utilisé à 8 % du temps)',
+            waterCostLabel: '2× eau de fabrication',
+            isCorrect: false,
+            feedback: 'Gaspillage matériel : un serveur sous-exploité coûte presque autant d\'eau à fabriquer qu\'un serveur bien mutualisé.'
+          },
+          {
+            id: 'b',
+            label: 'Mutualiser un petit serveur partagé existant pour planifier leurs créneaux à tour de rôle',
+            waterCostLabel: 'Sobriété maximale',
+            isCorrect: true,
+            feedback: 'Exact ! Mutualiser les équipements existants augmente leur taux d\'utilisation réel et évite de fabriquer de nouvelles puces.'
+          },
+          {
+            id: 'c',
+            label: 'Renouveler tous les ordinateurs du lycée tous les 2 ans pour suivre les dernières puces',
+            waterCostLabel: 'Impact × 3',
+            isCorrect: false,
+            feedback: 'Remplacer trop vite du matériel fonctionnel multiplie la consommation d\'eau ultra-pure et de métaux rares.'
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'rebound',
+    badgeTitle: 'Veilleur Anti-Rebond',
+    title: 'Dossier #2 : L\'Effet Rebond (Paradoxe de Jevons)',
+    subtitle: (
+      <>
+        Comprendre pourquoi rendre une <TechTerm term="IA">IA</TechTerm> plus rapide ou moins chère peut paradoxalement augmenter la consommation totale d'eau.
+      </>
+    ),
+    icon: TrendingUp,
+    accentClass: 'text-cyan-400',
+    steps: [
+      {
+        title: 'Cas 1/2 — Diagnostic de l\'effet rebond',
+        prompt: 'Grâce à une nouvelle puce, générer une image IA consomme 5 fois moins d\'eau qu\'avant (2,4 mL au lieu de 12 mL). Pourtant, la facture d\'eau du datacenter double en 6 mois ! Pourquoi ?',
         contextBox: (
-          <div className="grid sm:grid-cols-2 gap-2.5 text-xs">
-            <div className="bg-slate-900/80 border border-slate-800 rounded-lg p-2.5">
-              <div className="font-bold text-cyan-300 mb-1">Centre-Ville</div>
-              <div className="text-slate-400">120 capteurs IoT + signalements via appli mobile → <strong className="text-emerald-400">98 % des besoins visibles</strong></div>
-            </div>
-            <div className="bg-slate-900/80 border border-amber-500/30 rounded-lg p-2.5">
-              <div className="font-bold text-amber-300 mb-1">Quartier Nord</div>
-              <div className="text-slate-400">4 vieux capteurs + fiches papier non numérisées → <strong className="text-red-400">15 % des besoins visibles</strong></div>
-            </div>
+          <div className="bg-slate-900/80 border border-slate-800 rounded-lg p-3 text-xs text-slate-300">
+            Relevé mensuel : coût unitaire divisé par <strong className="text-emerald-400">5</strong>, mais nombre de requêtes multiplié par{' '}
+            <strong className="text-amber-300">10</strong> (génération automatique sur chaque page web et e-mail).
           </div>
         ),
         options: [
           {
             id: 'a',
-            label: 'L\'IA est neutre par nature : il suffit de rajouter des GPU pour calculer plus vite',
-            waterCostLabel: 'Biais amplifié',
+            label: 'Les chiffres sont faux : optimiser l\'efficacité réduit toujours la consommation totale',
+            waterCostLabel: 'Erreur d\'analyse',
             isCorrect: false,
-            feedback: 'Plus de GPU sur des données biaisées ne fait qu\'accélérer une mauvaise décision (« Garbage in, garbage out »).'
+            feedback: 'Attention : l\'efficacité unitaire ne suffit pas si les usages explosent en volume !'
           },
           {
             id: 'b',
-            label: 'Biais de représentativité : rééquilibrer le jeu de données avec les relevés terrain du Quartier Nord',
-            waterCostLabel: 'Distribution équitable',
+            label: 'Effet rebond : comme c\'est plus rapide et moins cher, on l\'utilise 10 fois plus (2,4 × 10 > 12 × 1)',
+            waterCostLabel: 'Consommation × 2',
             isCorrect: true,
-            feedback: 'Exact ! Une IA reproduit les angles morts de ses données. Sans audit humain, les zones moins connectées sont injustement pénalisées.'
+            feedback: 'Exact ! C\'est le paradoxe de Jevons : quand une ressource devient plus efficace, sa facilité d\'usage déclenche souvent une explosion du volume total.'
           },
           {
             id: 'c',
-            label: 'Débrancher les capteurs du Centre-Ville pour obtenir le même taux de panne partout',
-            waterCostLabel: 'Réseau dégradé',
+            label: 'C\'est uniquement dû à la météo : l\'eau des serveurs s\'évapore plus vite quand le modèle est petit',
+            waterCostLabel: 'Hors sujet',
             isCorrect: false,
-            feedback: 'Supprimer des capteurs utiles ferait perdre le suivi des fuites : il faut compléter et rééquilibrer les données manquantes.'
+            feedback: 'Non, le phénomène vient directement de la hausse massive du nombre d\'appels (× 10).'
+          }
+        ]
+      },
+      {
+        title: 'Cas 2/2 — Bloquer l\'effet rebond sur HYDRA',
+        prompt: 'Quelle règle technique empêche l\'effet rebond sur les nouveaux services municipaux d\'HYDRA ?',
+        options: [
+          {
+            id: 'a',
+            label: 'Activer l\'IA générative par défaut sur tous les formulaires pour « rentabiliser » l\'optimisation',
+            waterCostLabel: 'Rebond maximal',
+            isCorrect: false,
+            feedback: 'Imposer l\'IA là où personne n\'en a besoin déclenche précisément un effet rebond massif.'
+          },
+          {
+            id: 'b',
+            label: 'Coupler l\'optimisation à des plafonds de volume (quotas), un déclenchement sur demande et des alertes de dérive',
+            waterCostLabel: 'Impact maîtrisé',
+            isCorrect: true,
+            feedback: 'Bravo ! Sans sobriété dans les usages et sans plafonds globaux, les gains techniques sont vite annulés par la croissance du volume.'
+          },
+          {
+            id: 'c',
+            label: 'Cacher la consommation d\'eau aux utilisateurs pour qu\'ils utilisent le service sans crainte',
+            waterCostLabel: 'Opacité totale',
+            isCorrect: false,
+            feedback: 'La transparence et la mesure en continu sont au contraire indispensables pour éviter les dérives.'
           }
         ]
       }
@@ -198,6 +192,7 @@ export default function BonusMissions({ completedMissions, onCompleteMission }: 
   const [activeMissionId, setActiveMissionId] = useState<BonusMissionId | null>(null);
   const [stepIndex, setStepIndex] = useState(0);
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
+  const [revealedOptionIds, setRevealedOptionIds] = useState<string[]>([]);
   const [stepValidated, setStepValidated] = useState(false);
 
   const activeMission = BONUS_MISSIONS.find(m => m.id === activeMissionId) || null;
@@ -209,13 +204,15 @@ export default function BonusMissions({ completedMissions, onCompleteMission }: 
     setActiveMissionId(id);
     setStepIndex(0);
     setSelectedOptionId(null);
+    setRevealedOptionIds([]);
     setStepValidated(false);
   };
 
   const handleSelectOption = (opt: BonusOption) => {
     setSelectedOptionId(opt.id);
+    setRevealedOptionIds(prev => (prev.includes(opt.id) ? prev : [...prev, opt.id]));
     if (opt.isCorrect) {
-      soundManager.playSuccess();
+      soundManager.playStep();
       setStepValidated(true);
     } else {
       soundManager.playError();
@@ -225,16 +222,19 @@ export default function BonusMissions({ completedMissions, onCompleteMission }: 
 
   const handleNextStep = () => {
     if (!activeMission) return;
-    soundManager.playClick();
     if (stepIndex + 1 < activeMission.steps.length) {
+      soundManager.playClick();
       setStepIndex(stepIndex + 1);
       setSelectedOptionId(null);
+      setRevealedOptionIds([]);
       setStepValidated(false);
     } else {
+      soundManager.playBadgeUnlock();
       onCompleteMission(activeMission.id);
       setActiveMissionId(null);
       setStepIndex(0);
       setSelectedOptionId(null);
+      setRevealedOptionIds([]);
       setStepValidated(false);
     }
   };
@@ -248,7 +248,7 @@ export default function BonusMissions({ completedMissions, onCompleteMission }: 
             Dossiers Classifiés (Défis Bonus)
           </h3>
           <p className="text-xs text-slate-400 mt-0.5 font-sans">
-            Chronomètre arrêté ! Relevez ces mini-défis rapides pour débloquer les badges d'agent élite sur votre dossier.
+            Chronomètre arrêté ! Relevez ces mini-défis rapides pour débloquer les badges d'agent élite (+1 % d'eau sauvée chacun) sur votre dossier.
           </p>
         </div>
         <span className="text-xs font-mono font-bold px-2.5 py-1 rounded-full bg-emerald-950/60 border border-emerald-500/30 text-emerald-300">
@@ -290,7 +290,10 @@ export default function BonusMissions({ completedMissions, onCompleteMission }: 
                       <Award className="w-3.5 h-3.5" /> {mission.badgeTitle}
                     </>
                   ) : (
-                    'Lancer le défi →'
+                    <span className="inline-flex items-center gap-1">
+                      Lancer le défi
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </span>
                   )}
                 </span>
               </div>
@@ -346,16 +349,16 @@ export default function BonusMissions({ completedMissions, onCompleteMission }: 
                     }`}
                   >
                     <span className="text-xs sm:text-sm leading-snug">{opt.label}</span>
-                    <span className={`text-[11px] font-mono font-bold px-2 py-0.5 rounded-full shrink-0 self-start sm:self-center flex items-center gap-1 ${
-                      showGood
-                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
-                        : showBad
-                        ? 'bg-red-500/20 text-red-300 border border-red-500/40'
-                        : 'bg-slate-900 text-cyan-300 border border-slate-700'
-                    }`}>
-                      <Droplets className="w-3 h-3" />
-                      {opt.waterCostLabel}
-                    </span>
+                    {(stepValidated || revealedOptionIds.includes(opt.id)) && (
+                      <span className={`text-[11px] font-mono font-bold px-2 py-0.5 rounded-full shrink-0 self-start sm:self-center flex items-center gap-1 ${
+                        opt.isCorrect
+                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                          : 'bg-red-500/20 text-red-300 border border-red-500/40'
+                      }`}>
+                        <Droplets className="w-3 h-3" />
+                        {opt.waterCostLabel}
+                      </span>
+                    )}
                   </button>
                 );
               })}
@@ -382,14 +385,14 @@ export default function BonusMissions({ completedMissions, onCompleteMission }: 
 
             {stepValidated && (
               <div className="flex justify-end pt-1">
-                <button
-                  type="button"
+                <ActionButton
                   onClick={handleNextStep}
-                  className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-xs font-mono font-bold transition-all hover:shadow-[0_0_14px_rgba(16,185,129,0.3)]"
+                  size="md"
+                  className="text-xs sm:text-sm font-mono"
                 >
                   {stepIndex + 1 < activeMission.steps.length ? 'CAS SUIVANT' : 'DÉBLOQUER LE BADGE'}
                   <ChevronRight className="w-4 h-4" />
-                </button>
+                </ActionButton>
               </div>
             )}
           </motion.div>

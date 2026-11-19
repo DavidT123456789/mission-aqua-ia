@@ -1,13 +1,29 @@
 import { GoogleGenAI } from "@google/genai";
+import { FALLBACK_PROTOTYPE_DATA_URI } from "../../shared/fallbackPrototype";
 
 export async function onRequestPost({ request, env }) {
-  const fallbackImageUrl = "https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=1024&auto=format&fit=crop";
+  const fallbackImageUrl = FALLBACK_PROTOTYPE_DATA_URI;
 
   try {
-    const { title, description } = await request.json();
-    
+    const body = await request.json();
+    const rawTitle = body?.title;
+    const rawDescription = body?.description;
+
+    if (typeof rawTitle !== 'string' || typeof rawDescription !== 'string') {
+      return new Response(JSON.stringify({ error: "Missing title or description" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+
+    const title = rawTitle.trim().slice(0, 120);
+    const description = rawDescription.trim().slice(0, 600);
+
     if (!title || !description) {
-      return new Response(JSON.stringify({ error: "Missing title or description" }), { status: 400 });
+      return new Response(JSON.stringify({ error: "Missing title or description" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" }
+      });
     }
 
     const apiKey = env.GEMINI_API_KEY;

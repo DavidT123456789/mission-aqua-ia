@@ -1,19 +1,26 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Activity, Search, AlertCircle, CheckCircle2, Waves, Wrench, Droplets, ShieldCheck } from 'lucide-react';
+import { Radar, Search, AlertCircle, CheckCircle2, Waves, Wrench, Droplets, ShieldCheck } from 'lucide-react';
 import NaiaDialogue from '../components/NaiaDialogue';
+import HydraLog from '../components/HydraLog';
 import TechTerm from '../components/TechTerm';
+import LevelHeader from '../components/LevelHeader';
+import LevelShell from '../components/LevelShell';
+import ActionButton from '../components/ActionButton';
+import LevelSuccessCard from '../components/LevelSuccessCard';
 import { soundManager } from '../utils/soundManager';
 import { useErrorFeedback } from '../utils/useErrorFeedback';
 
-export default function Level3({ isDevMode, onComplete, onScoreUpdate, onMistake }: { isDevMode?: boolean; onComplete: () => void; onScoreUpdate: (points: number, water: number) => void; onMistake?: () => void; key?: string }) {
+export default function Level3({ onComplete, onScoreUpdate, onMistake }: { onComplete: () => void; onScoreUpdate: (points: number, water: number) => void; onMistake?: () => void; key?: string }) {
   const [selectedSensor, setSelectedSensor] = useState<string | null>(null);
+  const [scannedSensors, setScannedSensors] = useState<string[]>([]);
   const [failedSensors, setFailedSensors] = useState<string[]>([]);
+  const [lastFailedSensor, setLastFailedSensor] = useState<string | null>(null);
   const { errorMsg, isErrorFlash, triggerError, clearError } = useErrorFeedback();
 
   // Repair phases: 'idle' | 'detecting' | 'repairing' | 'done'
   const [repairPhase, setRepairPhase] = useState<'idle' | 'detecting' | 'repairing' | 'done'>('idle');
-  const [repairProgress, setRepairProgress] = useState(0);
+  const [repairSubStage, setRepairSubStage] = useState<'isolating' | 'closing'>('isolating');
   const [hasScored, setHasScored] = useState(false);
 
   // Stable refs to avoid useEffect re-triggering on every App render
@@ -29,29 +36,25 @@ export default function Level3({ isDevMode, onComplete, onScoreUpdate, onMistake
     };
   }, []);
 
-  // Repair progress animation
+  // Smooth milestone timers for repair phase (bar itself is GPU-animated by Motion)
   useEffect(() => {
     if (repairPhase !== 'repairing') return;
-    setRepairProgress(0);
-    const duration = 2500; // 2.5 seconds total
-    const steps = 50;
-    const stepTime = duration / steps;
-    let current = 0;
-
-    const interval = setInterval(() => {
-      current++;
-      setRepairProgress(Math.min((current / steps) * 100, 100));
-      if (current >= steps) {
-        clearInterval(interval);
-        setRepairPhase('done');
-        soundManager.playSuccess();
-        if (!hasScoredRef.current) {
-          setHasScored(true);
-          onScoreUpdateRef.current(150, 35);
-        }
+    setRepairSubStage('isolating');
+    const midTimer = setTimeout(() => {
+      setRepairSubStage('closing');
+    }, 1250);
+    const doneTimer = setTimeout(() => {
+      setRepairPhase('done');
+      soundManager.playSuccess();
+      if (!hasScoredRef.current) {
+        setHasScored(true);
+        onScoreUpdateRef.current(150, 35);
       }
-    }, stepTime);
-    return () => clearInterval(interval);
+    }, 2500);
+    return () => {
+      clearTimeout(midTimer);
+      clearTimeout(doneTimer);
+    };
   }, [repairPhase]);
 
   const sensors = [
@@ -64,10 +67,20 @@ export default function Level3({ isDevMode, onComplete, onScoreUpdate, onMistake
 
   const handleSelect = (id: string) => {
     if (repairPhase !== 'idle') return;
-    if (id !== 'C' && failedSensors.includes(id)) return;
+    if (failedSensors.includes(id)) return;
     soundManager.playClick();
+    setScannedSensors(prev => (prev.includes(id) ? prev : [...prev, id]));
     setSelectedSensor(id);
-    if (id === 'C') {
+    setLastFailedSensor(null);
+    clearError();
+  };
+
+  const handleConfirm = () => {
+    if (repairPhase !== 'idle' || !selectedSensor) return;
+    if (failedSensors.includes(selectedSensor)) return;
+
+    if (selectedSensor === 'C') {
+      setLastFailedSensor(null);
       clearError();
       setRepairPhase('detecting');
       // After detection phase, start repair
@@ -75,9 +88,12 @@ export default function Level3({ isDevMode, onComplete, onScoreUpdate, onMistake
         setRepairPhase('repairing');
       }, 1200);
     } else {
-      setFailedSensors(prev => (prev.includes(id) ? prev : [...prev, id]));
+      const wrongId = selectedSensor;
+      setFailedSensors(prev => (prev.includes(wrongId) ? prev : [...prev, wrongId]));
+      setLastFailedSensor(wrongId);
+      setSelectedSensor(null);
       triggerError(
-        id === 'B'
+        wrongId === 'B'
           ? "Faux positif ! Le débit nocturne est modéré (26 L/min pour le nettoyage programmé), mais la pression reste normale (4,3 bar) : ce n'est pas une fuite."
           : "Erreur d'analyse. Ce secteur présente une pression et un débit nocturne normaux."
       );
@@ -97,28 +113,22 @@ export default function Level3({ isDevMode, onComplete, onScoreUpdate, onMistake
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, x: 50 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -50 }}
-      className="sm:bg-slate-900/90 border-transparent sm:border-white/10 sm:border px-0 sm:px-6 py-4 sm:py-6 sm:rounded-2xl max-w-4xl mx-auto relative flex flex-col backdrop-blur-xl sm:shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_24px_48px_rgba(0,0,0,0.55)]"
-    >
+    <LevelShell wide>
       
-      <div className="flex items-center gap-3 mb-3 border-b border-white/10 pb-3">
-        <Activity className="w-7 h-7 text-emerald-400 shrink-0" />
-        <h2 className="font-mono text-xl md:text-2xl font-bold text-white uppercase tracking-widest">
-          Niveau 3 : Détection de Fuites
-        </h2>
-      </div>
+      <LevelHeader level={3} icon={Radar} />
 
-      <div className="mb-4">
+      <div className="mb-4 space-y-2">
+        <HydraLog
+          status="hostile"
+          message="Chute de pression détectée sur le réseau municipal. Pompage compensatoire maintenu pour sécuriser les serveurs."
+        />
         <NaiaDialogue 
           message={
             <>
               Le refroidissement d'HYDRA est stabilisé, mais les réserves continuent de baisser : une fuite souterraine aggrave la pénurie ! Heureusement, l'<TechTerm term="IA" /> croise la pression et le débit la nuit (03h00) pour éviter les faux positifs.
             </>
           }
-          objective="Repérez et cliquez sur le capteur qui cumule une baisse de pression ET un débit nocturne anormalement élevé."
+          objective="Scannez les capteurs sur la carte radar pour révéler leur télémétrie, puis isolez celui qui cumule une baisse de pression ET un débit nocturne anormalement élevé."
           reaction={errorMsg ? { message: errorMsg, emotion: 'alert' } : null}
           onDismissReaction={clearError}
           emotion={isSuccess ? 'happy' : 'neutral'}
@@ -129,7 +139,7 @@ export default function Level3({ isDevMode, onComplete, onScoreUpdate, onMistake
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Interactive Radar Map */}
           <div className="w-full lg:w-1/2 flex flex-col gap-0">
-            <div className="relative bg-slate-950 rounded-xl border border-slate-800 min-h-[350px] overflow-hidden">
+            <div className="relative bg-slate-950 rounded-2xl border border-white/10 min-h-[350px] overflow-hidden">
               {/* Grid Background */}
               <div className="absolute inset-0 opacity-20 pointer-events-none">
                 <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
@@ -142,16 +152,16 @@ export default function Level3({ isDevMode, onComplete, onScoreUpdate, onMistake
                 </svg>
               </div>
               
-              {/* Radar Sweep Line — CSS/Motion animation without component re-renders */}
+              {/* Radar Sweep Line — GPU translateY animation without layout reflow */}
               {!isSuccess && (
                 <motion.div
-                  className="absolute left-0 right-0 h-14 z-10 pointer-events-none"
-                  initial={{ top: '-14%' }}
-                  animate={{ top: '100%' }}
+                  className="absolute inset-0 z-10 pointer-events-none will-change-transform"
+                  initial={{ y: '-16%' }}
+                  animate={{ y: '100%' }}
                   transition={{ duration: 4.5, repeat: Infinity, ease: 'linear' }}
                 >
                   <div
-                    className="w-full h-full transition-colors duration-500"
+                    className="w-full h-14 transition-colors duration-500"
                     style={{
                       background: isActive
                         ? 'linear-gradient(to bottom, transparent, rgba(245, 158, 11, 0.10))'
@@ -254,12 +264,28 @@ export default function Level3({ isDevMode, onComplete, onScoreUpdate, onMistake
                 )}
               </AnimatePresence>
 
+              {/* Radar scan progress badge */}
+              <div className="absolute top-3 left-3 z-30 pointer-events-none flex items-center gap-2 bg-slate-950/85 border border-cyan-500/30 px-2.5 py-1 rounded-lg backdrop-blur-sm">
+                <Radar className="w-3.5 h-3.5 text-cyan-400" />
+                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-cyan-300">
+                  Relevés : {scannedSensors.length} / {sensors.length}
+                </span>
+              </div>
+              {scannedSensors.length < sensors.length && repairPhase === 'idle' && (
+                <div className="absolute bottom-3 left-3 right-3 z-30 pointer-events-none flex justify-center">
+                  <span className="text-[10px] font-mono text-slate-300 bg-slate-950/85 border border-slate-700/80 px-2.5 py-1 rounded-full">
+                    Cliquez sur un capteur de la carte pour lancer le scan
+                  </span>
+                </div>
+              )}
+
               {/* Sensors on Map */}
               {sensors.map((sensor) => {
                 const isSelected = selectedSensor === sensor.id;
+                const isScanned = scannedSensors.includes(sensor.id);
                 const isAnomaly = sensor.id === 'C';
                 const isFailed = failedSensors.includes(sensor.id);
-                const isLastFailed = isFailed && isSelected;
+                const isLastFailed = isFailed && lastFailedSensor === sensor.id;
                 
                 return (
                   <div
@@ -267,6 +293,15 @@ export default function Level3({ isDevMode, onComplete, onScoreUpdate, onMistake
                     className="absolute transform -translate-x-1/2 -translate-y-1/2 z-20"
                     style={{ top: sensor.pos.top, left: sensor.pos.left }}
                   >
+                    {/* Subtle sonar cue for unscanned sensors */}
+                    {!isScanned && repairPhase === 'idle' && (
+                      <motion.div
+                        className="absolute inset-[-5px] rounded-full border border-cyan-400/45 pointer-events-none"
+                        animate={{ scale: [1, 1.55], opacity: [0.55, 0] }}
+                        transition={{ duration: 2.2, repeat: Infinity, ease: 'easeOut' }}
+                      />
+                    )}
+
                     {/* Expanding rings for anomaly during repair */}
                     {isAnomaly && isActive && (
                       <>
@@ -292,26 +327,31 @@ export default function Level3({ isDevMode, onComplete, onScoreUpdate, onMistake
                       />
                     )}
 
-                    {/* Pulse effect for anomaly when selected */}
-                    {isSelected && isAnomaly && !isActive && (
-                      <div className="absolute inset-0 bg-emerald-500 rounded-full animate-ping opacity-20"></div>
-                    )}
                     <button
                       onClick={() => handleSelect(sensor.id)}
                       disabled={repairPhase !== 'idle' || isFailed}
-                      aria-label={isFailed ? `Capteur ${sensor.id} (${sensor.location}) — déjà écarté` : `Sélectionner le capteur ${sensor.id} (${sensor.location})`}
+                      aria-pressed={isSelected}
+                      aria-label={
+                        isFailed
+                          ? `Capteur ${sensor.id} (${sensor.location}) — déjà écarté`
+                          : isScanned
+                            ? `Sélectionner le capteur ${sensor.id} (${sensor.location}) — déjà scanné`
+                            : `Scanner le capteur ${sensor.id} (${sensor.location})`
+                      }
                       className="relative group"
                     >
                       <div className={`relative flex items-center justify-center w-10 h-10 rounded-full border-2 transition-all duration-300 ${
                         isAnomaly && isActive
                           ? 'bg-amber-900 border-amber-400 scale-125'
-                          : isSelected && isAnomaly
+                          : isAnomaly && isSuccess
                             ? 'bg-emerald-900 border-emerald-400 scale-125'
                             : isFailed
                               ? `bg-red-950/75 border-red-500/50 opacity-60 ${isLastFailed && isErrorFlash ? 'animate-shake' : ''}`
-                              : isAnomaly && isSuccess
-                                ? 'bg-emerald-900 border-emerald-400 scale-125'
-                                : 'bg-slate-800 border-blue-500/50 hover:border-blue-400 hover:shadow-[0_0_14px_rgba(96,165,250,0.3)]'
+                              : isSelected
+                                ? 'bg-cyan-950 border-cyan-400 scale-115 shadow-[0_0_16px_rgba(34,211,238,0.4)]'
+                                : isScanned
+                                  ? 'bg-slate-800 border-emerald-400/70 hover:border-cyan-400 hover:shadow-[0_0_14px_rgba(34,211,238,0.3)]'
+                                  : 'bg-slate-900 border-blue-500/50 hover:border-cyan-400 hover:shadow-[0_0_14px_rgba(96,165,250,0.35)]'
                       }`}>
                         {/* Wrench icon during repair */}
                         {isAnomaly && isActive ? (
@@ -325,7 +365,7 @@ export default function Level3({ isDevMode, onComplete, onScoreUpdate, onMistake
                           <ShieldCheck className="w-4 h-4 text-emerald-400" />
                         ) : (
                           <span className={`font-bold text-sm ${
-                            isSelected && isAnomaly ? 'text-emerald-400' : isFailed ? 'text-red-400' : 'text-blue-400'
+                            isFailed ? 'text-red-400' : isSelected ? 'text-cyan-300' : isScanned ? 'text-emerald-300' : 'text-blue-400'
                           }`}>
                             {sensor.id}
                           </span>
@@ -391,12 +431,13 @@ export default function Level3({ isDevMode, onComplete, onScoreUpdate, onMistake
                           isSuccess ? 'bg-emerald-500' : 'bg-amber-500'
                         }`}
                         initial={{ width: '0%' }}
-                        animate={{ 
-                          width: repairPhase === 'detecting' ? '30%' 
-                            : isSuccess ? '100%' 
-                            : `${Math.max(30, repairProgress)}%` 
+                        animate={{
+                          width: repairPhase === 'detecting' ? '30%' : '100%'
                         }}
-                        transition={{ duration: repairPhase === 'detecting' ? 1.2 : 0.1 }}
+                        transition={{
+                          duration: repairPhase === 'detecting' ? 1.2 : repairPhase === 'repairing' ? 2.5 : 0.25,
+                          ease: 'easeInOut'
+                        }}
                         style={!isSuccess ? {
                           boxShadow: '0 0 10px rgba(245, 158, 11, 0.5), 0 0 20px rgba(245, 158, 11, 0.2)'
                         } : {
@@ -409,8 +450,8 @@ export default function Level3({ isDevMode, onComplete, onScoreUpdate, onMistake
                     <div className="flex justify-between text-xs mt-2">
                       {[
                         { label: 'Détection', active: repairPhase === 'detecting', done: repairPhase === 'repairing' || isSuccess },
-                        { label: 'Isolation', active: repairPhase === 'repairing' && repairProgress < 50, done: (repairPhase === 'repairing' && repairProgress >= 50) || isSuccess },
-                        { label: 'Fermeture', active: repairPhase === 'repairing' && repairProgress >= 50, done: isSuccess },
+                        { label: 'Isolation', active: repairPhase === 'repairing' && repairSubStage === 'isolating', done: (repairPhase === 'repairing' && repairSubStage === 'closing') || isSuccess },
+                        { label: 'Fermeture', active: repairPhase === 'repairing' && repairSubStage === 'closing', done: isSuccess },
                       ].map((step, i) => (
                         <div key={i} className="flex items-center gap-1.5">
                           <div className={`w-2 h-2 rounded-full transition-all duration-300 ${
@@ -442,24 +483,31 @@ export default function Level3({ isDevMode, onComplete, onScoreUpdate, onMistake
             <div className="grid grid-cols-1 gap-3">
               {sensors.map((sensor) => {
                 const isSelected = selectedSensor === sensor.id;
+                const isScanned = scannedSensors.includes(sensor.id) || isSuccess;
                 const isAnomaly = sensor.id === 'C';
                 const isFailed = failedSensors.includes(sensor.id);
-                const isLastFailed = isFailed && isSelected;
+                const isLastFailed = isFailed && lastFailedSensor === sensor.id;
                 const pressurePercent = (sensor.pressure / 5) * 100;
 
                 return (
                   <button
                     key={sensor.id}
+                    type="button"
                     onClick={() => handleSelect(sensor.id)}
                     disabled={repairPhase !== 'idle' || isFailed}
-                    className={`relative p-3 rounded-lg border-2 flex flex-col items-start transition-all duration-300 ${
+                    aria-pressed={isSelected}
+                    className={`relative p-3 rounded-xl border-2 flex flex-col items-start transition-all duration-200 ${
                       isAnomaly && isActive
                         ? 'bg-amber-900/30 border-amber-500/60 scale-[1.02]'
-                        : isSelected && isAnomaly
+                        : isAnomaly && isSuccess
                           ? 'bg-emerald-900/40 border-emerald-500 scale-[1.02]'
                           : isFailed
                             ? `bg-red-950/25 border-red-500/45 opacity-65 ${isLastFailed && isErrorFlash ? 'animate-shake' : ''}`
-                            : 'bg-slate-900 border-slate-700 hover:border-slate-500'
+                            : isSelected
+                              ? 'bg-cyan-950/40 border-cyan-400 shadow-[0_0_14px_rgba(34,211,238,0.18)] active:scale-[0.985]'
+                              : isScanned
+                                ? 'bg-slate-900 border-slate-700 hover:border-slate-500 active:scale-[0.985]'
+                                : 'bg-slate-950/80 border-slate-800 border-dashed hover:border-cyan-500/50 active:scale-[0.985]'
                     }`}
                   >
                     <div className="flex justify-between w-full mb-2">
@@ -467,16 +515,25 @@ export default function Level3({ isDevMode, onComplete, onScoreUpdate, onMistake
                         <div className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs ${
                           isAnomaly && isActive 
                             ? 'bg-amber-500 text-slate-900' 
-                            : isSelected && isAnomaly 
+                            : isAnomaly && isSuccess 
                               ? 'bg-emerald-500 text-slate-900' 
                               : isFailed
                                 ? 'bg-red-950 text-red-300 border border-red-500/40'
-                                : 'bg-slate-800 text-slate-300'
+                                : isSelected
+                                  ? 'bg-cyan-400 text-slate-950'
+                                  : isScanned
+                                    ? 'bg-slate-800 text-emerald-300'
+                                    : 'bg-slate-900 text-slate-500 border border-slate-700'
                         }`}>
                           {sensor.id}
                         </div>
                         <span className="text-xs text-slate-400 uppercase tracking-wider">{sensor.location}</span>
                       </div>
+                      {!isScanned && (
+                        <span className="flex items-center gap-1 text-[10px] font-mono uppercase text-cyan-400/80 shrink-0">
+                          <Radar className="w-3 h-3" /> À scanner
+                        </span>
+                      )}
                       {isFailed && (
                         <span className="flex items-center gap-1 text-[10px] font-bold uppercase text-red-400 shrink-0">
                           <AlertCircle className="w-3.5 h-3.5" /> Écarté
@@ -487,56 +544,64 @@ export default function Level3({ isDevMode, onComplete, onScoreUpdate, onMistake
                           <Wrench className="w-4 h-4 text-amber-500" />
                         </motion.div>
                       )}
-                      {isSelected && isAnomaly && !isActive && <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
+                      {isAnomaly && isSuccess && <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
                     </div>
                     
-                    <div className="w-full space-y-2">
-                      <div className="flex justify-between text-xs">
-                        <span className="text-slate-500 uppercase">Pression • <span className="normal-case text-slate-400">{sensor.note}</span></span>
-                        <span className={`font-bold ${
-                          isFailed ? 'text-red-200' : 
-                          isAnomaly && isActive ? 'text-amber-300' :
-                          isSelected && isAnomaly ? 'text-white drop-shadow-md' : 'text-slate-300'
-                        }`}>{sensor.pressure} bar</span>
+                    {!isScanned ? (
+                      <div className="w-full py-2 px-2.5 rounded-md bg-slate-900/70 border border-slate-800/80 flex items-center justify-between text-[11px] font-mono text-slate-400">
+                        <span>Télémétrie non relevée</span>
+                        <span className="text-cyan-400/90">Cliquer pour scanner</span>
                       </div>
-                      <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                        <motion.div 
-                          className={`h-full ${
-                            isFailed ? 'bg-red-500/75' : 
-                            isAnomaly && isActive ? 'bg-amber-500' :
-                            isSelected && isAnomaly ? 'bg-emerald-500' : 
-                            'bg-blue-600'
-                          }`}
-                          initial={{ width: 0 }}
-                          animate={{ width: `${pressurePercent}%` }}
-                          transition={{ duration: 0.5 }}
-                        />
+                    ) : (
+                      <div className="w-full space-y-2">
+                        <div className="flex justify-between text-xs">
+                          <span className="text-slate-400 uppercase">Pression • <span className="normal-case text-slate-300">{sensor.note}</span></span>
+                          <span className={`font-bold font-mono tabular-nums shrink-0 ${
+                            isFailed ? 'text-red-200' : 
+                            isAnomaly && isActive ? 'text-amber-300' :
+                            isAnomaly && isSuccess ? 'text-white drop-shadow-md' : 'text-slate-300'
+                          }`}>{sensor.pressure.toFixed(1).replace('.', ',')} bar</span>
+                        </div>
+                        <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                          <motion.div 
+                            className={`h-full ${
+                              isFailed ? 'bg-red-500/75' : 
+                              isAnomaly && isActive ? 'bg-amber-500' :
+                              isAnomaly && isSuccess ? 'bg-emerald-500' : 
+                              isSelected ? 'bg-cyan-400' :
+                              'bg-blue-600'
+                            }`}
+                            initial={{ width: 0 }}
+                            animate={{ width: `${pressurePercent}%` }}
+                            transition={{ duration: 0.5 }}
+                          />
+                        </div>
+                        <div className="flex justify-between text-xs pt-0.5">
+                          <span className="text-slate-400 uppercase">Débit nocturne (03h00)</span>
+                          <span className="font-bold font-mono tabular-nums text-cyan-300">{sensor.nightFlow} L/min</span>
+                        </div>
+                        <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                          <motion.div
+                            className={`h-full ${
+                              isFailed ? 'bg-red-500/75' :
+                              isAnomaly && isActive ? 'bg-amber-500' :
+                              isAnomaly && isSuccess ? 'bg-emerald-500' :
+                              'bg-cyan-500'
+                            }`}
+                            initial={{ width: 0 }}
+                            animate={{ width: `${Math.min((sensor.nightFlow / 50) * 100, 100)}%` }}
+                            transition={{ duration: 0.5 }}
+                          />
+                        </div>
                       </div>
-                      <div className="flex justify-between text-xs pt-0.5">
-                        <span className="text-slate-500 uppercase">Débit nocturne (03h00)</span>
-                        <span className="font-bold text-cyan-300">{sensor.nightFlow} L/min</span>
-                      </div>
-                      <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                        <motion.div
-                          className={`h-full ${
-                            isFailed ? 'bg-red-500/75' :
-                            isAnomaly && isActive ? 'bg-amber-500' :
-                            isSelected && isAnomaly ? 'bg-emerald-500' :
-                            'bg-cyan-500'
-                          }`}
-                          initial={{ width: 0 }}
-                          animate={{ width: `${Math.min((sensor.nightFlow / 50) * 100, 100)}%` }}
-                          transition={{ duration: 0.5 }}
-                        />
-                      </div>
-                    </div>
+                    )}
 
-                    {/* Water leak animation for the anomaly if selected */}
-                    {isAnomaly && (isActive || (isSelected && !isSuccess)) && (
+                    {/* Water leak animation for the anomaly once repair started */}
+                    {isAnomaly && isActive && (
                       <motion.div 
                         initial={{ opacity: 0 }}
-                        animate={{ opacity: isActive ? [0.5, 0.2, 0.5] : 1 }}
-                        transition={isActive ? { duration: 1.5, repeat: Infinity } : {}}
+                        animate={{ opacity: [0.5, 0.2, 0.5] }}
+                        transition={{ duration: 1.5, repeat: Infinity }}
                         className="absolute right-4 top-1/2 -translate-y-1/2 text-blue-400/30"
                       >
                         <Waves className="w-12 h-12" />
@@ -549,31 +614,40 @@ export default function Level3({ isDevMode, onComplete, onScoreUpdate, onMistake
           </div>
         </div>
 
+        {/* Confirm selected sensor button */}
+        {repairPhase === 'idle' && (
+          <div className="flex justify-center pt-1">
+            <ActionButton
+              onClick={handleConfirm}
+              disabled={!selectedSensor}
+              isError={isErrorFlash}
+            >
+              <Wrench className="w-5 h-5" />
+              {isErrorFlash
+                ? 'FAUSSE PISTE — RÉANALYSEZ'
+                : selectedSensor
+                ? `ISOLER LA FUITE (CAPTEUR ${selectedSensor})`
+                : 'SÉLECTIONNEZ UN CAPTEUR'}
+            </ActionButton>
+          </div>
+        )}
+
         {/* Success panel — inline, no modal */}
         <AnimatePresence>
           {isSuccess && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex flex-col items-center mt-5 p-6 bg-emerald-950/30 border border-emerald-500/50 rounded-lg"
-            >
-              <div className="flex items-center gap-2 text-emerald-400 font-bold text-xl mb-4">
-                <CheckCircle2 className="w-6 h-6" />
-                FUITE ISOLÉE AVEC SUCCÈS
-              </div>
-              <p className="text-center mb-6 text-sm">
-                L'<TechTerm term="IA" /> a croisé la chute de pression (3,7 bar) avec le débit nocturne anormal (46 L/min alors que les usines sont fermées). Les équipes d'intervention sont en route !
-              </p>
-              <button
-                onClick={onComplete}
-                className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-3 rounded-lg font-bold transition-all hover:shadow-[0_0_18px_rgba(16,185,129,0.35)]"
-              >
-                PASSER À L'ÉTAPE SUIVANTE
-              </button>
-            </motion.div>
+            <LevelSuccessCard
+              title="FUITE ISOLÉE AVEC SUCCÈS"
+              description={
+                <>
+                  L'<TechTerm term="IA" /> a croisé la chute de pression (3,7 bar) avec le débit nocturne anormal (46 L/min alors que les usines sont fermées). Les équipes d'intervention sont en route !
+                </>
+              }
+              buttonLabel="PASSER À L'ÉTAPE SUIVANTE"
+              onContinue={onComplete}
+            />
           )}
         </AnimatePresence>
       </div>
-    </motion.div>
+    </LevelShell>
   );
 }

@@ -1,8 +1,13 @@
-import { useState, useRef, useEffect, type PointerEvent } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { Clock, ArrowRight, Leaf, CheckCircle2, AlertTriangle, Activity, Zap } from 'lucide-react';
+import { useState, useRef, useEffect, type CSSProperties, type PointerEvent } from 'react';
+import { AnimatePresence } from 'motion/react';
+import { Clock, ArrowRight, Leaf, AlertTriangle, LineChart, Zap, Moon, Wind, Sun, Flame, GripHorizontal } from 'lucide-react';
 import NaiaDialogue from '../components/NaiaDialogue';
+import HydraLog from '../components/HydraLog';
 import TechTerm from '../components/TechTerm';
+import LevelHeader from '../components/LevelHeader';
+import LevelShell from '../components/LevelShell';
+import ActionButton from '../components/ActionButton';
+import LevelSuccessCard from '../components/LevelSuccessCard';
 import { soundManager } from '../utils/soundManager';
 import { useErrorFeedback } from '../utils/useErrorFeedback';
 
@@ -10,7 +15,7 @@ import { useErrorFeedback } from '../utils/useErrorFeedback';
 const HOURLY_INTENSITY = [
   42, 38, 35, 36, 40, 48,   // 00h - 05h : forte production éolienne nocturne
   75, 115, 155, 165, 145, 125, // 06h - 11h : pic matinal
-  110, 95, 92, 105, 140, 195,  // 12h - 17h : creux solaire puis reprise
+  88, 50, 48, 72, 135, 195,  // 12h - 17h : bref creux solaire (2h seulement sous 55g) puis reprise
   245, 260, 235, 185, 120, 65  // 18h - 23h : pointe du soir (centrales à gaz)
 ];
 
@@ -18,7 +23,7 @@ const DURATION_HOURS = 6;
 const TARGET_MAX_INTENSITY = 55; // gCO2eq/kWh
 const TRAINING_ENERGY_KWH = 500;
 
-export default function Level5({ isDevMode, onComplete, onScoreUpdate, onMistake }: { isDevMode?: boolean; onComplete: () => void; onScoreUpdate: (points: number, water: number) => void; onMistake?: () => void; key?: string }) {
+export default function Level5({ onComplete, onScoreUpdate, onMistake }: { onComplete: () => void; onScoreUpdate: (points: number, water: number) => void; onMistake?: () => void; key?: string }) {
   const [startHour, setStartHour] = useState<number>(12); // Démarre en plein milieu de journée pour obliger à ajuster
   const { errorMsg, isErrorFlash: showError, triggerError, clearError } = useErrorFeedback();
   const [hasScored, setHasScored] = useState(false);
@@ -57,9 +62,10 @@ export default function Level5({ isDevMode, onComplete, onScoreUpdate, onMistake
     const hour = getHourFromClientX(e.clientX);
     if (hour === null) return;
 
-    const isInsideWindow = hour >= startHour && hour <= startHour + DURATION_HOURS;
+    // Marge tactile élargie (±1h autour de la fenêtre) pour faciliter la saisie au doigt/trackpad
+    const isInsideWindow = hour >= startHour - 1 && hour <= startHour + DURATION_HOURS + 1;
     if (isInsideWindow) {
-      dragGrabOffsetRef.current = hour - startHour;
+      dragGrabOffsetRef.current = Math.max(0, Math.min(DURATION_HOURS, hour - startHour));
     } else {
       dragGrabOffsetRef.current = DURATION_HOURS / 2;
       setStartHour(clampStartHour(hour - DURATION_HOURS / 2));
@@ -105,14 +111,27 @@ export default function Level5({ isDevMode, onComplete, onScoreUpdate, onMistake
 
   const maxIntensity = 270;
   // 25 points (00:00 -> 24:00) pour aligner exactement la courbe sur les 24h et la fenêtre 6h
-  const chartPoints = [...HOURLY_INTENSITY, HOURLY_INTENSITY[0]];
-  const polylinePoints = chartPoints.map((val, idx) => {
-    const x = (idx / 24) * 100;
-    const y = 100 - (val / maxIntensity) * 100;
-    return `${x},${y}`;
-  }).join(' ');
+  const chartPoints = [...HOURLY_INTENSITY, HOURLY_INTENSITY[0]].map((val, idx) => ({
+    x: (idx / 24) * 100,
+    y: 100 - (val / maxIntensity) * 100,
+  }));
 
-  const polygonPoints = `0,100 ${polylinePoints} 100,100`;
+  // Courbe lissée (Catmull-Rom -> Bézier cubique) passant exactement par les 25 relevés horaires
+  const clampY = (y: number) => Math.max(0, Math.min(100, y));
+  const smoothLinePath = chartPoints.reduce((acc, pt, i, arr) => {
+    if (i === 0) return `M ${pt.x.toFixed(2)},${pt.y.toFixed(2)}`;
+    const p0 = arr[Math.max(0, i - 2)];
+    const p1 = arr[i - 1];
+    const p2 = pt;
+    const p3 = arr[Math.min(arr.length - 1, i + 1)];
+    const cp1x = p1.x + (p2.x - p0.x) / 6;
+    const cp1y = clampY(p1.y + (p2.y - p0.y) / 6);
+    const cp2x = p2.x - (p3.x - p1.x) / 6;
+    const cp2y = clampY(p2.y - (p3.y - p1.y) / 6);
+    return `${acc} C ${cp1x.toFixed(2)},${cp1y.toFixed(2)} ${cp2x.toFixed(2)},${cp2y.toFixed(2)} ${p2.x.toFixed(2)},${p2.y.toFixed(2)}`;
+  }, '');
+  const smoothAreaPath = `${smoothLinePath} L 100,100 L 0,100 Z`;
+  const sliderPct = `${(startHour / (24 - DURATION_HOURS)) * 100}%`;
 
   const handleSubmit = () => {
     if (avgIntensity <= TARGET_MAX_INTENSITY) {
@@ -124,30 +143,29 @@ export default function Level5({ isDevMode, onComplete, onScoreUpdate, onMistake
         onScoreUpdate(150, 49);
       }
     } else {
-      triggerError(`Ce créneau est trop carboné (${avgIntensity} gCO₂/kWh) : visez sous ${TARGET_MAX_INTENSITY} gCO₂/kWh (regardez du côté de l'éolien nocturne).`);
+      const isSolarTrap = startHour >= 9 && startHour <= 14;
+      triggerError(
+        isSolarTrap
+          ? `Le creux solaire de midi est trop court (2 h) pour un entraînement de ${DURATION_HOURS} h : la moyenne monte à ${avgIntensity} gCO₂/kWh (> ${TARGET_MAX_INTENSITY}). Visez le long creux éolien nocturne !`
+          : `Ce créneau est trop carboné (${avgIntensity} gCO₂/kWh) : visez sous ${TARGET_MAX_INTENSITY} gCO₂/kWh (regardez du côté de l'éolien nocturne).`
+      );
       onMistake?.();
     }
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, x: 50 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -50 }}
-      className="sm:bg-slate-900/90 border-transparent sm:border-white/10 sm:border px-0 sm:px-6 py-4 sm:py-6 sm:rounded-2xl max-w-4xl mx-auto relative flex flex-col backdrop-blur-xl sm:shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_24px_48px_rgba(0,0,0,0.55)]"
-    >
-      <div className="flex items-center gap-3 mb-3 border-b border-white/10 pb-3">
-        <Clock className="w-7 h-7 text-emerald-400 shrink-0" />
-        <h2 className="font-mono text-xl md:text-2xl font-bold text-white uppercase tracking-widest">
-          Niveau 5 : Optimisation Temporelle
-        </h2>
-      </div>
+    <LevelShell>
+      <LevelHeader level={5} icon={Clock} />
 
-      <div className="mb-3">
+      <div className="mb-3 space-y-2">
+        <HydraLog
+          status="hostile"
+          message="Entraînement de 500 kWh programmé à 12h00 sans prise en compte de l'intensité carbone du réseau électrique."
+        />
         <NaiaDialogue
           message={
             <>
-              Même sur un site bien refroidi, entraîner ce modèle d'<TechTerm term="IA" /> consomme <strong className="font-mono text-white">{TRAINING_ENERGY_KWH} kWh</strong> pendant <strong className="font-mono text-white">{DURATION_HOURS} h</strong> d'affilée. Selon l'heure, le réseau utilise plus d'éolien ou de centrales à gaz.
+              En attendant la bascule vers Luleå, les serveurs <TechTerm term="Cloud">cloud</TechTerm> secondaires d'HYDRA tournent encore sur le réseau électrique européen, où un entraînement de <TechTerm term="Machine Learning">machine learning</TechTerm> consomme <strong className="font-mono text-white">{TRAINING_ENERGY_KWH} kWh</strong> pendant <strong className="font-mono text-white">{DURATION_HOURS} h</strong> d'affilée. Selon l'heure, le réseau alterne entre éolien, solaire et centrales à gaz.
             </>
           }
           objective={
@@ -163,10 +181,10 @@ export default function Level5({ isDevMode, onComplete, onScoreUpdate, onMistake
 
       <div className="space-y-4 text-slate-300">
         {/* Visual Carbon Intensity Graph */}
-        <div className="mt-3 p-5 sm:p-6 bg-slate-950 rounded-xl border border-slate-800 relative">
+        <div className="mt-3 p-5 sm:p-6 bg-slate-950 rounded-2xl border border-white/10 relative">
           <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
             <div className="flex items-center gap-2">
-              <Activity className="w-5 h-5 text-cyan-400" />
+              <LineChart className="w-5 h-5 text-cyan-400" />
               <h3 className="text-xs sm:text-sm font-bold uppercase text-slate-300 tracking-widest">
                 Prévision d'Intensité Carbone (24h)
               </h3>
@@ -177,11 +195,24 @@ export default function Level5({ isDevMode, onComplete, onScoreUpdate, onMistake
           </div>
 
           {/* Grid mix regimes aligned with the 24h timeline */}
-          <div className="hidden sm:flex ml-7 mb-1.5 text-[10px] text-slate-500 text-center select-none">
-            <span className="w-[25%] border-r border-slate-800/80 px-1 truncate">Éolien nocturne</span>
-            <span className="w-[25%] border-r border-slate-800/80 px-1 truncate">Pic matinal</span>
-            <span className="w-[20.8%] border-r border-slate-800/80 px-1 truncate">Creux solaire</span>
-            <span className="w-[29.2%] px-1 truncate">Pointe soir (gaz)</span>
+          <div className="flex ml-7 mb-1.5 text-[10px] sm:text-[11px] text-slate-400 text-center select-none">
+            <span className="w-[25%] border-r border-slate-800/80 px-1 flex items-center justify-center gap-1 truncate">
+              <Moon className="w-3 h-3 text-cyan-400 shrink-0" />
+              <Wind className="w-3 h-3 text-emerald-400 shrink-0" />
+              <span className="hidden sm:inline truncate">Éolien nocturne</span>
+            </span>
+            <span className="w-[25%] border-r border-slate-800/80 px-1 flex items-center justify-center gap-1 truncate">
+              <Zap className="w-3 h-3 text-amber-400/80 shrink-0" />
+              <span className="hidden sm:inline truncate">Pic matinal</span>
+            </span>
+            <span className="w-[20.8%] border-r border-slate-800/80 px-1 flex items-center justify-center gap-1 truncate">
+              <Sun className="w-3 h-3 text-yellow-400 shrink-0" />
+              <span className="hidden sm:inline truncate">Creux solaire</span>
+            </span>
+            <span className="w-[29.2%] px-1 flex items-center justify-center gap-1 truncate">
+              <Flame className="w-3 h-3 text-orange-400 shrink-0" />
+              <span className="hidden sm:inline truncate">Pointe soir (gaz)</span>
+            </span>
           </div>
 
           <div
@@ -190,14 +221,35 @@ export default function Level5({ isDevMode, onComplete, onScoreUpdate, onMistake
             onPointerMove={handleChartPointerMove}
             onPointerUp={handleChartPointerEnd}
             onPointerCancel={handleChartPointerEnd}
-            className={`relative h-44 border-b border-l border-slate-700 mb-2 ml-7 touch-none select-none ${
+            className={`relative h-48 sm:h-44 border-b border-l border-slate-700 mb-2 ml-7 touch-none select-none ${
               isSuccess ? 'cursor-default' : isDraggingChart ? 'cursor-grabbing' : 'cursor-grab'
             }`}
           >
+            {/* Subtle zone pictograms directly on the curve backdrop */}
+            <div className="absolute inset-0 flex pointer-events-none z-0">
+              <div className="w-[25%] h-full bg-emerald-500/[0.04] border-r border-slate-800/40 flex items-start justify-center pt-2">
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-slate-950/60 border border-emerald-500/20 text-emerald-400/75 text-[10px]">
+                  <Moon className="w-3 h-3" />
+                  <Wind className="w-3 h-3" />
+                </span>
+              </div>
+              <div className="w-[25%] h-full border-r border-slate-800/40" />
+              <div className="w-[20.8%] h-full bg-yellow-500/[0.03] border-r border-slate-800/40 flex items-start justify-center pt-2">
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-slate-950/60 border border-yellow-500/20 text-yellow-400/75 text-[10px]">
+                  <Sun className="w-3 h-3" />
+                </span>
+              </div>
+              <div className="w-[29.2%] h-full bg-orange-500/[0.04] flex items-start justify-center pt-2">
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-slate-950/60 border border-orange-500/20 text-orange-400/75 text-[10px]">
+                  <Flame className="w-3 h-3" />
+                </span>
+              </div>
+            </div>
+
             {/* Y-axis labels */}
-            <div className="absolute -left-2 -translate-x-full top-0 text-[10px] text-slate-500">270</div>
-            <div className="absolute -left-2 -translate-x-full top-1/2 -translate-y-1/2 text-[10px] text-slate-500">135</div>
-            <div className="absolute -left-2 -translate-x-full bottom-0 text-[10px] text-slate-500">0</div>
+            <div className="absolute -left-2 -translate-x-full top-0 text-[10px] text-slate-400">270</div>
+            <div className="absolute -left-2 -translate-x-full top-1/2 -translate-y-1/2 text-[10px] text-slate-400">135</div>
+            <div className="absolute -left-2 -translate-x-full bottom-0 text-[10px] text-slate-400">0</div>
 
             {/* Grid lines */}
             <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
@@ -216,9 +268,9 @@ export default function Level5({ isDevMode, onComplete, onScoreUpdate, onMistake
               </span>
             </div>
 
-            {/* Selected 6h Window Overlay */}
+            {/* Selected 6h Window Overlay with visible drag handle */}
             <div
-              className={`absolute top-0 bottom-0 border-x-2 z-10 pointer-events-none ${
+              className={`absolute top-0 bottom-0 border-x-2 z-20 pointer-events-none flex flex-col items-center justify-center ${
                 isDraggingChart ? '' : 'transition-all duration-150'
               } ${
                 isSuccess
@@ -231,29 +283,44 @@ export default function Level5({ isDevMode, onComplete, onScoreUpdate, onMistake
                 left: `${(startHour / 24) * 100}%`,
                 width: `${(DURATION_HOURS / 24) * 100}%`
               }}
-            />
+            >
+              {!isSuccess && (
+                <div className={`px-2 py-1 rounded-full border text-[10px] font-mono font-bold flex items-center gap-1 shadow-md backdrop-blur-sm ${
+                  showError
+                    ? 'bg-red-950/90 border-red-400/70 text-red-200'
+                    : isDraggingChart
+                    ? 'bg-cyan-950/95 border-cyan-300 text-cyan-100 scale-105'
+                    : 'bg-slate-950/90 border-cyan-400/70 text-cyan-200'
+                }`}>
+                  <GripHorizontal className="w-3.5 h-3.5 shrink-0" />
+                  <span>6h</span>
+                </div>
+              )}
+            </div>
 
-            {/* The Graph Line */}
+            {/* The Graph Line (smooth cubic Bezier curve) */}
             <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none" viewBox="0 0 100 100">
               <defs>
                 <linearGradient id="carbonGrad" x1="0" x2="0" y1="0" y2="1">
-                  <stop offset="0%" stopColor="rgba(34, 211, 238, 0.4)" />
+                  <stop offset="0%" stopColor="rgba(34, 211, 238, 0.36)" />
                   <stop offset="100%" stopColor="rgba(34, 211, 238, 0.0)" />
                 </linearGradient>
               </defs>
-              <polygon points={polygonPoints} fill="url(#carbonGrad)" />
-              <polyline
-                points={polylinePoints}
+              <path d={smoothAreaPath} fill="url(#carbonGrad)" />
+              <path
+                d={smoothLinePath}
                 fill="none"
                 stroke="#22d3ee"
                 strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
                 vectorEffect="non-scaling-stroke"
               />
             </svg>
           </div>
 
           {/* X-axis labels */}
-          <div className="flex justify-between text-[10px] text-slate-500 ml-7 mb-5">
+          <div className="flex justify-between text-[11px] text-slate-400 ml-7 mb-5">
             <span>00:00</span>
             <span>06:00</span>
             <span>12:00</span>
@@ -267,7 +334,7 @@ export default function Level5({ isDevMode, onComplete, onScoreUpdate, onMistake
               <label htmlFor="schedule-slider" className="text-xs uppercase tracking-wider text-slate-400 font-bold">
                 Décaler le créneau de 6 heures (départ) :
               </label>
-              <span className="text-base font-black text-cyan-300 bg-cyan-950/60 border border-cyan-500/40 px-3 py-1 rounded-lg">
+              <span className="text-base font-black font-mono tabular-nums text-cyan-300 bg-cyan-950/60 border border-cyan-500/40 px-3 py-1 rounded-lg">
                 {formatHour(startHour)} → {formatHour(endHour)}
               </span>
             </div>
@@ -292,9 +359,10 @@ export default function Level5({ isDevMode, onComplete, onScoreUpdate, onMistake
               onChange={(e) => {
                 setStartHour(Number(e.target.value));
               }}
-              className="w-full accent-cyan-400 cursor-pointer h-2 bg-slate-800 rounded-lg"
+              style={{ '--range-color': '#22d3ee', '--range-pct': sliderPct } as CSSProperties}
+              className="aqua-range w-full cursor-pointer"
             />
-            <div className="flex justify-between text-[10px] text-slate-500">
+            <div className="flex justify-between text-[11px] font-mono tabular-nums text-slate-400">
               <span>00:00</span>
               <span>06:00</span>
               <span>12:00</span>
@@ -305,36 +373,36 @@ export default function Level5({ isDevMode, onComplete, onScoreUpdate, onMistake
 
         {/* Live Telemetry Cards (masked while dragging/sliding to avoid blind visual trial-and-error) */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 flex flex-col items-center text-center">
-            <span className="text-[10px] uppercase text-slate-500 tracking-wider mb-1">Intensité Moyenne</span>
+          <div className="bg-slate-950 border border-white/10 rounded-xl p-4 flex flex-col items-center text-center">
+            <span className="text-[11px] uppercase text-slate-400 tracking-wider mb-1">Intensité Moyenne</span>
             {isAdjusting ? (
-              <span className="text-lg font-bold text-slate-500 py-1 animate-pulse">Mesure au relâchement…</span>
+              <span className="text-base font-bold text-slate-400 py-1">Mesure au relâchement…</span>
             ) : (
-              <span className={`text-2xl font-black transition-colors ${
+              <span className={`text-2xl font-black font-mono tabular-nums transition-colors ${
                 isSuccess ? 'text-emerald-400' : showError ? 'text-red-400' : 'text-white'
-              }`}>{avgIntensity} <span className="text-xs font-normal text-slate-400">gCO₂/kWh</span></span>
+              }`}>{avgIntensity} <span className="text-xs font-sans font-normal text-slate-400">gCO₂/kWh</span></span>
             )}
           </div>
-          <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 flex flex-col items-center text-center">
-            <span className="text-[10px] uppercase text-slate-500 tracking-wider mb-1 flex items-center gap-1">
+          <div className="bg-slate-950 border border-white/10 rounded-xl p-4 flex flex-col items-center text-center">
+            <span className="text-[11px] uppercase text-slate-400 tracking-wider mb-1 flex items-center gap-1">
               <Leaf className="w-3 h-3 text-emerald-400" /> Part Renouvelable
             </span>
             {isAdjusting ? (
-              <span className="text-2xl font-black text-slate-600">--%</span>
+              <span className="text-2xl font-black font-mono tabular-nums text-slate-400">-- %</span>
             ) : (
-              <span className="text-2xl font-black text-cyan-300">{renewableShare}%</span>
+              <span className="text-2xl font-black font-mono tabular-nums text-cyan-300">{renewableShare} %</span>
             )}
           </div>
-          <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 flex flex-col items-center text-center">
-            <span className="text-[10px] uppercase text-slate-500 tracking-wider mb-1 flex items-center gap-1">
+          <div className="bg-slate-950 border border-white/10 rounded-xl p-4 flex flex-col items-center text-center">
+            <span className="text-[11px] uppercase text-slate-400 tracking-wider mb-1 flex items-center gap-1">
               <Zap className="w-3 h-3 text-yellow-400" /> Bilan Entraînement
             </span>
             {isAdjusting ? (
-              <span className="text-2xl font-black text-slate-600">-- <span className="text-xs font-normal text-slate-500">kg CO₂</span></span>
+              <span className="text-2xl font-black font-mono tabular-nums text-slate-400">-- <span className="text-xs font-sans font-normal text-slate-400">kg CO₂</span></span>
             ) : (
               <>
-                <span className="text-2xl font-black text-slate-200">{totalCo2Kg} <span className="text-xs font-normal text-slate-400">kg CO₂</span></span>
-                <span className="text-[10px] text-slate-500 mt-0.5">pour {TRAINING_ENERGY_KWH} kWh (pic soir : {peakCo2Kg} kg)</span>
+                <span className="text-2xl font-black font-mono tabular-nums text-slate-200">{totalCo2Kg} <span className="text-xs font-sans font-normal text-slate-400">kg CO₂</span></span>
+                <span className="text-[11px] text-slate-400 mt-0.5 tabular-nums">pour {TRAINING_ENERGY_KWH} kWh (pic soir : {peakCo2Kg} kg)</span>
               </>
             )}
           </div>
@@ -342,47 +410,33 @@ export default function Level5({ isDevMode, onComplete, onScoreUpdate, onMistake
 
         {!isSuccess && (
           <div className="flex justify-center mt-4">
-            <button
+            <ActionButton
               onClick={handleSubmit}
-              className={`px-8 py-3 rounded-lg font-bold transition-all flex items-center gap-2 ${
-                showError
-                  ? 'bg-red-600 text-white animate-shake'
-                  : 'bg-emerald-600 hover:bg-emerald-500 text-white hover:shadow-[0_0_18px_rgba(16,185,129,0.35)]'
-              }`}
+              isError={showError}
             >
               {showError ? (
                 <>CRÉNEAU TROP CARBONÉ ({avgIntensity} gCO₂/kWh) <AlertTriangle className="w-5 h-5" /></>
               ) : (
                 <>PLANIFIER SUR CE CRÉNEAU <ArrowRight className="w-5 h-5" /></>
               )}
-            </button>
+            </ActionButton>
           </div>
         )}
 
         <AnimatePresence>
           {isSuccess && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex flex-col items-center mt-5 p-6 bg-emerald-950/30 border border-emerald-500/50 rounded-lg"
-            >
-              <div className="flex items-center gap-2 text-emerald-400 font-bold text-xl mb-4">
-                <CheckCircle2 className="w-6 h-6" />
-                PLANIFICATION OPTIMALE ({formatHour(startHour)} – {formatHour(endHour)})
-              </div>
-              <p className="text-center mb-6 text-sm">
-                En décalant ces {TRAINING_ENERGY_KWH} kWh vers les heures creuses où l'éolien domine ({avgIntensity} gCO₂/kWh), cet entraînement n'émet que <strong>{totalCo2Kg} kg de CO₂</strong> contre <strong>{peakCo2Kg} kg</strong> au pic du soir — une empreinte divisée par {reductionFactor} sans changer le matériel : c'est le <strong>Carbon-Aware Computing</strong>.
-              </p>
-              <button
-                onClick={onComplete}
-                className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-3 rounded-lg font-bold transition-all hover:shadow-[0_0_18px_rgba(16,185,129,0.35)]"
-              >
-                PASSER AU NIVEAU SUIVANT
-              </button>
-            </motion.div>
+            <LevelSuccessCard
+              title={`PLANIFICATION OPTIMALE (${formatHour(startHour)} – ${formatHour(endHour)})`}
+              description={
+                <>
+                  En décalant ces {TRAINING_ENERGY_KWH} kWh vers les heures creuses où l'éolien domine ({avgIntensity} gCO₂/kWh), cet entraînement n'émet que <strong>{totalCo2Kg} kg de CO₂</strong> contre <strong>{peakCo2Kg} kg</strong> au pic du soir — une empreinte divisée par {reductionFactor} sans changer le matériel : c'est le <strong>Carbon-Aware Computing</strong>.
+                </>
+              }
+              onContinue={onComplete}
+            />
           )}
         </AnimatePresence>
       </div>
-    </motion.div>
+    </LevelShell>
   );
 }

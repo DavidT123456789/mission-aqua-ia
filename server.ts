@@ -8,19 +8,30 @@ import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from '@google/genai';
 import path from 'path';
 import { DEV_ANSWERS } from './shared/devAnswers';
+import { FALLBACK_PROTOTYPE_DATA_URI } from './shared/fallbackPrototype';
+import { evaluateStudentIdea, validateIdeaInput } from './shared/evaluateIdea';
+
+function timingSafeStringEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) {
+    diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return diff === 0;
+}
 
 async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  app.use(express.json());
+  app.use(express.json({ limit: '64kb' }));
 
   // API Routes
   app.post('/api/dev-auth', (req, res) => {
     const { password } = req.body || {};
-    const expectedPassword = process.env.DEV_PASSWORD || 'dev123';
+    const expectedPassword = process.env.DEV_PASSWORD?.trim() || 'dev123';
 
-    if (typeof password !== 'string' || password !== expectedPassword) {
+    if (typeof password !== 'string' || !timingSafeStringEqual(password, expectedPassword)) {
       return res.status(401).json({ error: 'Mot de passe incorrect.' });
     }
     return res.json({ answers: DEV_ANSWERS });
@@ -28,10 +39,9 @@ async function startServer() {
 
   app.post('/api/evaluate', async (req, res) => {
     try {
-      const { idea } = req.body;
-
-      if (!idea || idea.length < 20) {
-        return res.status(400).json({ error: "L'idée doit contenir au moins 20 caractères." });
+      const validation = validateIdeaInput(req.body?.idea);
+      if (validation.ok === false) {
+        return res.status(400).json({ error: validation.error });
       }
 
       const apiKey = process.env.GEMINI_API_KEY;
@@ -39,47 +49,26 @@ async function startServer() {
         return res.status(500).json({ error: "Clé API manquante" });
       }
 
-      const ai = new GoogleGenAI({ apiKey });
-        
-      const modelResponse = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: `Analyse cette idée d'innovation pour économiser l'eau : "${idea}". 
-        Évalue la selon ces critères : impact écologique, faisabilité technique, précision technique, cohérence et originalité.
-        
-        DIRECTIVES D'ÉVALUATION :
-        - Cohérence et Clarté : Une idée logique, bien expliquée et réaliste doit obtenir un bon score (60-75%), même sans jargon technique.
-        - Précision Technique : Récompense l'utilisation judicieuse de termes techniques (ex: FFT, capteurs, IoT, IA spécialisée). C'est ce qui permet de passer d'un bon score à l'EXCELLENCE (80-100%).
-        - PÉNALITÉ DE BRIÈVETÉ : Si la description est trop vague (ex: "une appli pour les fuites") ou fait moins de 2 phrases, le score global ne doit PAS dépasser 40-50%, car l'innovation n'est pas assez documentée.
-        - Équilibre : Ne punis pas l'absence de termes techniques si l'explication est brillante, mais valorise leur présence s'ils sont bien utilisés.
-        - Sois encourageant : L'objectif est de valoriser l'effort de réflexion et la créativité scientifique.
-        
-        Réponds au format JSON avec les champs suivants : 
-        title (nom de l'outil), 
-        description (résumé technique), 
-        impact (note sur 10), 
-        feasibility (note sur 10), 
-        precision (note sur 10 du niveau de détail et de rigueur),
-        originality (note sur 10),
-        score (note globale sur 100),
-        waterSaved (estimation de litres sauvés par an),
-        feedback (conseil constructif pour améliorer l'idée).`,
-        config: { responseMimeType: "application/json" }
-      });
-
-      const data = JSON.parse(modelResponse.text);
-
+      const data = await evaluateStudentIdea(apiKey, validation.idea);
       return res.json(data);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
-      return res.status(500).json({ error: error.message || "Erreur lors de l'analyse" });
+      return res.status(500).json({ error: error instanceof Error ? error.message : "Erreur lors de l'analyse" });
     }
   });
 
   app.post('/api/generate', async (req, res) => {
-    const fallbackImageUrl = "https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=1024&auto=format&fit=crop";
+    const fallbackImageUrl = FALLBACK_PROTOTYPE_DATA_URI;
     try {
-      const { title, description } = req.body;
-      
+      const rawTitle = req.body?.title;
+      const rawDescription = req.body?.description;
+
+      if (typeof rawTitle !== 'string' || typeof rawDescription !== 'string') {
+        return res.status(400).json({ error: "Missing title or description" });
+      }
+
+      const title = rawTitle.trim().slice(0, 120);
+      const description = rawDescription.trim().slice(0, 600);
       if (!title || !description) {
         return res.status(400).json({ error: "Missing title or description" });
       }
@@ -118,7 +107,7 @@ async function startServer() {
         console.warn("Gemini image generation failed, using fallback image.", genError);
         return res.json({ imageUrl: fallbackImageUrl });
       }
-    } catch(error: any) {
+    } catch(error: unknown) {
       console.error(error);
       return res.json({ imageUrl: fallbackImageUrl });
     }

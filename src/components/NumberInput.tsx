@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Minus } from 'lucide-react';
 import { soundManager } from '../utils/soundManager';
 
@@ -12,29 +12,45 @@ interface NumberInputProps {
 }
 
 export default function NumberInput({ value, onChange, min = 0, max = 9999, step = 1, unit }: NumberInputProps) {
+  const [draft, setDraft] = useState<string>(String(value));
+  const [isFocused, setIsFocused] = useState(false);
+
+  useEffect(() => {
+    if (!isFocused) {
+      setDraft(String(value));
+    }
+  }, [value, isFocused]);
+
   const increment = () => {
     if (value + step <= max) {
       soundManager.playClick();
-      onChange(value + step);
+      const next = value + step;
+      setDraft(String(next));
+      onChange(next);
     }
   };
 
   const decrement = () => {
     if (value - step >= min) {
       soundManager.playClick();
-      onChange(value - step);
+      const next = value - step;
+      setDraft(String(next));
+      onChange(next);
     }
   };
 
   const handleDirectInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const raw = e.target.value;
+    const raw = e.target.value.replace(/[^\d]/g, '');
     if (raw === '') {
+      setDraft('');
       onChange(min);
       return;
     }
     const parsed = parseInt(raw, 10);
     if (!Number.isNaN(parsed)) {
-      onChange(Math.max(min, Math.min(max, parsed)));
+      const clamped = Math.max(min, Math.min(max, parsed));
+      setDraft(String(clamped));
+      onChange(clamped);
     }
   };
 
@@ -53,17 +69,26 @@ export default function NumberInput({ value, onChange, min = 0, max = 9999, step
 
         <div className="flex flex-col items-center px-4 min-w-[120px]">
           <input
-            type="number"
+            type="text"
             inputMode="numeric"
-            min={min}
-            max={max}
-            step={step}
-            value={value}
+            pattern="[0-9]*"
+            value={draft}
+            placeholder="0"
+            onFocus={(e) => {
+              setIsFocused(true);
+              if (value === min) {
+                e.currentTarget.select();
+              }
+            }}
+            onBlur={() => {
+              setIsFocused(false);
+              setDraft(String(value));
+            }}
             onChange={handleDirectInput}
             aria-label={unit ? `Valeur en ${unit}` : 'Valeur numérique'}
-            className="w-24 bg-transparent text-center text-4xl font-bold text-emerald-100 tabular-nums focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+            className="w-24 bg-transparent text-center text-4xl font-bold text-emerald-100 placeholder:text-slate-600 tabular-nums focus:outline-none"
           />
-          {unit && <span className="text-xs text-emerald-500/60 font-bold uppercase tracking-widest">{unit}</span>}
+          {unit && <span className="text-xs text-emerald-500/60 font-bold tracking-widest">{unit}</span>}
         </div>
 
         <button

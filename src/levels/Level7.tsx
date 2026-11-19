@@ -1,15 +1,19 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Server, CheckCircle2, Wrench, Trash2, Archive, Cpu, MemoryStick, HardDrive, Recycle, Zap } from 'lucide-react';
+import { Wrench, Trash2, Archive, Cpu, MemoryStick, HardDrive, Recycle, RefreshCw, Microchip, Tag, Droplets } from 'lucide-react';
 import NaiaDialogue from '../components/NaiaDialogue';
 import HydraLog from '../components/HydraLog';
 import TechTerm from '../components/TechTerm';
+import LevelHeader from '../components/LevelHeader';
+import LevelShell from '../components/LevelShell';
+import ActionButton from '../components/ActionButton';
+import LevelSuccessCard from '../components/LevelSuccessCard';
 import { soundManager } from '../utils/soundManager';
 import { useErrorFeedback } from '../utils/useErrorFeedback';
 
 type ComponentId = 'cpu' | 'ram' | 'nvme' | 'gpu';
 type ActionId = 'replace_all' | 'repair_ram' | 'refurbished';
-type DisposalId = 'trash' | 'drawer' | 'weee';
+type DisposalId = 'resale' | 'backup' | 'weee';
 
 const HARDWARE_LOGS: {
   id: ComponentId;
@@ -24,7 +28,7 @@ const HARDWARE_LOGS: {
     icon: Cpu,
     metrics: [
       { id: 'temp', label: 'Temp.', value: '64°C (max 95°C)' },
-      { id: 'load', label: 'Charge', value: '42%' }
+      { id: 'load', label: 'Charge', value: '42 %' }
     ],
     logLine: '[KERNEL] Régulation thermique nominale, 0 erreur matérielle détectée.'
   },
@@ -43,15 +47,15 @@ const HARDWARE_LOGS: {
     name: 'Disque Stockage (NVMe)',
     icon: HardDrive,
     metrics: [
-      { id: 'health', label: 'Santé disque', value: '96%' },
-      { id: 'latency', label: 'Latence', value: '0.4 ms' }
+      { id: 'health', label: 'Santé disque', value: '96 %' },
+      { id: 'latency', label: 'Latence', value: '0,4 ms' }
     ],
     logLine: '[NVME] Disque sain : 0 erreur média, 0 secteur réalloué.'
   },
   {
     id: 'gpu',
     name: 'Carte Calcul IA (GPU)',
-    icon: Zap,
+    icon: Microchip,
     metrics: [
       { id: 'temp', label: 'Temp.', value: '84°C (max 90°C)' },
       { id: 'vram', label: 'VRAM ECC', value: '0 erreur' }
@@ -60,7 +64,7 @@ const HARDWARE_LOGS: {
   }
 ];
 
-export default function Level7({ isDevMode, onComplete, onScoreUpdate, onMistake }: { isDevMode?: boolean; onComplete: () => void; onScoreUpdate: (points: number, water: number) => void; onMistake?: () => void; key?: string }) {
+export default function Level7({ onComplete, onScoreUpdate, onMistake }: { onComplete: () => void; onScoreUpdate: (points: number, water: number) => void; onMistake?: () => void; key?: string }) {
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [selectedComponent, setSelectedComponent] = useState<ComponentId | null>(null);
   const [selectedAction, setSelectedAction] = useState<ActionId | null>(null);
@@ -76,7 +80,7 @@ export default function Level7({ isDevMode, onComplete, onScoreUpdate, onMistake
   const handleValidateStep1 = () => {
     if (!selectedComponent) return;
     if (selectedComponent === 'ram') {
-      soundManager.playSuccess();
+      soundManager.playStep();
       clearError();
       setStep(2);
     } else if (selectedComponent === 'cpu') {
@@ -91,7 +95,7 @@ export default function Level7({ isDevMode, onComplete, onScoreUpdate, onMistake
   const handleValidateStep2 = () => {
     if (!selectedAction) return;
     if (selectedAction === 'repair_ram') {
-      soundManager.playSuccess();
+      soundManager.playStep();
       clearError();
       setStep(3);
     } else if (selectedAction === 'replace_all') {
@@ -109,28 +113,18 @@ export default function Level7({ isDevMode, onComplete, onScoreUpdate, onMistake
       setStep(4);
       if (!hasScored) {
         setHasScored(true);
-        onScoreUpdate(150, 63);
+        onScoreUpdate(200, 63);
       }
-    } else if (selectedDisposal === 'drawer') {
-      triggerError("Piège courant (l'effet tiroir) ! Garder une pièce HS inutilisée bloque le recyclage de ses métaux critiques et oblige à en extraire de nouveaux.");
+    } else if (selectedDisposal === 'backup') {
+      triggerError("Piège courant (l'effet tiroir) ! Stocker une barrette HS « en réserve » immobilise ses métaux critiques et oblige à en extraire de nouveaux.");
     } else {
-      triggerError("Attention ! Les cartes électroniques incinérées ou enfouies libèrent des métaux lourds dans les nappes d'eau.");
+      triggerError("Fausse bonne idée ! Revendre un composant en erreur critique (EDAC) sans test ni réparation ne fait que déplacer la panne et le déchet ailleurs.");
     }
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, x: 50 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -50 }}
-      className="sm:bg-slate-900/90 border-transparent sm:border-white/10 sm:border px-0 sm:px-6 py-3 sm:py-4 sm:rounded-2xl max-w-4xl mx-auto relative flex flex-col backdrop-blur-xl sm:shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_24px_48px_rgba(0,0,0,0.55)]"
-    >
-      <div className="flex items-center gap-3 mb-2.5 border-b border-white/10 pb-2.5">
-        <Server className="w-7 h-7 text-emerald-400 shrink-0" />
-        <h2 className="font-mono text-xl md:text-2xl font-bold text-white uppercase tracking-widest">
-          Niveau 7 : Cycle de Vie du Matériel
-        </h2>
-      </div>
+    <LevelShell compact>
+      <LevelHeader level={7} icon={Wrench} compact />
 
       <div className="mb-3 space-y-2">
         {step === 1 && (
@@ -140,7 +134,7 @@ export default function Level7({ isDevMode, onComplete, onScoreUpdate, onMistake
           message={
             step === 1 ? (
               <>
-                Un des <TechTerm term="Serveur">serveurs</TechTerm> locaux d'HYDRA plante. Par défaut, elle veut commander une machine neuve — soit <strong className="text-white">1 200 L</strong> d'<TechTerm term="Eau virtuelle">eau virtuelle</TechTerm> pour graver les puces et <TechTerm term="GPU">GPU</TechTerm> !
+                Un des <TechTerm term="Serveur">serveurs</TechTerm> locaux d'HYDRA plante. Par défaut, elle veut commander une machine neuve — soit <strong className="text-white">1 200 L</strong> d'<TechTerm term="Eau virtuelle">eau virtuelle</TechTerm> pour graver les puces (<TechTerm term="CPU">CPU</TechTerm> et <TechTerm term="GPU">GPU</TechTerm>) !
               </>
             ) : step === 2 ? (
               <>
@@ -215,7 +209,7 @@ export default function Level7({ isDevMode, onComplete, onScoreUpdate, onMistake
                         clearError();
                       }
                     }}
-                    className={`p-3 rounded-xl border-2 text-left transition-all flex flex-col gap-2 cursor-pointer focus:outline-none focus:ring-2 focus:ring-cyan-400/70 ${
+                    className={`p-3 rounded-xl border-2 text-left transition-all flex flex-col gap-2 cursor-pointer active:scale-[0.985] focus:outline-none focus:ring-2 focus:ring-cyan-400/70 ${
                       isSelected
                         ? 'bg-cyan-950/30 border-cyan-400'
                         : 'bg-slate-950/90 border-slate-800 hover:border-slate-600'
@@ -243,19 +237,14 @@ export default function Level7({ isDevMode, onComplete, onScoreUpdate, onMistake
             </div>
 
             <div className="flex justify-center pt-1">
-              <button
+              <ActionButton
                 onClick={handleValidateStep1}
                 disabled={!selectedComponent}
-                className={`px-8 py-3 rounded-xl font-mono font-bold transition-all ${
-                  !selectedComponent
-                    ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                    : isErrorFlash
-                    ? 'bg-red-600 text-white animate-shake'
-                    : 'bg-emerald-600 hover:bg-emerald-500 text-white hover:shadow-[0_0_18px_rgba(16,185,129,0.35)]'
-                }`}
+                isError={isErrorFlash}
+                size="md"
               >
                 CONFIRMER LE DIAGNOSTIC
-              </button>
+              </ActionButton>
             </div>
           </motion.div>
         )}
@@ -279,7 +268,7 @@ export default function Level7({ isDevMode, onComplete, onScoreUpdate, onMistake
                 {
                   id: 'refurbished' as ActionId,
                   name: 'Serveur reconditionné',
-                  icon: Recycle,
+                  icon: RefreshCw,
                   desc: 'Remplacer l\'intégralité du serveur par une machine d\'occasion.'
                 }
               ].map((act) => {
@@ -290,7 +279,7 @@ export default function Level7({ isDevMode, onComplete, onScoreUpdate, onMistake
                     key={act.id}
                     type="button"
                     onClick={() => { soundManager.playClick(); setSelectedAction(act.id); clearError(); }}
-                    className={`p-5 rounded-xl border-2 text-center transition-all flex flex-col items-center gap-3 ${
+                    className={`p-5 rounded-xl border-2 text-center transition-all flex flex-col items-center gap-3 active:scale-[0.985] ${
                       isSelected
                         ? 'bg-cyan-950/30 border-cyan-400 scale-[1.02]'
                         : 'bg-slate-950 border-slate-800 hover:border-slate-600'
@@ -307,44 +296,68 @@ export default function Level7({ isDevMode, onComplete, onScoreUpdate, onMistake
             </div>
 
             <div className="flex justify-center pt-2">
-              <button
+              <ActionButton
                 onClick={handleValidateStep2}
                 disabled={!selectedAction}
-                className={`px-8 py-3.5 rounded-lg font-bold transition-all ${
-                  !selectedAction
-                    ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                    : isErrorFlash
-                    ? 'bg-red-600 text-white animate-shake'
-                    : 'bg-emerald-600 hover:bg-emerald-500 text-white hover:shadow-[0_0_18px_rgba(16,185,129,0.35)]'
-                }`}
+                isError={isErrorFlash}
+                size="md"
               >
                 EXÉCUTER L'INTERVENTION
-              </button>
+              </ActionButton>
             </div>
           </motion.div>
         )}
 
         {step === 3 && (
           <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
+            {/* Comparatif visuel d'eau virtuelle économisée */}
+            <div className="bg-slate-950/85 border border-emerald-500/30 rounded-xl p-3.5 space-y-2.5">
+              <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                <span className="font-mono font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+                  <Droplets className="w-4 h-4 shrink-0" />
+                  Eau virtuelle économisée grâce à la réparation ciblée
+                </span>
+                <span className="font-mono font-black text-emerald-300 bg-emerald-950/60 border border-emerald-500/40 px-2.5 py-0.5 rounded-full">
+                  -1 185 L (-98,8 %)
+                </span>
+              </div>
+              <div className="space-y-1.5 text-[11px] font-mono">
+                <div className="flex items-center gap-2.5">
+                  <span className="w-28 text-slate-400 shrink-0">Serveur neuf</span>
+                  <div className="flex-1 h-2.5 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
+                    <div className="h-full w-full bg-red-500/75 rounded-full" />
+                  </div>
+                  <span className="w-16 text-right text-red-300 font-bold shrink-0">1 200 L</span>
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <span className="w-28 text-emerald-300 shrink-0">Barrette RAM</span>
+                  <div className="flex-1 h-2.5 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
+                    <div className="h-full w-[2%] min-w-[6px] bg-emerald-400 rounded-full" />
+                  </div>
+                  <span className="w-16 text-right text-emerald-300 font-bold shrink-0">15 L</span>
+                </div>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {[
                 {
-                  id: 'trash' as DisposalId,
-                  name: 'Déchets classiques',
-                  icon: Trash2,
-                  desc: 'Jeter la barrette RAM hors service avec les ordures courantes pour gagner du temps.'
+                  id: 'backup' as DisposalId,
+                  name: 'Stocker en réserve « au cas où »',
+                  icon: Archive,
+                  desc: 'Ranger la barrette défectueuse dans une armoire technique au cas où elle pourrait encore servir un jour.'
                 },
                 {
-                  id: 'drawer' as DisposalId,
-                  name: 'Stockage en tiroir',
-                  icon: Archive,
-                  desc: 'Conserver la barrette hors service dans une armoire technique « au cas où ».'
+                  id: 'resale' as DisposalId,
+                  name: 'Revente en lot non testé',
+                  icon: Tag,
+                  desc: 'Revendre le module tel quel sur un site d\'occasion pour éviter de le mettre au rebut.'
                 },
                 {
                   id: 'weee' as DisposalId,
                   name: 'Filière de recyclage DEEE',
                   icon: Recycle,
-                  desc: 'Envoyer le composant vers une filière spécialisée pour extraire l\'or, le cuivre et les métaux critiques.'
+                  desc: 'Envoyer le composant défectueux vers une filière spécialisée pour dépolluer et extraire or, cuivre et métaux critiques.'
                 }
               ].map((opt) => {
                 const Icon = opt.icon;
@@ -354,7 +367,7 @@ export default function Level7({ isDevMode, onComplete, onScoreUpdate, onMistake
                     key={opt.id}
                     type="button"
                     onClick={() => { soundManager.playClick(); setSelectedDisposal(opt.id); clearError(); }}
-                    className={`p-5 rounded-xl border-2 text-center transition-all flex flex-col items-center gap-3 ${
+                    className={`p-5 rounded-xl border-2 text-center transition-all flex flex-col items-center gap-3 active:scale-[0.985] ${
                       isSelected
                         ? 'bg-cyan-950/30 border-cyan-400 scale-[1.02]'
                         : 'bg-slate-950 border-slate-800 hover:border-slate-600'
@@ -371,47 +384,32 @@ export default function Level7({ isDevMode, onComplete, onScoreUpdate, onMistake
             </div>
 
             <div className="flex justify-center pt-2">
-              <button
+              <ActionButton
                 onClick={handleValidateStep3}
                 disabled={!selectedDisposal}
-                className={`px-8 py-3.5 rounded-lg font-bold transition-all ${
-                  !selectedDisposal
-                    ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                    : isErrorFlash
-                    ? 'bg-red-600 text-white animate-shake'
-                    : 'bg-emerald-600 hover:bg-emerald-500 text-white hover:shadow-[0_0_18px_rgba(16,185,129,0.35)]'
-                }`}
+                isError={isErrorFlash}
+                size="md"
               >
                 CLÔTURER LE TICKET
-              </button>
+              </ActionButton>
             </div>
           </motion.div>
         )}
 
         <AnimatePresence>
           {step === 4 && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex flex-col items-center mt-5 p-6 bg-emerald-950/30 border border-emerald-500/50 rounded-lg"
-            >
-              <div className="flex items-center gap-2 text-emerald-400 font-bold text-xl mb-4">
-                <CheckCircle2 className="w-6 h-6" />
-                MAINTENANCE CIRCULAIRE VALIDÉE
-              </div>
-              <p className="text-center mb-6 text-sm">
-                Plus de 70 % de l'empreinte écologique d'un matériel informatique provient de sa fabrication (dont l'eau ultra-pure nécessaire à la gravure des puces et <TechTerm term="GPU">GPU</TechTerm>). En ciblant la panne réelle et en recyclant la pièce via les <TechTerm term="DEEE">DEEE</TechTerm>, vous avez économisé 1 185 litres d'<TechTerm term="Eau virtuelle">eau virtuelle</TechTerm> !
-              </p>
-              <button
-                onClick={onComplete}
-                className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-3 rounded-lg font-bold transition-all hover:shadow-[0_0_18px_rgba(16,185,129,0.35)]"
-              >
-                PASSER AU NIVEAU SUIVANT
-              </button>
-            </motion.div>
+            <LevelSuccessCard
+              title="MAINTENANCE CIRCULAIRE VALIDÉE"
+              description={
+                <>
+                  Plus de 70 % de l'empreinte écologique d'un matériel informatique provient de sa fabrication (dont l'eau ultra-pure nécessaire à la gravure des puces et <TechTerm term="GPU">GPU</TechTerm>). En ciblant la panne réelle et en recyclant la pièce via les <TechTerm term="DEEE">DEEE</TechTerm>, vous avez économisé 1 185 litres d'<TechTerm term="Eau virtuelle">eau virtuelle</TechTerm> !
+                </>
+              }
+              onContinue={onComplete}
+            />
           )}
         </AnimatePresence>
       </div>
-    </motion.div>
+    </LevelShell>
   );
 }

@@ -1,8 +1,12 @@
-import React, { useState, useEffect, useMemo, useId, useRef } from 'react';
-import { FastForward, Lightbulb, Sparkles, Target, ChevronUp, AlertCircle, X } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import React, { useState, useEffect, useMemo, useId, useRef, useCallback } from 'react';
+import { FastForward, Lightbulb, Sparkles, Target, ChevronUp, AlertCircle, X, Volume2, Square, Star } from 'lucide-react';
+import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import { soundManager } from '../utils/soundManager';
-import { HINTS } from '../constants';
+import {
+  HINTS,
+  FREE_HINT_COST_POINTS,
+  PAID_HINT_COST_POINTS,
+} from '../constants';
 import { useNaiaHints } from './NaiaContext';
 
 export type NaiaEmotion = 'neutral' | 'alert' | 'happy' | 'thinking';
@@ -10,10 +14,46 @@ export type NaiaEmotion = 'neutral' | 'alert' | 'happy' | 'thinking';
 function extractNodeText(node: React.ReactNode): string {
   if (typeof node === 'string' || typeof node === 'number') return String(node);
   if (Array.isArray(node)) return node.map(extractNodeText).join('');
-  if (React.isValidElement<{ children?: React.ReactNode }>(node) && node.props?.children) {
-    return extractNodeText(node.props.children);
+  if (React.isValidElement<{ children?: React.ReactNode; term?: string }>(node)) {
+    if (node.props?.children) return extractNodeText(node.props.children);
+    if (typeof node.props?.term === 'string') return node.props.term;
   }
   return '';
+}
+
+function formatSpeechText(raw: string): string {
+  return raw
+    .replace(/NAÏA/g, 'Naïa')
+    .replace(/gCO₂\/kWh/gi, 'grammes de CO2 par kilowattheure')
+    .replace(/L\/MWh/g, 'litres par mégawattheure')
+    .replace(/L\/min/g, 'litres par minute')
+    .replace(/L\/s/g, 'litres par seconde')
+    .replace(/\b(\d+)\s*mL\b/g, '$1 millilitres')
+    .replace(/\b(\d+)\s*ms\b/g, '$1 millisecondes')
+    .replace(/\b(\d+)\s*kWh\b/g, '$1 kilowattheures')
+    .replace(/\b(\d+)\s*MW\b/g, '$1 mégawatts')
+    .replace(/\b(\d+)\s*To\b/g, '$1 téraoctets')
+    .replace(/°C/g, ' degrés Celsius')
+    .replace(/\bPUE\b/g, 'P U E')
+    .replace(/\bDEEE\b/g, 'D 3 E')
+    .replace(/\bLLM\b/g, 'L L M')
+    .replace(/\bGPU\b/g, 'G P U')
+    .replace(/\bCPU\b/g, 'C P U')
+    .replace(/\bIoT\b/g, 'I o T')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function pickFrenchVoice(): SpeechSynthesisVoice | null {
+  if (typeof window === 'undefined' || !('speechSynthesis' in window)) return null;
+  const voices = window.speechSynthesis.getVoices();
+  if (!voices.length) return null;
+  return (
+    voices.find((v) => v.lang.toLowerCase() === 'fr-fr' && v.localService) ||
+    voices.find((v) => v.lang.toLowerCase() === 'fr-fr') ||
+    voices.find((v) => v.lang.toLowerCase().startsWith('fr')) ||
+    null
+  );
 }
 
 function TypewriterNode({
@@ -27,13 +67,13 @@ function TypewriterNode({
   skipRequested: boolean;
   onTypingStateChange?: (isTyping: boolean) => void;
 }) {
+  const prefersReducedMotion = useReducedMotion();
   const [visibleCount, setVisibleCount] = useState(0);
 
-  const getLen = (node: any): number => {
+  const getLen = (node: React.ReactNode): number => {
     if (typeof node === 'string' || typeof node === 'number') return String(node).length;
     if (Array.isArray(node)) return node.reduce((acc, n) => acc + getLen(n), 0);
-    if (React.isValidElement(node)) {
-      // @ts-ignore
+    if (React.isValidElement<{ children?: React.ReactNode }>(node)) {
       if (node.props && node.props.children) return getLen(node.props.children);
       return 1;
     }
@@ -41,17 +81,18 @@ function TypewriterNode({
   };
 
   const totalLength = useMemo(() => getLen(content), [contentKey]);
+  const shouldSkip = skipRequested || Boolean(prefersReducedMotion);
 
   useEffect(() => {
-    if (skipRequested) {
+    if (shouldSkip) {
       setVisibleCount(totalLength);
       onTypingStateChange?.(false);
       return;
     }
-  }, [skipRequested, totalLength, onTypingStateChange]);
+  }, [shouldSkip, totalLength, onTypingStateChange]);
 
   useEffect(() => {
-    if (skipRequested) {
+    if (shouldSkip) {
       setVisibleCount(totalLength);
       onTypingStateChange?.(false);
       return;
@@ -61,22 +102,22 @@ function TypewriterNode({
     onTypingStateChange?.(totalLength > 0);
     let current = 0;
     const interval = setInterval(() => {
-      current += 4;
+      current += 6;
       if (current >= totalLength) {
         setVisibleCount(totalLength);
         onTypingStateChange?.(false);
         clearInterval(interval);
       } else {
         setVisibleCount(current);
-        if (current % 8 === 0) {
+        if (current % 12 === 0) {
           soundManager.playTyping();
         }
       }
-    }, 12);
+    }, 24);
     return () => clearInterval(interval);
-  }, [contentKey, totalLength, skipRequested, onTypingStateChange]);
+  }, [contentKey, totalLength, shouldSkip, onTypingStateChange]);
 
-  const renderProgressive = (node: any, counter: { val: number }): React.ReactNode => {
+  const renderProgressive = (node: React.ReactNode, counter: { val: number }): React.ReactNode => {
     if (counter.val >= visibleCount) {
       if (typeof node === 'string' || typeof node === 'number') {
         const text = String(node);
@@ -86,18 +127,15 @@ function TypewriterNode({
       if (Array.isArray(node)) {
         return node.map((n, i) => <React.Fragment key={i}>{renderProgressive(n, counter)}</React.Fragment>);
       }
-      if (React.isValidElement(node)) {
-        // @ts-ignore
+      if (React.isValidElement<{ children?: React.ReactNode; className?: string }>(node)) {
         if (node.props && node.props.children) {
           if (node.type === React.Fragment) {
-            // @ts-ignore
             return <React.Fragment>{renderProgressive(node.props.children, counter)}</React.Fragment>;
           }
-          // @ts-ignore
-          return React.cloneElement(node, { ...node.props, className: `${node.props.className || ''} opacity-0`.trim(), children: renderProgressive(node.props.children, counter) });
+          return React.cloneElement(node, { ...node.props, className: `${node.props.className || ''} opacity-0 pointer-events-none`.trim(), children: renderProgressive(node.props.children, counter) });
         }
         counter.val += 1;
-        return <span className="opacity-0">{node}</span>;
+        return <span className="opacity-0 pointer-events-none">{node}</span>;
       }
       return null;
     }
@@ -123,10 +161,8 @@ function TypewriterNode({
       return node.map((n, i) => <React.Fragment key={i}>{renderProgressive(n, counter)}</React.Fragment>);
     }
 
-    if (React.isValidElement(node)) {
-      // @ts-ignore
+    if (React.isValidElement<{ children?: React.ReactNode }>(node)) {
       if (node.props && node.props.children) {
-        // @ts-ignore
         return React.cloneElement(node, { ...node.props, children: renderProgressive(node.props.children, counter) });
       }
       counter.val += 1;
@@ -299,9 +335,78 @@ export default function NaiaDialogue({
 }: NaiaDialogueProps) {
   const hintCtx = useNaiaHints();
   const rootRef = useRef<HTMLDivElement>(null);
+  const prefersReducedMotion = useReducedMotion();
 
   const contentKey = useMemo(() => extractNodeText(message), [message]);
+  const objectiveText = useMemo(() => (objective ? extractNodeText(objective) : ''), [objective]);
   const reactionKey = useMemo(() => (reaction ? extractNodeText(reaction.message) : ''), [reaction]);
+
+  const [speechAvailable, setSpeechAvailable] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+    const checkVoices = () => {
+      setSpeechAvailable(Boolean(pickFrenchVoice()));
+    };
+    checkVoices();
+    window.speechSynthesis.addEventListener?.('voiceschanged', checkVoices);
+    return () => {
+      window.speechSynthesis.removeEventListener?.('voiceschanged', checkVoices);
+    };
+  }, []);
+
+  const stopSpeech = useCallback(() => {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+    setIsSpeaking(false);
+  }, []);
+
+  useEffect(() => {
+    stopSpeech();
+    return () => stopSpeech();
+  }, [contentKey, stopSpeech]);
+
+  useEffect(() => {
+    const handleExternalStop = () => stopSpeech();
+    window.addEventListener('naiaStopSpeech', handleExternalStop);
+    return () => window.removeEventListener('naiaStopSpeech', handleExternalStop);
+  }, [stopSpeech]);
+
+  const handleToggleSpeech = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+
+    if (isSpeaking) {
+      stopSpeech();
+      return;
+    }
+
+    const fullRaw = [contentKey, objectiveText ? `Objectif : ${objectiveText}` : '']
+      .filter(Boolean)
+      .join('. ');
+    const spoken = formatSpeechText(fullRaw);
+    if (!spoken) return;
+
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(spoken);
+    const frVoice = pickFrenchVoice();
+    if (frVoice) {
+      utterance.voice = frVoice;
+      utterance.lang = frVoice.lang;
+    } else {
+      utterance.lang = 'fr-FR';
+    }
+    utterance.rate = 0.98;
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+
+    setSkipRequested(true);
+    setIsTyping(false);
+    setIsSpeaking(true);
+    window.speechSynthesis.speak(utterance);
+  };
 
   useEffect(() => {
     if (!reactionKey) return;
@@ -318,13 +423,13 @@ export default function NaiaDialogue({
     return () => cancelAnimationFrame(rafId);
   }, [reactionKey]);
 
-  const [skipRequested, setSkipRequested] = useState(false);
-  const [isTyping, setIsTyping] = useState(true);
+  const [skipRequested, setSkipRequested] = useState(() => Boolean(prefersReducedMotion));
+  const [isTyping, setIsTyping] = useState(() => !prefersReducedMotion);
 
   useEffect(() => {
-    setSkipRequested(false);
-    setIsTyping(true);
-  }, [contentKey]);
+    setSkipRequested(Boolean(prefersReducedMotion));
+    setIsTyping(!prefersReducedMotion);
+  }, [contentKey, prefersReducedMotion]);
 
   const handleSkip = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -425,11 +530,38 @@ export default function NaiaDialogue({
               <button
                 type="button"
                 onClick={handleSkip}
-                className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-900/80 hover:bg-slate-800 border border-white/15 text-[10px] font-semibold uppercase tracking-wider text-slate-300 hover:text-white hover:shadow-[0_0_10px_rgba(148,163,184,0.2)] transition-all"
+                className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-900/80 hover:bg-slate-800 border border-white/15 text-[11px] font-semibold uppercase tracking-wider text-slate-300 hover:text-white hover:shadow-[0_0_10px_rgba(148,163,184,0.2)] transition-all"
                 aria-label="Passer l'animation du texte"
               >
                 <span>Passer</span>
                 <FastForward className="w-2.5 h-2.5" />
+              </button>
+            )}
+
+            {speechAvailable && (
+              <button
+                type="button"
+                onClick={handleToggleSpeech}
+                className={`flex items-center gap-1 px-2 py-0.5 rounded-full border text-[11px] font-semibold transition-all ${
+                  isSpeaking
+                    ? 'bg-cyan-500/20 border-cyan-400/60 text-cyan-200 hover:bg-cyan-500/30'
+                    : 'bg-slate-900/80 border-cyan-500/30 text-cyan-300 hover:bg-cyan-950/50 hover:border-cyan-400/50'
+                }`}
+                aria-pressed={isSpeaking}
+                aria-label={isSpeaking ? 'Arrêter la lecture vocale de NAÏA' : 'Écouter le message de NAÏA'}
+                title={isSpeaking ? 'Arrêter la lecture' : 'Lecture vocale (aide à la lecture)'}
+              >
+                {isSpeaking ? (
+                  <>
+                    <Square className="w-2.5 h-2.5 fill-current" />
+                    <span className="hidden sm:inline">Stop</span>
+                  </>
+                ) : (
+                  <>
+                    <Volume2 className="w-3 h-3" />
+                    <span className="hidden sm:inline">Écouter</span>
+                  </>
+                )}
               </button>
             )}
 
@@ -558,15 +690,17 @@ export default function NaiaDialogue({
                     </span>
                     <button
                       type="button"
-                      disabled={hintCtx.score < 10}
+                      disabled={hintCtx.score < FREE_HINT_COST_POINTS}
                       onClick={() => hintCtx.useHint('free')}
-                      className={`px-3 py-1 rounded-lg font-mono text-xs font-bold transition-colors ${
-                        hintCtx.score >= 10
+                      className={`inline-flex items-center gap-1 px-3 py-1 rounded-lg font-mono text-xs font-bold transition-colors ${
+                        hintCtx.score >= FREE_HINT_COST_POINTS
                           ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
                           : 'bg-slate-800 text-slate-500 cursor-not-allowed'
                       }`}
                     >
-                      Débloquer (-10 ★)
+                      <span>Débloquer (-{FREE_HINT_COST_POINTS}</span>
+                      <Star className="w-3 h-3 fill-current shrink-0" />
+                      <span>)</span>
                     </button>
                   </div>
                 )}
@@ -587,15 +721,17 @@ export default function NaiaDialogue({
                       </span>
                       <button
                         type="button"
-                        disabled={hintCtx.score < 100}
+                        disabled={hintCtx.score < PAID_HINT_COST_POINTS}
                         onClick={() => hintCtx.useHint('paid')}
-                        className={`px-3 py-1 rounded-lg font-mono text-xs font-bold transition-colors ${
-                          hintCtx.score >= 100
+                        className={`inline-flex items-center gap-1 px-3 py-1 rounded-lg font-mono text-xs font-bold transition-colors ${
+                          hintCtx.score >= PAID_HINT_COST_POINTS
                             ? 'bg-amber-600 hover:bg-amber-500 text-white'
                             : 'bg-slate-800 text-slate-500 cursor-not-allowed'
                         }`}
                       >
-                        Indice avancé (-100 ★)
+                        <span>Indice avancé (-{PAID_HINT_COST_POINTS}</span>
+                        <Star className="w-3 h-3 fill-current shrink-0" />
+                        <span>)</span>
                       </button>
                     </div>
                   )

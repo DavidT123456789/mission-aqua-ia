@@ -1,8 +1,13 @@
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { Map, CheckCircle2, Snowflake, Sun, Building2, Compass, Wind, Droplets, Gauge, AlertTriangle } from 'lucide-react';
+import { AnimatePresence } from 'motion/react';
+import { Map, Snowflake, Sun, Building2, Wind, Fan, Droplets, Gauge, AlertTriangle } from 'lucide-react';
 import NaiaDialogue from '../components/NaiaDialogue';
+import HydraLog from '../components/HydraLog';
 import TechTerm from '../components/TechTerm';
+import LevelHeader from '../components/LevelHeader';
+import LevelShell from '../components/LevelShell';
+import ActionButton from '../components/ActionButton';
+import LevelSuccessCard from '../components/LevelSuccessCard';
 import { soundManager } from '../utils/soundManager';
 import { useErrorFeedback } from '../utils/useErrorFeedback';
 
@@ -15,7 +20,7 @@ interface CoolingMetrics {
 }
 
 interface SiteOption {
-  id: 'paris' | 'phoenix' | 'ushuai' | 'lulea';
+  id: 'paris' | 'ouarzazate' | 'ushuai' | 'lulea';
   name: string;
   region: string;
   icon: typeof Sun;
@@ -41,12 +46,12 @@ const SITES: SiteOption[] = [
     },
     latency: 4,
     energyMix: 'Nucléaire',
-    coordinates: { top: '29%', left: '44%' },
-    labelPosition: 'bottom'
+    coordinates: { top: '25%', left: '46%' },
+    labelPosition: 'top'
   },
   {
-    id: 'phoenix',
-    name: 'Phoenix',
+    id: 'ouarzazate',
+    name: 'Ouarzazate',
     region: 'Désert chaud',
     icon: Sun,
     avgTemp: 32,
@@ -55,23 +60,23 @@ const SITES: SiteOption[] = [
       chiller: { waterPerMWh: 260, pue: 1.78 },
       free_cooling: { waterPerMWh: null, pue: null, inoperableReason: 'Inopérant (32°C)' }
     },
-    latency: 12,
+    latency: 34,
     energyMix: 'Solaire',
-    coordinates: { top: '48%', left: '19%' },
+    coordinates: { top: '52%', left: '43%' },
     labelPosition: 'bottom'
   },
   {
     id: 'ushuai',
     name: 'Ushuaïa',
     region: 'Subantarctique',
-    icon: Compass,
+    icon: Wind,
     avgTemp: 1,
     byCooling: {
       evaporative: { waterPerMWh: 390, pue: 1.13 },
       chiller: { waterPerMWh: 50, pue: 1.30 },
       free_cooling: { waterPerMWh: 35, pue: 1.06 }
     },
-    latency: 95,
+    latency: 195,
     energyMix: 'Éolien',
     coordinates: { top: '83%', left: '29%' },
     labelPosition: 'top'
@@ -89,8 +94,8 @@ const SITES: SiteOption[] = [
     },
     latency: 28,
     energyMix: 'Hydroélectrique',
-    coordinates: { top: '17%', left: '61%' },
-    labelPosition: 'top'
+    coordinates: { top: '18%', left: '62%' },
+    labelPosition: 'bottom'
   }
 ];
 
@@ -100,14 +105,12 @@ const COOLING_MODES: { id: CoolingMode; label: string; detail: string }[] = [
   { id: 'free_cooling', label: 'Free Cooling (Air extérieur)', detail: 'Ventilation directe sans évaporation (efficace uniquement en climat froid < 5°C)' }
 ];
 
-export default function Level4({ isDevMode: _isDevMode, onComplete, onScoreUpdate, onMistake }: { isDevMode?: boolean; onComplete: () => void; onScoreUpdate: (points: number, water: number) => void; onMistake?: () => void; key?: string }) {
+export default function Level4({ onComplete, onScoreUpdate, onMistake }: { onComplete: () => void; onScoreUpdate: (points: number, water: number) => void; onMistake?: () => void; key?: string }) {
   const [selectedSite, setSelectedSite] = useState<SiteOption['id'] | null>(null);
-  const [selectedCooling, setSelectedCooling] = useState<CoolingMode | null>(null);
+  const [selectedCooling, setSelectedCooling] = useState<CoolingMode>('evaporative');
   const { errorMsg, isErrorFlash, triggerError, clearError } = useErrorFeedback();
   const [hasScored, setHasScored] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-
-  const activeSiteObj = SITES.find(s => s.id === selectedSite);
 
   const selectSite = (id: SiteOption['id']) => {
     if (isSuccess) return;
@@ -137,13 +140,13 @@ export default function Level4({ isDevMode: _isDevMode, onComplete, onScoreUpdat
 
     let feedback = "Ce couple site + refroidissement ne respecte pas nos 3 seuils stricts (Eau < 100 L/MWh, PUE < 1.15, Latence ≤ 40 ms). Testez les 3 systèmes pour comparer !";
     if (selectedSite === 'ushuai') {
-      feedback = "Ushuaïa est très sobre (1°C), mais sa latence réseau (95 ms) dépasse la limite de 40 ms du cahier des charges !";
+      feedback = "Ushuaïa est très sobre (1°C), mais sa latence réseau (195 ms) dépasse largement la limite de 40 ms du cahier des charges !";
     } else if (selectedSite === 'lulea' && selectedCooling === 'evaporative') {
       feedback = "À Luleå, les tours évaporatives consomment encore 420 L/MWh (> 100 L/MWh). Testez les autres systèmes pour comparer l'Eau et le PUE !";
     } else if (selectedSite === 'lulea' && selectedCooling === 'chiller') {
       feedback = "À Luleå, la climatisation mécanique économise l'eau (55 L/MWh), mais fait grimper le PUE à 1.32 (> 1.15). Profitez plutôt des 2°C extérieurs !";
-    } else if (selectedSite === 'phoenix' && selectedCooling === 'free_cooling') {
-      feedback = "Le Free Cooling est inopérant à Phoenix (32°C en moyenne) : l'air extérieur est trop chaud pour refroidir les serveurs sans système actif.";
+    } else if (selectedSite === 'ouarzazate' && selectedCooling === 'free_cooling') {
+      feedback = "Le Free Cooling est inopérant à Ouarzazate (32°C en moyenne) : l'air extérieur est trop chaud pour refroidir les serveurs sans système actif.";
     } else if (selectedSite === 'paris' && selectedCooling === 'free_cooling') {
       feedback = "À Paris-Nord (13°C), le Free Cooling nécessite un appoint une grande partie de l'année : l'Eau (180 L/MWh) et le PUE (1.28) restent hors seuils.";
     }
@@ -153,24 +156,18 @@ export default function Level4({ isDevMode: _isDevMode, onComplete, onScoreUpdat
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, x: 50 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -50 }}
-      className="sm:bg-slate-900/90 border-transparent sm:border-white/10 sm:border px-0 sm:px-6 py-2.5 sm:py-4 sm:rounded-2xl max-w-4xl mx-auto relative flex flex-col backdrop-blur-xl sm:shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_24px_48px_rgba(0,0,0,0.55)]"
-    >
-      <div className="flex items-center gap-3 mb-2 border-b border-white/10 pb-2">
-        <Map className="w-7 h-7 text-emerald-400 shrink-0" />
-        <h2 className="font-mono text-lg md:text-2xl font-bold text-white uppercase tracking-widest">
-          Niveau 4 : Stratégie d'Implantation
-        </h2>
-      </div>
+    <LevelShell compact wide>
+      <LevelHeader level={4} icon={Map} compact />
 
-      <div className="mb-3">
+      <div className="mb-3 space-y-2">
+        <HydraLog
+          status="hostile"
+          message="Plan d'extension : implantation prioritaire pré-sélectionnée en désert chaud (foncier faible coût, tours évaporatives)."
+        />
         <NaiaDialogue
           message={
             <>
-              HYDRA construit un nouveau <TechTerm term="Datacenter">data center</TechTerm> d'entraînement (<TechTerm term="Latence">latence</TechTerm> tolérée jusqu'à 40 ms). Testez les systèmes de <TechTerm term="Refroidissement" /> pour simuler l'eau et le <TechTerm term="PUE" /> des 4 sites.
+              HYDRA construit un nouveau <TechTerm term="Datacenter">data center</TechTerm> d'entraînement (<TechTerm term="Latence">latence</TechTerm> depuis l'Europe tolérée jusqu'à 40 ms). Testez les systèmes de <TechTerm term="Refroidissement" /> pour simuler l'eau et le <TechTerm term="PUE" /> des 4 sites.
             </>
           }
           objective="Sélectionnez le site et le refroidissement qui respectent les 3 seuils du cahier des charges."
@@ -186,48 +183,48 @@ export default function Level4({ isDevMode: _isDevMode, onComplete, onScoreUpdat
           <div className="flex items-center gap-2">
             <span className="font-bold text-cyan-400 uppercase tracking-wider">Cahier des charges :</span>
             {selectedCooling ? (
-              <span className="text-[10px] text-emerald-400 bg-emerald-950/50 border border-emerald-500/30 px-2 py-0.5 rounded">
+              <span className="text-[11px] text-emerald-400 bg-emerald-950/50 border border-emerald-500/30 px-2 py-0.5 rounded">
                 Simulation : {COOLING_MODES.find(m => m.id === selectedCooling)?.label}
               </span>
             ) : (
-              <span className="text-[10px] text-amber-300/90 bg-amber-950/40 border border-amber-500/30 px-2 py-0.5 rounded">
+              <span className="text-[11px] text-amber-300/90 bg-amber-950/40 border border-amber-500/30 px-2 py-0.5 rounded">
                 Choisissez un refroidissement ci-dessous
               </span>
             )}
           </div>
           <div className="flex flex-wrap gap-2">
-            <span className="px-2.5 py-1 rounded bg-slate-900 border border-slate-700 text-slate-200 font-bold">Eau &lt; 100 L/MWh</span>
-            <span className="px-2.5 py-1 rounded bg-slate-900 border border-slate-700 text-slate-200 font-bold">
-              <TechTerm term="PUE" /> &lt; 1.15
+            <span className="px-2.5 py-1 rounded bg-slate-900 border border-slate-700 text-slate-200 font-bold tabular-nums">Eau &lt; 100 L/MWh</span>
+            <span className="px-2.5 py-1 rounded bg-slate-900 border border-slate-700 text-slate-200 font-bold tabular-nums">
+              <TechTerm term="PUE" /> &lt; 1,15
             </span>
-            <span className="px-2.5 py-1 rounded bg-slate-900 border border-slate-700 text-slate-200 font-bold">
+            <span className="px-2.5 py-1 rounded bg-slate-900 border border-slate-700 text-slate-200 font-bold tabular-nums">
               <TechTerm term="Latence" /> ≤ 40 ms
             </span>
           </div>
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-3.5">
+        <div className="flex flex-col lg:flex-row gap-4">
           {/* Interactive Map Area with Explicit Climate Bands */}
-          <div className="w-full lg:w-2/5 relative bg-slate-950 rounded-xl border border-slate-800 min-h-[205px] flex items-center justify-center overflow-hidden">
+          <div className="w-full lg:w-2/5 relative bg-slate-950 rounded-2xl border border-white/10 min-h-[225px] flex items-center justify-center overflow-hidden">
             {/* Explicit Climate Bands */}
             <div className="absolute inset-0 pointer-events-none">
               <div
                 className="absolute inset-x-0 top-0 bg-gradient-to-b from-cyan-500/15 to-transparent border-b border-dashed border-cyan-500/20 flex items-start justify-start px-2 pt-1"
                 style={{ height: '24%' }}
               >
-                <span className="text-[8px] uppercase tracking-widest text-cyan-300/75 font-bold">Zone Subarctique (&lt; 5°C)</span>
+                <span className="text-[10px] uppercase tracking-wider text-cyan-300/80 font-bold">Zone Subarctique (&lt; 5°C)</span>
               </div>
               <div
                 className="absolute inset-x-0 bg-gradient-to-r from-amber-500/5 via-amber-500/12 to-amber-500/5 border-y border-dashed border-amber-500/20 flex items-center justify-end px-2"
                 style={{ top: '44%', height: '22%' }}
               >
-                <span className="text-[8px] uppercase tracking-widest text-amber-300/65 font-bold">Zone Chaude / Équateur</span>
+                <span className="text-[10px] uppercase tracking-wider text-amber-300/75 font-bold">Zone Chaude / Équateur</span>
               </div>
               <div
                 className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-cyan-500/15 to-transparent border-t border-dashed border-cyan-500/20 flex items-end justify-end px-2 pb-1"
                 style={{ height: '24%' }}
               >
-                <span className="text-[8px] uppercase tracking-widest text-cyan-300/75 font-bold">Zone Subantarctique (&lt; 5°C)</span>
+                <span className="text-[10px] uppercase tracking-wider text-cyan-300/80 font-bold">Zone Subantarctique (&lt; 5°C)</span>
               </div>
             </div>
 
@@ -245,7 +242,7 @@ export default function Level4({ isDevMode: _isDevMode, onComplete, onScoreUpdat
             {/* Stylized World Map Silhouette */}
             <svg
               viewBox="0 0 100 60"
-              preserveAspectRatio="none"
+              preserveAspectRatio="xMidYMid slice"
               className="absolute inset-0 w-full h-full opacity-35 pointer-events-none"
             >
               {/* North & South America */}
@@ -305,7 +302,7 @@ export default function Level4({ isDevMode: _isDevMode, onComplete, onScoreUpdat
                   type="button"
                   disabled={isSuccess}
                   onClick={() => selectSite(loc.id)}
-                  className={`p-3 rounded-xl border-2 text-left transition-all flex flex-col justify-between ${
+                  className={`p-3 rounded-xl border-2 text-left transition-all flex flex-col justify-between active:scale-[0.985] ${
                     isSelected
                       ? 'bg-cyan-950/30 border-cyan-400'
                       : 'bg-slate-950 border-slate-800 hover:border-slate-600'
@@ -316,7 +313,7 @@ export default function Level4({ isDevMode: _isDevMode, onComplete, onScoreUpdat
                       <Icon className={`w-4 h-4 shrink-0 ${isSelected ? 'text-cyan-400' : 'text-slate-400'}`} />
                       <div className="min-w-0">
                         <div className="font-bold text-sm text-white truncate">{loc.name}</div>
-                        <div className="text-[10px] text-slate-400 truncate">{loc.region} • {loc.energyMix}</div>
+                        <div className="text-[11px] text-slate-400 truncate">{loc.region} • {loc.energyMix}</div>
                       </div>
                     </div>
                     <span className="text-xs font-bold text-slate-200 bg-slate-900 px-2 py-0.5 rounded border border-slate-800 shrink-0">
@@ -326,25 +323,25 @@ export default function Level4({ isDevMode: _isDevMode, onComplete, onScoreUpdat
 
                   {isInoperable ? (
                     <div className="grid grid-cols-3 gap-1.5 text-center pt-2 border-t border-slate-800/80 text-[11px]">
-                      <div className="col-span-2 bg-red-950/40 border border-red-500/30 rounded p-1.5 flex items-center justify-center gap-1 text-red-300 font-bold text-[10px]">
+                      <div className="col-span-2 bg-red-950/40 border border-red-500/30 rounded p-1.5 flex items-center justify-center gap-1 text-red-300 font-bold text-[11px]">
                         <AlertTriangle className="w-3 h-3 shrink-0 text-red-400" />
                         <span>{metrics?.inoperableReason}</span>
                       </div>
                       <div className="bg-slate-900/70 rounded p-1.5">
-                        <div className="text-[9px] text-slate-400 uppercase">Latence</div>
+                        <div className="text-[11px] text-slate-400 uppercase">Latence</div>
                         <div className="font-bold text-slate-100">{loc.latency} ms</div>
                       </div>
                     </div>
                   ) : (
                     <div className="grid grid-cols-3 gap-1.5 text-center pt-2 border-t border-slate-800/80 text-[11px]">
                       <div className="bg-slate-900/70 rounded p-1.5">
-                        <div className="text-[9px] text-slate-400 uppercase flex items-center justify-center gap-0.5">
+                        <div className="text-[11px] text-slate-400 uppercase flex items-center justify-center gap-0.5">
                           <Droplets className="w-2.5 h-2.5 text-cyan-400" /> Eau
                         </div>
-                        <div className={`font-bold whitespace-nowrap ${metrics ? 'text-slate-100' : 'text-slate-500'}`}>
+                        <div className={`font-bold font-mono tabular-nums whitespace-nowrap ${metrics ? 'text-slate-100' : 'text-slate-500'}`}>
                           {metrics?.waterPerMWh !== null && metrics ? (
                             <>
-                              {metrics.waterPerMWh} <span className="text-[9px] font-normal text-slate-400">L/MWh</span>
+                              {metrics.waterPerMWh} <span className="text-[10px] font-normal text-slate-400">L/MWh</span>
                             </>
                           ) : (
                             '—'
@@ -352,16 +349,16 @@ export default function Level4({ isDevMode: _isDevMode, onComplete, onScoreUpdat
                         </div>
                       </div>
                       <div className="bg-slate-900/70 rounded p-1.5">
-                        <div className="text-[9px] text-slate-400 uppercase flex items-center justify-center gap-0.5">
+                        <div className="text-[11px] text-slate-400 uppercase flex items-center justify-center gap-0.5">
                           <Gauge className="w-2.5 h-2.5 text-cyan-400" /> PUE
                         </div>
-                        <div className={`font-bold ${metrics ? 'text-slate-100' : 'text-slate-500'}`}>
-                          {metrics?.pue !== null && metrics ? metrics.pue.toFixed(2) : '—'}
+                        <div className={`font-bold font-mono tabular-nums ${metrics ? 'text-slate-100' : 'text-slate-500'}`}>
+                          {metrics?.pue !== null && metrics ? metrics.pue.toFixed(2).replace('.', ',') : '—'}
                         </div>
                       </div>
                       <div className="bg-slate-900/70 rounded p-1.5">
-                        <div className="text-[9px] text-slate-400 uppercase">Latence</div>
-                        <div className="font-bold text-slate-100">{loc.latency} ms</div>
+                        <div className="text-[11px] text-slate-400 uppercase">Latence</div>
+                        <div className="font-bold font-mono tabular-nums text-slate-100">{loc.latency} ms</div>
                       </div>
                     </div>
                   )}
@@ -375,10 +372,10 @@ export default function Level4({ isDevMode: _isDevMode, onComplete, onScoreUpdat
         <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-3">
           <div className="flex items-center justify-between gap-2 text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">
             <div className="flex items-center gap-2">
-              <Wind className="w-4 h-4 text-cyan-400" />
+              <Fan className="w-4 h-4 text-cyan-400" />
               <span>Système de refroidissement à déployer sur le site :</span>
             </div>
-            <span className="text-[10px] font-normal text-slate-400 normal-case hidden sm:inline">
+            <span className="text-[11px] font-normal text-slate-400 normal-case hidden sm:inline">
               Cliquez pour simuler l'impact sur l'Eau et le PUE
             </span>
           </div>
@@ -391,14 +388,21 @@ export default function Level4({ isDevMode: _isDevMode, onComplete, onScoreUpdat
                   type="button"
                   disabled={isSuccess}
                   onClick={() => selectCooling(mode.id)}
-                  className={`p-2.5 rounded-lg border text-left transition-all ${
+                  className={`p-2.5 rounded-lg border text-left transition-all active:scale-[0.985] ${
                     isSelected
                       ? 'bg-emerald-950/30 border-emerald-400 text-white'
                       : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-600'
                   }`}
                 >
-                  <div className="font-bold text-xs mb-0.5">{mode.label}</div>
-                  <div className="text-[10px] text-slate-400 leading-snug">{mode.detail}</div>
+                  <div className="flex items-center justify-between gap-2 mb-0.5">
+                    <span className="font-bold text-xs">{mode.label}</span>
+                    {mode.id === 'evaporative' && (
+                      <span className="text-[11px] font-mono uppercase px-1.5 py-0.5 rounded bg-amber-950/60 border border-amber-500/35 text-amber-300 shrink-0">
+                        Actuel HYDRA
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-[11px] text-slate-400 leading-snug">{mode.detail}</div>
                 </button>
               );
             })}
@@ -407,46 +411,34 @@ export default function Level4({ isDevMode: _isDevMode, onComplete, onScoreUpdat
 
         {!isSuccess && (
           <div className="flex justify-center">
-            <button
+            <ActionButton
               onClick={checkAnswer}
               disabled={!selectedSite || !selectedCooling}
-              className={`px-7 py-2.5 rounded-lg font-bold text-base transition-all ${
-                !selectedSite || !selectedCooling
-                  ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                  : isErrorFlash
-                  ? 'bg-red-600 text-white animate-shake'
-                  : 'bg-emerald-600 hover:bg-emerald-500 text-white hover:shadow-[0_0_18px_rgba(16,185,129,0.35)]'
-              }`}
+              isError={isErrorFlash}
+              size="md"
             >
               VALIDER L'IMPLANTATION
-            </button>
+            </ActionButton>
           </div>
         )}
 
         <AnimatePresence>
           {isSuccess && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex flex-col items-center mt-4 p-5 bg-emerald-950/30 border border-emerald-500/50 rounded-lg"
-            >
-              <div className="flex items-center gap-2 text-emerald-400 font-bold text-xl mb-3">
-                <CheckCircle2 className="w-6 h-6" />
-                IMPLANTATION OPTIMALE VALIDÉE
-              </div>
-              <p className="text-center mb-5 text-sm">
-                À Luleå (climat froid à 2°C et latence de 28 ms ≤ 40 ms), le Free Cooling utilise directement l'air extérieur pour refroidir les <TechTerm term="Serveur">serveurs</TechTerm> presque toute l'année. Combiné à l'hydroélectricité, le PUE tombe à 1.08 avec 97% d'eau en moins par rapport au désert !
-              </p>
-              <button
-                onClick={onComplete}
-                className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-3 rounded-lg font-bold transition-all hover:shadow-[0_0_18px_rgba(16,185,129,0.35)]"
-              >
-                CONTINUER LE DÉPLOIEMENT
-              </button>
-            </motion.div>
+            <LevelSuccessCard
+              title="IMPLANTATION OPTIMALE VALIDÉE"
+              description={
+                <>
+                  À Luleå (climat froid à 2°C et latence de 28 ms ≤ 40 ms), le Free Cooling utilise directement l'air extérieur pour refroidir les <TechTerm term="Serveur">serveurs</TechTerm> presque toute l'année. Combiné à l'hydroélectricité, le PUE tombe à 1,08 avec 97 % d'eau en moins par rapport au désert !
+                </>
+              }
+              buttonLabel="CONTINUER LE DÉPLOIEMENT"
+              onContinue={onComplete}
+              compact
+              className="mt-4"
+            />
           )}
         </AnimatePresence>
       </div>
-    </motion.div>
+    </LevelShell>
   );
 }
