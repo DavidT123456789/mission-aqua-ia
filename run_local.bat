@@ -1,7 +1,8 @@
 @echo off
-echo ===================================
-echo    Lancement de l'application Aqua IA en local...
-echo ===================================
+chcp 65001 >nul
+echo ==================================================
+echo    Lancement de Mission Aqua IA en local...
+echo ==================================================
 echo.
 
 :: Vérifier si les modules Node sont installés, sinon les installer

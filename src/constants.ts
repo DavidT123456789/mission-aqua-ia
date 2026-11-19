@@ -4,7 +4,6 @@ export const MISSION_DURATION_SECONDS = MISSION_DURATION_MINUTES * 60;
 export const HEART_COST_POINTS = 150;
 export const MISTAKE_SCORE_PENALTY = 30;
 export const FREE_HINT_COST_POINTS = 10;
-export const PAID_HINT_COST_POINTS = 100;
 export const TIME_BONUS_COST_POINTS = 100;
 export const TIME_BONUS_SECONDS = 180; // +3 minutes
 export const TERM_DISCOVERY_DELAY_MS = 2500; // 2,5 s de lecture avant validation dans le glossaire
@@ -12,6 +11,23 @@ export const TERM_DISCOVERY_POINTS = 15;
 export const LOCKOUT_TIME_PENALTY_SECONDS = 120; // 2 minutes
 export const LOCKOUT_MIN_TIME_REMAINING_SECONDS = 60; // Plancher 1 min pour éviter un double Game Over immédiat
 export const LOCKOUT_RESTORE_LIVES = 2; // Reprise avec 2 vies sur 3 pour maintenir la tension
+
+// Plancher de temps garanti (en secondes) lors d'une reprise au début d'un acte après Game Over
+export const ACT_CHECKPOINT_MIN_TIME_SECONDS: Record<1 | 2 | 3, number> = {
+  1: MISSION_DURATION_SECONDS,
+  2: 15 * 60,
+  3: 8 * 60,
+};
+
+export interface ActCheckpoint {
+  actId: 1 | 2 | 3;
+  level: number;
+  score: number;
+  baseNetworkWater: number;
+  timeLeft: number;
+  extraTimeBought: number;
+  unlockedFreeHints: number[];
+}
 
 export interface Evaluation {
   title: string;
@@ -25,65 +41,19 @@ export interface Evaluation {
   feedback: string;
 }
 
-export interface LevelHint {
-  free: string;
-  paid?: string;
-  noMistakeUnlock?: boolean;
-}
-
-export const HINTS: Record<number, LevelHint> = {
-  1: {
-    free: "Convertissez les 18 L en millilitres (1 L = 1 000 mL), puis divisez par les 1 500 images pour trouver la consommation d'une seule image."
-  },
-  2: {
-    free: "Le système requiert exactement 135 L/s. Additionnez les débits des vannes que vous gardez ouvertes.",
-    paid: "Il faut une combinaison de 3 vannes qui fait 135 L/s : 65 + 45 + 25 ou 45 + 75 + 15."
-  },
-  3: {
-    free: "À 03h00 du matin, un secteur actif (nettoyage) garde une pression normale : cherchez celui où le débit reste anormalement élevé ET la pression chute.",
-    paid: "Le capteur C (Zone Industrielle) a une pression qui chute à 3,7 bar et un débit nocturne de 46 L/min."
-  },
-  4: {
-    free: "La latence dépend uniquement du site, tandis que l'Eau et le PUE varient selon le système choisi : écartez d'abord le site hors délai (> 40 ms), puis testez les 3 refroidissements sur les autres.",
-    paid: "Choisissez Luleå (Subarctique, 2 °C, 45 L/MWh, PUE 1,08, 28 ms) et couplez-le au système de Free Cooling (Air extérieur)."
-  },
-  5: {
-    free: "L'entraînement dure 6 h d'affilée : ne démarrez pas trop tard dans le creux, sinon la fin du calcul débordera sur le pic carboné du matin !",
-    paid: "Glissez le curseur de départ sur 00:00 (40 gCO₂/kWh) ou 01:00 (45 gCO₂/kWh) pour rester sous le seuil de 55 gCO₂/kWh."
-  },
-  6: {
-    free: "Plus un flux reçoit de requêtes par jour, plus le traitement doit être léger (une même architecture peut servir sur plusieurs flux) : réservez les grands modèles aux rares tâches complexes.",
-    paid: "1. Alertes seuils → Sans IA (Règles) | 2. Demandes citoyennes → Modèle Spécialisé (1B) | 3. Rapports 80 pages → LLM Généraliste (175B) | 4. Filtrage d'URL → Sans IA (Règles)."
-  },
-  7: {
-    free: "Étape 1 : une chauffe sous le max n'est pas une panne, cherchez une vraie erreur matérielle. Étape 2 : conservez tous les composants qui fonctionnent encore. Étape 3 : évitez l'effet tiroir comme la revente d'une pièce HS.",
-    paid: "Étape 1 : Mémoire Vive (RAM ECC, échec EDAC sur DIMM_B2). Étape 2 : Remplacer la RAM. Étape 3 : Filière de recyclage DEEE."
-  },
-  8: {
-    free: "Pour récupérer un maximum d'énergie sans gaspiller d'eau ni réchauffer le milieu naturel, privilégiez une boucle fermée, puis suivez le trajet logique de l'eau étape par étape.",
-    paid: "Raccordement : Réseau de chaleur urbain. Ordre : 1. Échangeur côté serveurs → 2. Conduite isolée haute température → 3. Échangeur côté logements → 4. Conduite froide en boucle fermée."
-  },
-  9: {
-    free: "Étape 1 : ne gardez que les données chiffrées utiles à la modélisation locale (climat du bassin, hydrologie, topographie), en restant sous 75 To. Étape 2 : cherchez pourquoi les besoins d'un quartier sont invisibles dans les données.",
-    paid: "Étape 1 : Supprimez les relevés d'Australie (hors zone), les vidéos 4K et la copie brute de sauvegarde (1995-2020) → 70 To conservés. Étape 2 : Biais de représentativité → rééquilibrer avec les relevés terrain du Quartier Nord."
-  },
-  10: {
-    free: "Il y a exactement 4 clauses réellement contraignantes pour l'environnement. Méfiez-vous des promesses vagues, des compensations symboliques et des engagements sans contrôle !",
-    paid: "Cochez les 4 clauses contraignantes : Transparence obligatoire sur l'eau, Interdiction des LLM géants pour des tâches simples, Réutilisation de la chaleur fatale et Évaluation du coût écologique avant déploiement."
-  },
-  11: {
-    free: "Regardez bien la structure if / else : dans le if, une seule des deux conditions (sol déjà assez humide, ou pluie annoncée) suffit pour couper l'arrosage ; le else gère le cas contraire.",
-    paid: "Suivez la logique du programme : d'abord on LIT les données (un capteur et des prévisions), puis on DÉCIDE. Si l'humidité dépasse le seuil OU s'il pleut, on n'arrose pas (False). Sinon, on calcule le besoin en eau, on active (True) et on choisit le meilleur moment."
-  },
-  12: {
-    free: "Respectez les 3 contraintes ensemble : financez au moins 85 U pour Climat (≥ 35 U) + Réseaux (≥ 40 U), maintenez 10 à 15 U pour les Services Citoyens, coupez la Publicité (≤ 5 U) et restez sous 108 MW d'électricité.",
-    paid: "Exemple optimal : Climat = 45 U, Réseaux = 45 U, Services Citoyens = 10 U, Ciblage Pub = 0 U (Total = 100 U, Puissance = 105 MW ≤ 108 MW)."
-  },
-  13: {
-    free: "Validez d'abord les 2 réflexes du Prompt Sobre, puis décrivez votre invention en combinant les 4 piliers : problème d'eau ciblé, capteurs/IA sobre, mécanisme concret et ordre de grandeur d'économie.",
-    paid: "Calibration : 1) Moteur de recherche classique (Sans IA) | 2) 1 prompt structuré (Problème + Contexte + Données techniques + Format attendu). Pour viser le rang Légendaire (80 %+), incluez des termes techniques précis (IoT, boucle fermée, capteur, économie chiffrée).",
-    noMistakeUnlock: true
-  },
+export const HINTS: Record<number, string> = {
+  1: "Astuce de calcul mental : une fois les 18 L convertis en millilitres (18 000 mL), simplifiez par 100 les deux nombres — diviser 18 000 par 1 500 revient à diviser 180 par 15 !",
+  2: "Astuce : toutes les vannes ouvertes totalisent 225 L/s. Plutôt que de tout recalculer, cherchez simplement 2 vannes à fermer dont la somme vaut l'excès de 90 L/s (225 − 135 = 90) !",
+  3: "Comparez chaque relevé aux secteurs au repos (~4,3 bar et ~5 L/min) : un nettoyage prévu la nuit tire de l'eau mais maintient la pression (> 4 bar), tandis qu'une vraie rupture fait chuter la pression dans une zone censée être à l'arrêt.",
+  4: "Procédez par élimination : la latence ne dépend que de la distance (écartez d'emblée le site > 40 ms). Sur les sites restants, seul un climat très froid (< 5 °C) permet d'utiliser l'air extérieur sans évaporer d'eau ni alourdir le PUE électrique.",
+  5: "Méfiez-vous du creux solaire de midi : il ne dure que 2 h, alors que l'entraînement dure 6 h d'affilée ! Placez toute la fenêtre de 6 h dans la longue période éolienne de la nuit, avant le réveil des centrales à gaz à 06h00.",
+  6: "Regardez l'ordre de grandeur : à 2,5 Wh/requête, le grand LLM (175B) ne peut traiter qu'un flux à faible volume (quelques milliers/jour). Utilisez les règles sans IA dès que le critère est fixe (seuil chiffré ou liste noire) et le modèle 1B pour classer des textes courts.",
+  7: "Une température élevée mais sous sa limite max (comme le GPU en plein calcul) n'est pas une panne : cherchez l'erreur matérielle non corrigée dans les logs, ne remplacez que ce composant, puis orientez la pièce HS vers l'extraction des métaux (DEEE).",
+  8: "Privilégiez la boucle fermée qui chauffe la ville sans évaporer d'eau. Pour l'ordre du circuit, suivez la chaleur : l'eau capte d'abord les 65 °C côté serveurs, circule dans la conduite chaude isolée, cède ses calories aux logements, puis revient refroidie au datacenter.",
+  9: "Étape 1 : écartez les données hors zone géographique, les vidéos 4K trop lourdes et la copie en doublon pour ne garder que les 3 relevés scientifiques locaux (70 To). Étape 2 : un quartier sous-équipé en capteurs nécessite d'intégrer ses propres relevés terrain plutôt qu'une moyenne.",
+  10: "Il y a exactement 4 articles réellement contraignants à retenir. Écartez les 4 pièges de greenwashing : compensation ailleurs qu'en local, pompage sur simple déclaration, bilan repoussé de 3 ans ou label auto-déclaré sans contrôle.",
+  11: "Repérez les indices dans les noms de fonctions : lire_capteur(\"humidité\"), lire_previsions(\"pluie_demain\") et calcul_eau(plante). Dans le if, combinez plante.seuil et la pluie avec « or » pour couper la pompe (False) ; dans le else, activez-la (True) à l'heure la plus fraîche.",
+  12: "Pour rester sous les 108 MW tout en atteignant 100 U d'eau : coupez la Publicité à 0 U (très énergivore à 2,5 MW/U), fixez les Services Citoyens au minimum requis (10 U), puis donnez un léger avantage aux Réseaux d'eau (0,8 MW/U) par rapport au Climat (1,2 MW/U).",
 };
 
 export const FACTS: Record<number, string> = {

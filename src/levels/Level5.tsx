@@ -2,7 +2,6 @@ import { useState, useRef, useEffect, type CSSProperties, type PointerEvent } fr
 import { AnimatePresence } from 'motion/react';
 import { Clock, ArrowRight, Leaf, AlertTriangle, LineChart, Zap, Moon, Wind, Sun, Flame, GripHorizontal } from 'lucide-react';
 import NaiaDialogue from '../components/NaiaDialogue';
-import HydraLog from '../components/HydraLog';
 import TechTerm from '../components/TechTerm';
 import LevelHeader from '../components/LevelHeader';
 import LevelShell from '../components/LevelShell';
@@ -157,12 +156,12 @@ export default function Level5({ onComplete, onScoreUpdate, onMistake }: { onCom
     <LevelShell>
       <LevelHeader level={5} icon={Clock} />
 
-      <div className="mb-3 space-y-2">
-        <HydraLog
-          status="hostile"
-          message="Entraînement de 500 kWh programmé à 12h00 sans prise en compte de l'intensité carbone du réseau électrique."
-        />
+      <div className="mb-3">
         <NaiaDialogue
+          hydra={{
+            status: 'hostile',
+            message: "Entraînement de 500 kWh programmé à 12h00 sans prise en compte de l'intensité carbone du réseau électrique.",
+          }}
           message={
             <>
               En attendant la bascule vers Luleå, les serveurs <TechTerm term="Cloud">cloud</TechTerm> secondaires d'HYDRA tournent encore sur le réseau électrique européen, où un entraînement de <TechTerm term="Machine Learning">machine learning</TechTerm> consomme <strong className="font-mono text-white">{TRAINING_ENERGY_KWH} kWh</strong> pendant <strong className="font-mono text-white">{DURATION_HOURS} h</strong> d'affilée. Selon l'heure, le réseau alterne entre éolien, solaire et centrales à gaz.

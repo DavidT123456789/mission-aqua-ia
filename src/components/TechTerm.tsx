@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import { X, Check } from 'lucide-react';
 import { TERM_DISCOVERY_DELAY_MS, TERM_DISCOVERY_POINTS } from '../constants';
 import { useNaiaHints } from './NaiaContext';
+import { EASE_OUT_EXPO, EASE_IN_OUT, SPRING_SNAPPY } from '../utils/motion';
 
 
 export const TERMS_DICTIONARY: Record<string, { title: string; definition: string }> = {
@@ -282,11 +283,11 @@ export default function TechTerm({ term, children, className = '' }: TechTermPro
             });
           }
         }}
-        className={`cursor-help px-1 py-[1px] rounded-sm border-b ${
+        className={`cursor-help underline decoration-dotted underline-offset-[4px] decoration-[1.5px] rounded-[3px] px-0.5 -mx-0.5 ${
           isDiscovered
-            ? 'bg-emerald-400/10 border-emerald-400/60 text-emerald-300 hover:bg-emerald-400/15 hover:text-emerald-200'
-            : 'bg-amber-400/10 border-amber-400/60 text-amber-300 hover:bg-amber-400/15 hover:text-amber-200'
-        } focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 transition-colors inline-flex items-center`}
+            ? 'text-emerald-300/95 decoration-emerald-400/65 hover:text-emerald-200 hover:decoration-emerald-300 hover:bg-emerald-400/10 focus-visible:ring-emerald-400/60'
+            : 'text-amber-300/95 decoration-amber-400/75 hover:text-amber-200 hover:decoration-amber-300 hover:bg-amber-400/10 focus-visible:ring-amber-400/60'
+        } focus:outline-none focus-visible:ring-2 transition-colors inline`}
       >
         {children || term}
       </span>
@@ -308,37 +309,44 @@ export default function TechTerm({ term, children, className = '' }: TechTermPro
               }}
               initial={{
                 opacity: 0,
-                y: tooltipPos.placeBelow ? '-10px' : 'calc(-100% + 10px)',
+                y: tooltipPos.placeBelow ? '-6px' : 'calc(-100% + 6px)',
                 x: '-50%',
-                scale: 0.95
+                scale: 0.96
               }}
               animate={{
                 opacity: 1,
                 y: tooltipPos.placeBelow ? '0%' : '-100%',
                 x: '-50%',
-                scale: 1
+                scale: 1,
+                transition: { duration: 0.18, ease: EASE_OUT_EXPO }
               }}
               exit={{
                 opacity: 0,
-                y: tooltipPos.placeBelow ? '-5px' : 'calc(-100% + 5px)',
+                y: tooltipPos.placeBelow ? '-4px' : 'calc(-100% + 4px)',
                 x: '-50%',
-                scale: 0.95
+                scale: 0.97,
+                transition: { duration: 0.12, ease: EASE_IN_OUT }
               }}
-              transition={{ duration: 0.2 }}
               className={`w-72 p-4 bg-slate-900 border ${
                 justDiscovered ? 'border-emerald-500/60' : 'border-slate-700'
               } rounded-lg shadow-2xl block text-left font-normal tracking-normal absolute transition-colors duration-300`}
             >
-              {justDiscovered && (
-                <span
-                  className={`absolute ${
-                    tooltipPos.placeBelow ? '-bottom-3' : '-top-3'
-                  } right-3 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-950 border border-emerald-400/60 text-emerald-300 text-[11px] font-mono font-bold shadow-lg normal-case not-italic tracking-normal`}
-                >
-                  <Check className="w-3 h-3 shrink-0" />
-                  <span>{awardsPoints ? `+${TERM_DISCOVERY_POINTS} pts` : 'Glossaire'}</span>
-                </span>
-              )}
+              <AnimatePresence>
+                {justDiscovered && (
+                  <motion.span
+                    initial={{ opacity: 0, scale: 0.75, y: tooltipPos.placeBelow ? -4 : 4 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.85 }}
+                    transition={SPRING_SNAPPY}
+                    className={`absolute ${
+                      tooltipPos.placeBelow ? '-bottom-3' : '-top-3'
+                    } right-3 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-950 border border-emerald-400/60 text-emerald-300 text-[11px] font-mono font-bold shadow-lg normal-case not-italic tracking-normal`}
+                  >
+                    <Check className="w-3 h-3 shrink-0" />
+                    <span>{awardsPoints ? `+${TERM_DISCOVERY_POINTS} pts` : 'Glossaire'}</span>
+                  </motion.span>
+                )}
+              </AnimatePresence>
               <span className="text-emerald-400 font-bold text-sm mb-1.5 flex items-center justify-between gap-2 normal-case font-sans not-italic tracking-normal">
                 <span>{info.title}</span>
                 {isPinned && (

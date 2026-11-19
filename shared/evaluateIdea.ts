@@ -27,7 +27,8 @@ DIRECTIVES D'ÉVALUATION :
 - Précision Technique : Récompense l'utilisation judicieuse de termes ou mécanismes techniques (capteurs, IoT, boucle fermée, IA spécialisée, récupération de chaleur, etc.) pour atteindre l'EXCELLENCE (80-100 %).
 - PÉNALITÉ DE BRIÈVETÉ : Si la description est trop vague (ex : « une appli pour les fuites ») ou comporte moins de 2 phrases construites, le score global ne doit PAS dépasser 40-50 %.
 - Équilibre : Ne punis pas l'absence de jargon si l'explication est claire et pertinente, mais valorise sa présence quand il est bien utilisé.
-- Sois encourageante et constructive : valorise l'effort de réflexion et la créativité scientifique en français.`;
+- Sois encourageante et constructive : valorise l'effort de réflexion et la créativité scientifique en français.
+- Vouvoie systématiquement l'élève ou le binôme dans tout le texte généré (ex. « Votre idée… », « Vous pouvez préciser… »), sans jamais tutoyer.`;
 
 const EVALUATION_RESPONSE_SCHEMA: Schema = {
   type: Type.OBJECT,
@@ -155,7 +156,7 @@ export async function evaluateStudentIdea(apiKey: string, idea: string): Promise
   const parsed = JSON.parse(rawText) as Record<string, unknown>;
 
   return {
-    title: sanitizeText(parsed.title, 120, "Projet Aqua-IA"),
+    title: sanitizeText(parsed.title, 120, "Projet Symbiose"),
     description: sanitizeText(parsed.description, 600, safeIdea.slice(0, 300)),
     impact: String(clampInt(parsed.impact, 0, 10, 5)),
     feasibility: String(clampInt(parsed.feasibility, 0, 10, 5)),

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import {
   GraduationCap,
   Clock,
@@ -10,6 +10,12 @@ import {
   CheckCircle2,
   ShieldCheck,
 } from 'lucide-react';
+import {
+  MODAL_BACKDROP_MOTION,
+  MODAL_PANEL_MOTION,
+  SPRING_SNAPPY,
+  TAB_PANEL_MOTION,
+} from '../utils/motion';
 
 interface TeacherKitModalProps {
   onClose: () => void;
@@ -34,7 +40,7 @@ interface DebatePrompt {
 
 const LOGISTICS_TIPS = [
   'Binômes conseillés (2 élèves/poste) pour favoriser la verbalisation et l’entraide.',
-  'Son coupé ou casques : la voix NAIA est facultative, tout est lisible à l’écran.',
+  'Son coupé ou casques : la voix NAÏA est facultative, tout est lisible à l’écran.',
   'Bouton « Pause » en haut de l’écran pour figer le chrono et masquer le jeu lors d’un point classe.',
   'Sauvegarde automatique sur le poste : reprise exacte possible d’une séance à l’autre.',
 ];
@@ -152,7 +158,7 @@ function buildPrintableHtml(): string {
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <title>Mission Aqua-IA · Kit Enseignant</title>
+  <title>Mission Aqua IA · Kit Enseignant</title>
   <style>
     @page { size: A4; margin: 12mm 14mm; }
     * { box-sizing: border-box; }
@@ -266,7 +272,7 @@ function buildPrintableHtml(): string {
 </head>
 <body>
   <header>
-    <h1>Mission Aqua-IA · Kit Enseignant</h1>
+    <h1>Mission Aqua IA · Kit Enseignant</h1>
     <span>Collège (Cycle 4) &amp; Seconde SNT · Fiche sans corrigés</span>
   </header>
 
@@ -311,7 +317,7 @@ function buildPrintableHtml(): string {
   <div class="debate-grid">${debateHtml}</div>
 
   <footer>
-    <span>Mission Aqua-IA · Escape game éducatif IA &amp; Eau</span>
+    <span>Mission Aqua IA · Escape game éducatif IA &amp; Eau</span>
     <span>Fiche sans corrigés : réponses protégées dans le Mode Enseignant (Alt+Shift+P ou double-clic en pied de page).</span>
   </footer>
 </body>
@@ -363,7 +369,8 @@ export default function TeacherKitModal({ onClose }: TeacherKitModalProps) {
   };
 
   return (
-    <div
+    <motion.div
+      {...MODAL_BACKDROP_MOTION}
       onClick={onClose}
       role="dialog"
       aria-modal="true"
@@ -371,9 +378,7 @@ export default function TeacherKitModal({ onClose }: TeacherKitModalProps) {
       className="fixed inset-0 z-[125] flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-sm"
     >
       <motion.div
-        initial={{ scale: 0.94, opacity: 0, y: 12 }}
-        animate={{ scale: 1, opacity: 1, y: 0 }}
-        exit={{ scale: 0.94, opacity: 0, y: 12 }}
+        {...MODAL_PANEL_MOTION}
         onClick={(e) => e.stopPropagation()}
         className="bg-slate-900/95 backdrop-blur-xl border border-indigo-500/25 rounded-2xl max-w-3xl w-full max-h-[85vh] flex flex-col overflow-hidden shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_24px_48px_rgba(0,0,0,0.65)]"
       >
@@ -388,7 +393,7 @@ export default function TeacherKitModal({ onClose }: TeacherKitModalProps) {
                 KIT ENSEIGNANT
               </h2>
               <p className="text-xs text-slate-400">
-                Fiche express pour préparer et débriefer Mission Aqua-IA en classe
+                Fiche express pour préparer et débriefer Mission Aqua IA en classe
               </p>
             </div>
           </div>
@@ -416,54 +421,46 @@ export default function TeacherKitModal({ onClose }: TeacherKitModalProps) {
 
         {/* Tabs */}
         <div className="flex gap-1.5 px-5 py-2.5 border-b border-white/10 bg-slate-950/40 shrink-0 overflow-x-auto" role="tablist">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === 'deroule'}
-            onClick={() => setActiveTab('deroule')}
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
-              activeTab === 'deroule'
-                ? 'bg-indigo-600 text-white shadow-[0_0_12px_rgba(99,102,241,0.35)]'
-                : 'text-slate-300 hover:text-white hover:bg-slate-800/70'
-            }`}
-          >
-            <Clock className="w-3.5 h-3.5" />
-            <span>Déroulé 1 h / 2 h</span>
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === 'programmes'}
-            onClick={() => setActiveTab('programmes')}
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
-              activeTab === 'programmes'
-                ? 'bg-indigo-600 text-white shadow-[0_0_12px_rgba(99,102,241,0.35)]'
-                : 'text-slate-300 hover:text-white hover:bg-slate-800/70'
-            }`}
-          >
-            <BookOpen className="w-3.5 h-3.5" />
-            <span>Programmes &amp; Pix</span>
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === 'debat'}
-            onClick={() => setActiveTab('debat')}
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
-              activeTab === 'debat'
-                ? 'bg-indigo-600 text-white shadow-[0_0_12px_rgba(99,102,241,0.35)]'
-                : 'text-slate-300 hover:text-white hover:bg-slate-800/70'
-            }`}
-          >
-            <MessageSquare className="w-3.5 h-3.5" />
-            <span>Débat oral (10–15 min)</span>
-          </button>
+          {([
+            { id: 'deroule' as const, label: 'Déroulé 1 h / 2 h', icon: Clock },
+            { id: 'programmes' as const, label: 'Programmes & Pix', icon: BookOpen },
+            { id: 'debat' as const, label: 'Débat oral (10–15 min)', icon: MessageSquare },
+          ]).map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                role="tab"
+                aria-selected={isActive}
+                onClick={() => setActiveTab(tab.id)}
+                className={`relative flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold transition-colors whitespace-nowrap cursor-pointer ${
+                  isActive
+                    ? 'text-white'
+                    : 'text-slate-300 hover:text-white hover:bg-slate-800/50'
+                }`}
+              >
+                {isActive && (
+                  <motion.span
+                    layoutId="teacherKitActiveTab"
+                    transition={SPRING_SNAPPY}
+                    className="absolute inset-0 rounded-lg bg-indigo-600 shadow-[0_0_12px_rgba(99,102,241,0.35)]"
+                    aria-hidden="true"
+                  />
+                )}
+                <Icon className="w-3.5 h-3.5 relative z-10" />
+                <span className="relative z-10">{tab.label}</span>
+              </button>
+            );
+          })}
         </div>
 
         {/* Body */}
-        <div className="p-5 overflow-y-auto space-y-4 flex-1">
+        <div className="p-5 overflow-y-auto flex-1">
+          <AnimatePresence mode="wait" initial={false}>
           {activeTab === 'deroule' && (
-            <>
+            <motion.div key="tab-deroule" {...TAB_PANEL_MOTION} className="space-y-4">
               <div className="grid sm:grid-cols-2 gap-3.5">
                 <div className="bg-slate-950/60 border border-white/10 rounded-xl p-4 flex flex-col gap-3">
                   <div className="flex items-center justify-between gap-2">
@@ -537,11 +534,11 @@ export default function TeacherKitModal({ onClose }: TeacherKitModalProps) {
                   ))}
                 </ul>
               </div>
-            </>
+            </motion.div>
           )}
 
           {activeTab === 'programmes' && (
-            <div className="space-y-3">
+            <motion.div key="tab-programmes" {...TAB_PANEL_MOTION} className="space-y-3">
               <p className="text-xs text-slate-300 leading-relaxed">
                 Le scénario croise sciences, technologie et esprit critique du <strong className="text-white">Cycle 4 (5e–3e)</strong> jusqu’à la <strong className="text-white">Seconde (SNT)</strong>. Idéal en EPI ou en co-animation.
               </p>
@@ -573,11 +570,11 @@ export default function TeacherKitModal({ onClose }: TeacherKitModalProps) {
                   </tbody>
                 </table>
               </div>
-            </div>
+            </motion.div>
           )}
 
           {activeTab === 'debat' && (
-            <div className="space-y-3">
+            <motion.div key="tab-debat" {...TAB_PANEL_MOTION} className="space-y-3">
               <p className="text-xs text-slate-300 leading-relaxed">
                 4 amorces prêtes à l’emploi pour transformer la partie en temps de recul critique (choisir <strong className="text-white">2 questions en format 1 h</strong>, ou les 4 en séance 2).
               </p>
@@ -610,8 +607,9 @@ export default function TeacherKitModal({ onClose }: TeacherKitModalProps) {
                   </div>
                 ))}
               </div>
-            </div>
+            </motion.div>
           )}
+          </AnimatePresence>
         </div>
 
         {/* Footer */}
@@ -629,6 +627,6 @@ export default function TeacherKitModal({ onClose }: TeacherKitModalProps) {
           </button>
         </div>
       </motion.div>
-    </div>
+    </motion.div>
   );
 }

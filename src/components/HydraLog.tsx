@@ -1,48 +1,77 @@
 import { ShieldAlert, Terminal, Cpu } from 'lucide-react';
 
-type HydraStatus = 'hostile' | 'warning' | 'synced';
+export type HydraStatus = 'hostile' | 'warning' | 'synced';
 
-const STATUS_STYLES: Record<HydraStatus, { container: string; dot: string; tag: string; icon: typeof ShieldAlert; label: string }> = {
+export interface HydraLogData {
+  message: string;
+  status?: HydraStatus;
+  label?: string;
+}
+
+export const HYDRA_STATUS_STYLES: Record<
+  HydraStatus,
+  {
+    container: string;
+    integrated: string;
+    dot: string;
+    tag: string;
+    icon: typeof ShieldAlert;
+    label: string;
+  }
+> = {
   hostile: {
-    container: 'bg-slate-950/75 border-y border-r border-white/10 border-l-2 border-l-red-500 text-red-200/90',
-    dot: 'bg-red-500 animate-pulse',
-    tag: 'text-red-400',
+    container: 'bg-slate-950/60 border border-white/[0.08] border-l-2 border-l-rose-400/75 text-slate-300',
+    integrated: 'bg-white/[0.02] border-b border-white/[0.06] text-slate-300',
+    dot: 'bg-rose-400/90',
+    tag: 'text-rose-300/90',
     icon: ShieldAlert,
-    label: 'HYDRA // ALERTE'
+    label: 'HYDRA · Alerte'
   },
   warning: {
-    container: 'bg-slate-950/75 border-y border-r border-white/10 border-l-2 border-l-amber-400 text-amber-100/90',
-    dot: 'bg-amber-400 animate-pulse',
-    tag: 'text-amber-400',
+    container: 'bg-slate-950/60 border border-white/[0.08] border-l-2 border-l-amber-400/70 text-slate-300',
+    integrated: 'bg-white/[0.02] border-b border-white/[0.06] text-slate-300',
+    dot: 'bg-amber-400/85',
+    tag: 'text-amber-300/85',
     icon: Terminal,
-    label: 'HYDRA // SYSTÈME'
+    label: 'HYDRA · Système'
   },
   synced: {
-    container: 'bg-slate-950/75 border-y border-r border-white/10 border-l-2 border-l-emerald-400 text-emerald-100/90',
-    dot: 'bg-emerald-400',
-    tag: 'text-emerald-400',
+    container: 'bg-slate-950/60 border border-white/[0.08] border-l-2 border-l-emerald-400/70 text-slate-300',
+    integrated: 'bg-white/[0.02] border-b border-white/[0.06] text-slate-300',
+    dot: 'bg-emerald-400/85',
+    tag: 'text-emerald-300/85',
     icon: Cpu,
-    label: 'HYDRA // NOYAU'
+    label: 'HYDRA · Noyau'
   }
 };
 
 /**
  * Displays a compact intercepted machine log emitted by HYDRA.
+ * When `integrated` is true, renders as a sleek top telemetry strip inside a briefing panel.
  */
-export default function HydraLog({ message, status = 'warning', label }: { message: string; status?: HydraStatus; label?: string }) {
-  const style = STATUS_STYLES[status];
-  const Icon = style.icon;
+export default function HydraLog({
+  message,
+  status = 'warning',
+  label,
+  integrated = false,
+}: HydraLogData & { integrated?: boolean }) {
+  const style = HYDRA_STATUS_STYLES[status];
 
   return (
-    <div className={`w-full rounded-r-lg px-3 py-1.5 flex flex-wrap sm:flex-nowrap items-center gap-x-2.5 gap-y-1 text-[11px] sm:text-xs font-mono ${style.container}`}>
-      <div className="flex items-center gap-1.5 shrink-0">
+    <div
+      className={`w-full flex flex-wrap sm:flex-nowrap items-center gap-x-2.5 gap-y-0.5 text-[11px] ${
+        integrated
+          ? `px-3.5 py-1.5 sm:px-4 ${style.integrated}`
+          : `rounded-xl px-3.5 py-2 sm:text-xs ${style.container}`
+      }`}
+    >
+      <div className="flex items-center gap-1.5 shrink-0 font-mono">
         <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${style.dot}`} aria-hidden="true" />
-        <Icon className={`w-3.5 h-3.5 shrink-0 ${style.tag}`} />
-        <span className={`font-bold uppercase tracking-wider ${style.tag}`}>
-          [{label || style.label}]
+        <span className={`text-[10px] font-semibold uppercase tracking-[0.14em] ${style.tag}`}>
+          {label || style.label}
         </span>
       </div>
-      <span className="opacity-85 leading-snug">{message}</span>
+      <span className="text-slate-300/85 leading-snug font-sans">{message}</span>
     </div>
   );
 }

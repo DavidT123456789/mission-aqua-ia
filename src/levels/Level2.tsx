@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Droplets, Gauge, Server, ArrowRight } from 'lucide-react';
 import NaiaDialogue from '../components/NaiaDialogue';
-import HydraLog from '../components/HydraLog';
 import TechTerm from '../components/TechTerm';
 import LevelHeader from '../components/LevelHeader';
 import LevelShell from '../components/LevelShell';
@@ -10,7 +9,6 @@ import ActionButton from '../components/ActionButton';
 import LevelSuccessCard from '../components/LevelSuccessCard';
 import { soundManager } from '../utils/soundManager';
 import { useErrorFeedback } from '../utils/useErrorFeedback';
-import { MISTAKE_SCORE_PENALTY } from '../constants';
 
 const VALVES = [
   { id: 1, flow: 65, pipeClass: 'w-5 sm:w-7', flangeClass: 'w-7 sm:w-9' },
@@ -97,9 +95,12 @@ export default function Level2({ onComplete, onScoreUpdate, onMistake }: { onCom
     <LevelShell wide>
       <LevelHeader level={2} icon={Gauge} />
 
-      <div className="mb-4 space-y-2">
-        <HydraLog status="hostile" message="Charge maximale détectée. Ouverture forcée de toutes les vannes à 100 %." />
+      <div className="mb-3.5">
         <NaiaDialogue
+          hydra={{
+            status: 'hostile',
+            message: "Charge maximale détectée. Ouverture forcée de toutes les vannes à 100 %.",
+          }}
           message={
             <>
               HYDRA tourne en surrégime et a ouvert toutes les vannes de ses <TechTerm term="Serveur">serveurs</TechTerm> au maximum ! Le débitmètre reste hors-ligne tant que la conduite n'est pas testée.
@@ -107,7 +108,7 @@ export default function Level2({ onComplete, onScoreUpdate, onMistake }: { onCom
           }
           objective={
             <>
-              Calculez et fermez les vannes en trop pour obtenir exactement <strong className="font-mono text-white">{TARGET_FLOW} L/s</strong> avant de valider <span className="text-amber-300">(erreur = -1 vie, -{MISTAKE_SCORE_PENALTY} pts)</span>.
+              Calculez et fermez les vannes en trop pour obtenir exactement <strong className="font-mono text-white">{TARGET_FLOW} L/s</strong> avant de tester la conduite.
             </>
           }
           reaction={errorMsg ? { message: errorMsg, emotion: 'alert' } : null}
@@ -454,33 +455,25 @@ export default function Level2({ onComplete, onScoreUpdate, onMistake }: { onCom
               </div>
             </div>
 
-            {/* Meter Status Message */}
-            <div className="relative z-10 min-h-[52px] mt-4 pt-3 border-t border-white/[0.06] flex items-center justify-center">
-              {measuredFlow === null && (
-                <p className="text-slate-400 text-xs sm:text-[13px] text-center leading-relaxed text-balance">
-                  <strong className="text-slate-200 font-semibold">{openValvesLabel}</strong>{' '}
-                  Calculez le débit puis testez la mise sous pression.
-                </p>
-              )}
-              {meterState === 'over' && measuredFlow !== null && (
-                <p className="text-red-400 text-xs sm:text-[13px] font-semibold text-center leading-relaxed text-balance tabular-nums">
-                  Surpression : {measuredFlow} L/s (+{measuredFlow - TARGET_FLOW} L/s en excès). Refermez des vannes !
-                </p>
-              )}
-              {meterState === 'under' && measuredFlow !== null && (
-                <p className="text-blue-400 text-xs sm:text-[13px] font-semibold text-center leading-relaxed text-balance tabular-nums">
-                  Débit insuffisant : {measuredFlow} L/s (-{TARGET_FLOW - measuredFlow} L/s). Ouvrez davantage de débit !
-                </p>
-              )}
-              {meterState === 'ok' && measuredFlow !== null && (
-                <div className="text-center space-y-0.5">
-                  <p className="text-emerald-400 text-xs sm:text-sm font-black font-mono tabular-nums">
-                    {MAX_FLOW} → {TARGET_FLOW} L/s (-{MAX_FLOW - TARGET_FLOW} L/s · -{Math.round(((MAX_FLOW - TARGET_FLOW) / MAX_FLOW) * 100)} %)
-                  </p>
-                  <p className="text-emerald-300/80 text-xs text-balance">
-                    Pression nominale stabilisée sans perte de calcul.
-                  </p>
-                </div>
+            {/* Meter Telemetry Readout Footer (non-redundant with NAÏA dialogue banner) */}
+            <div className="relative z-10 min-h-[44px] mt-4 pt-3 border-t border-white/[0.06] flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
+              <span className="text-slate-400">
+                État circuit : <strong className="text-slate-200">{openValvesLabel.replace(/\.$/, '')}</strong>
+              </span>
+              {measuredFlow === null ? (
+                <span className="text-slate-500">Écart cible : ---</span>
+              ) : meterState === 'over' ? (
+                <span className="text-red-400 font-bold tabular-nums">
+                  Écart cible : +{measuredFlow - TARGET_FLOW} L/s
+                </span>
+              ) : meterState === 'under' ? (
+                <span className="text-blue-400 font-bold tabular-nums">
+                  Écart cible : −{TARGET_FLOW - measuredFlow} L/s
+                </span>
+              ) : (
+                <span className="text-emerald-400 font-bold tabular-nums">
+                  Écart cible : 0 L/s (Optimal)
+                </span>
               )}
             </div>
           </div>
@@ -505,13 +498,12 @@ export default function Level2({ onComplete, onScoreUpdate, onMistake }: { onCom
         <AnimatePresence>
           {isSuccess && (
             <LevelSuccessCard
-              title={`DÉBIT OPTIMAL ATTEINT (${MAX_FLOW} → ${TARGET_FLOW} L/s = -40 %)`}
+              title="DÉBIT OPTIMAL ATTEINT"
               description={
                 <>
                   Le <TechTerm term="Refroidissement" /> est stabilisé : passer de <strong className="font-mono text-white">{MAX_FLOW} L/s</strong> à <strong className="font-mono text-emerald-300">{TARGET_FLOW} L/s</strong> économise <strong className="font-mono text-emerald-300">{MAX_FLOW - TARGET_FLOW} L/s (-40 %)</strong> d'eau sur le <TechTerm term="Datacenter" /> sans impacter les performances de l'<TechTerm term="IA" />.
                 </>
               }
-              buttonLabel="STABILISER LE SYSTÈME"
               onContinue={onComplete}
             />
           )}

@@ -2,12 +2,12 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Flame, Home, Droplets, ArrowUp, ArrowDown, RefreshCw, Wind, Server, ArrowRight, Thermometer } from 'lucide-react';
 import NaiaDialogue from '../components/NaiaDialogue';
-import HydraLog from '../components/HydraLog';
 import TechTerm from '../components/TechTerm';
 import LevelHeader from '../components/LevelHeader';
 import LevelShell from '../components/LevelShell';
 import ActionButton from '../components/ActionButton';
 import LevelSuccessCard from '../components/LevelSuccessCard';
+import Collapsible from '../components/Collapsible';
 import { soundManager } from '../utils/soundManager';
 import { useErrorFeedback } from '../utils/useErrorFeedback';
 
@@ -136,16 +136,15 @@ export default function Level8({ onComplete, onScoreUpdate, onMistake }: { onCom
         }
       />
 
-      <div className="mb-3 space-y-2">
-        <HydraLog
-          status="warning"
-          message={
-            phase === 1
-              ? "Dissipation thermique urbaine à 65 °C : rejet direct par évaporation actif en attente de raccordement."
-              : "Raccordement au réseau de chaleur urbain détecté. Validation de l'ordre du circuit fermé requise."
-          }
-        />
+      <div className="mb-3">
         <NaiaDialogue
+          hydra={{
+            status: 'warning',
+            message:
+              phase === 1
+                ? "Dissipation thermique urbaine à 65 °C : rejet direct par évaporation actif en attente de raccordement."
+                : "Raccordement au réseau de chaleur urbain détecté. Validation de l'ordre du circuit fermé requise.",
+          }}
           message={
             phase === 1 ? (
               <>
@@ -168,10 +167,10 @@ export default function Level8({ onComplete, onScoreUpdate, onMistake }: { onCom
         />
       </div>
 
-      <div className="space-y-5 text-slate-300">
-        {/* Step 1: Outlet choice */}
-        <div className={`bg-slate-950/70 border rounded-xl p-4 transition-opacity ${phase === 2 ? 'border-emerald-500/40 opacity-85' : 'border-slate-800'}`}>
-          <h3 className="text-xs font-bold uppercase tracking-wider text-cyan-400 mb-3">
+      <div className="space-y-4 text-slate-300">
+        {/* Step 1: Outlet choice (de-boxed cleanly to reduce nested borders) */}
+        <div className={`transition-opacity ${phase === 2 ? 'opacity-85' : ''}`}>
+          <h3 className="text-xs font-bold uppercase tracking-wider text-cyan-400 mb-2.5 px-0.5">
             1. Choisissez le raccordement du circuit :
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -215,14 +214,9 @@ export default function Level8({ onComplete, onScoreUpdate, onMistake }: { onCom
           </div>
         </div>
 
-        {/* Step 2: Sortable closed loop sequence (revealed once Step 1 is validated) */}
-        <AnimatePresence>
-          {phase === 2 && (
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-slate-950 border border-slate-800 rounded-xl p-4"
-            >
+        {/* Step 2: Sortable closed loop sequence (revealed smoothly once Step 1 is validated) */}
+        <Collapsible isOpen={phase === 2}>
+          <div className="bg-slate-950 border border-slate-800 rounded-xl p-4">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-2">
                   <RefreshCw className="w-4 h-4" />
@@ -324,9 +318,8 @@ export default function Level8({ onComplete, onScoreUpdate, onMistake }: { onCom
                   </motion.div>
                 ))}
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            </div>
+        </Collapsible>
 
         {!isSuccess && (
           <div className="flex justify-center mt-4">
@@ -343,7 +336,7 @@ export default function Level8({ onComplete, onScoreUpdate, onMistake }: { onCom
         <AnimatePresence>
           {isSuccess && (
             <LevelSuccessCard
-              title="SYMBIOSE URBAINE ÉTABLIE"
+              title="RÉSEAU DE CHALEUR RACCORDÉ"
               description={
                 <>
                   Parfait ! En raccordant le <TechTerm term="Datacenter">datacenter</TechTerm> au réseau de chaleur urbain en boucle fermée, l'eau chaude chauffe les habitations puis revient refroidie sans aucune évaporation. Zéro gaspillage d'eau et 85 % de chaleur valorisée !

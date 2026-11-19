@@ -3,7 +3,9 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ShieldCheck, Sparkles, Cpu, TrendingUp, CheckCircle2, AlertTriangle, Droplets, Award, ChevronRight, LockOpen } from 'lucide-react';
 import TechTerm from './TechTerm';
 import ActionButton from './ActionButton';
+import Collapsible from './Collapsible';
 import { soundManager } from '../utils/soundManager';
+import { EASE_OUT_EXPO, STEP_PANEL_MOTION } from '../utils/motion';
 
 export type BonusMissionId = 'gpu_cost' | 'rebound';
 
@@ -303,88 +305,90 @@ export default function BonusMissions({ completedMissions, onCompleteMission }: 
       </div>
 
       {/* Active Challenge Panel */}
-      <AnimatePresence mode="wait">
-        {activeMission && currentStep && (
-          <motion.div
-            key={`${activeMission.id}-${stepIndex}`}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="mt-4 p-4 bg-slate-900/90 border border-cyan-500/30 rounded-xl space-y-3 font-sans"
-          >
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-xs font-mono font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-yellow-400" />
-                {currentStep.title}
-              </span>
-              <button
-                type="button"
-                onClick={() => setActiveMissionId(null)}
-                className="text-[11px] text-slate-400 hover:text-white px-2 py-0.5 rounded bg-slate-800 border border-slate-700"
-              >
-                Fermer
-              </button>
-            </div>
+      <Collapsible isOpen={Boolean(activeMission && currentStep)} innerClassName="mt-4">
+        <AnimatePresence mode="wait" initial={false}>
+          {activeMission && currentStep && (
+            <motion.div
+              key={`${activeMission.id}-${stepIndex}`}
+              {...STEP_PANEL_MOTION}
+              className="p-4 bg-slate-900/90 border border-cyan-500/30 rounded-xl space-y-3 font-sans"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-mono font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-yellow-400" />
+                  {currentStep.title}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setActiveMissionId(null)}
+                  className="text-[11px] text-slate-400 hover:text-white px-2 py-0.5 rounded bg-slate-800 border border-slate-700 transition-colors"
+                >
+                  Fermer
+                </button>
+              </div>
 
-            <p className="text-sm text-slate-100 leading-relaxed font-medium">{currentStep.prompt}</p>
+              <p className="text-sm text-slate-100 leading-relaxed font-medium">{currentStep.prompt}</p>
 
-            {currentStep.contextBox}
+              {currentStep.contextBox}
 
-            <div className="space-y-2">
-              {currentStep.options.map((opt) => {
-                const isSelected = selectedOptionId === opt.id;
-                const showGood = isSelected && opt.isCorrect;
-                const showBad = isSelected && !opt.isCorrect;
-                return (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    onClick={() => handleSelectOption(opt)}
-                    className={`w-full p-3 rounded-lg border text-left transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${
-                      showGood
-                        ? 'bg-emerald-950/50 border-emerald-400 text-emerald-100'
-                        : showBad
-                        ? 'bg-red-950/40 border-red-400 text-red-100'
-                        : 'bg-slate-950/70 border-slate-800 hover:border-slate-600 text-slate-200'
+              <div className="space-y-2">
+                {currentStep.options.map((opt) => {
+                  const isSelected = selectedOptionId === opt.id;
+                  const showGood = isSelected && opt.isCorrect;
+                  const showBad = isSelected && !opt.isCorrect;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => handleSelectOption(opt)}
+                      className={`w-full p-3 rounded-lg border text-left transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-2 active:scale-[0.99] ${
+                        showGood
+                          ? 'bg-emerald-950/50 border-emerald-400 text-emerald-100'
+                          : showBad
+                          ? 'bg-red-950/40 border-red-400 text-red-100'
+                          : 'bg-slate-950/70 border-slate-800 hover:border-slate-600 text-slate-200'
+                      }`}
+                    >
+                      <span className="text-xs sm:text-sm leading-snug">{opt.label}</span>
+                      {(stepValidated || revealedOptionIds.includes(opt.id)) && (
+                        <motion.span
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{ opacity: 1, scale: 1, transition: { duration: 0.18, ease: EASE_OUT_EXPO } }}
+                          className={`text-[11px] font-mono font-bold px-2 py-0.5 rounded-full shrink-0 self-start sm:self-center flex items-center gap-1 ${
+                            opt.isCorrect
+                              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                              : 'bg-red-500/20 text-red-300 border border-red-500/40'
+                          }`}
+                        >
+                          <Droplets className="w-3 h-3" />
+                          {opt.waterCostLabel}
+                        </motion.span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <Collapsible isOpen={Boolean(selectedOption)}>
+                {selectedOption && (
+                  <div
+                    className={`p-3 rounded-lg border text-xs leading-relaxed flex items-start gap-2 ${
+                      selectedOption.isCorrect
+                        ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-200'
+                        : 'bg-red-950/40 border-red-500/40 text-red-200'
                     }`}
                   >
-                    <span className="text-xs sm:text-sm leading-snug">{opt.label}</span>
-                    {(stepValidated || revealedOptionIds.includes(opt.id)) && (
-                      <span className={`text-[11px] font-mono font-bold px-2 py-0.5 rounded-full shrink-0 self-start sm:self-center flex items-center gap-1 ${
-                        opt.isCorrect
-                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
-                          : 'bg-red-500/20 text-red-300 border border-red-500/40'
-                      }`}>
-                        <Droplets className="w-3 h-3" />
-                        {opt.waterCostLabel}
-                      </span>
+                    {selectedOption.isCorrect ? (
+                      <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                    ) : (
+                      <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
                     )}
-                  </button>
-                );
-              })}
-            </div>
-
-            {selectedOption && (
-              <motion.div
-                initial={{ opacity: 0, y: 4 }}
-                animate={{ opacity: 1, y: 0 }}
-                className={`p-3 rounded-lg border text-xs leading-relaxed flex items-start gap-2 ${
-                  selectedOption.isCorrect
-                    ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-200'
-                    : 'bg-red-950/40 border-red-500/40 text-red-200'
-                }`}
-              >
-                {selectedOption.isCorrect ? (
-                  <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                ) : (
-                  <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                    <span>{selectedOption.feedback}</span>
+                  </div>
                 )}
-                <span>{selectedOption.feedback}</span>
-              </motion.div>
-            )}
+              </Collapsible>
 
-            {stepValidated && (
-              <div className="flex justify-end pt-1">
+              <Collapsible isOpen={stepValidated} innerClassName="flex justify-end pt-1">
                 <ActionButton
                   onClick={handleNextStep}
                   size="md"
@@ -393,11 +397,11 @@ export default function BonusMissions({ completedMissions, onCompleteMission }: 
                   {stepIndex + 1 < activeMission.steps.length ? 'CAS SUIVANT' : 'DÉBLOQUER LE BADGE'}
                   <ChevronRight className="w-4 h-4" />
                 </ActionButton>
-              </div>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
+              </Collapsible>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </Collapsible>
     </div>
   );
 }

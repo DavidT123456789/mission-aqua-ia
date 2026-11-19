@@ -1,21 +1,42 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Play, RotateCcw, Trash2, Clock, Layers, Cpu, Trophy } from 'lucide-react';
-import TechTerm from '../components/TechTerm';
+import { Play, RotateCcw, Trash2, Trophy } from 'lucide-react';
 import NaiaDialogue from '../components/NaiaDialogue';
+import Collapsible from '../components/Collapsible';
+import Briefing from './Briefing';
 import { LEVEL_NAMES, MISSION_DURATION_MINUTES } from '../constants';
+import { EASE_OUT_EXPO, EASE_IN_OUT } from '../utils/motion';
 
-export default function Intro({ onStart, hasSavedGame, savedGameInfo, onLoadGame, onClearSave }: { 
+export default function Intro({ onStart, hasSavedGame, savedGameInfo, onLoadGame, onClearSave, isMuted, onToggleMute, onBriefingOpenChange }: { 
   onStart: (name: string) => void; 
   hasSavedGame?: boolean;
-  savedGameInfo?: { level: number; score: number; timeLeft: number; nickname?: string; isLockedOut?: boolean } | null;
+  savedGameInfo?: {
+    level: number;
+    score: number;
+    timeLeft: number;
+    nickname?: string;
+    isLockedOut?: boolean;
+    isActCheckpointOver?: boolean;
+    actCheckpointLabel?: string;
+    actCheckpointLevel?: number;
+    actCheckpointScore?: number;
+  } | null;
   onLoadGame?: () => void;
   onClearSave?: () => void;
+  isMuted?: boolean;
+  onToggleMute?: () => void;
+  onBriefingOpenChange?: (open: boolean) => void;
   key?: string 
 }) {
   const [name, setName] = useState('');
   const [confirmClear, setConfirmClear] = useState(false);
   const [showNewGameForm, setShowNewGameForm] = useState(false);
+  const [briefingAgentName, setBriefingAgentName] = useState<string | null>(null);
+
+  useEffect(() => {
+    onBriefingOpenChange?.(briefingAgentName !== null);
+    return () => onBriefingOpenChange?.(false);
+  }, [briefingAgentName, onBriefingOpenChange]);
 
   useEffect(() => {
     if (!confirmClear) return;
@@ -39,62 +60,63 @@ export default function Intro({ onStart, hasSavedGame, savedGameInfo, onLoadGame
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    onStart(name.trim() || 'Agent Anonyme');
+    setBriefingAgentName(name.trim() || 'Agent Anonyme');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.96 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, y: -20 }}
-      className="sm:bg-slate-900/90 border-transparent sm:border-white/10 sm:border p-4 sm:p-8 sm:rounded-2xl max-w-2xl mx-auto backdrop-blur-xl font-sans sm:shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_24px_48px_rgba(0,0,0,0.55)]"
-    >
-      <div className="flex flex-col items-center space-y-6">
-        {/* Centered Header (NAÏA serves as the sole visual emblem below) */}
-        <div className="text-center space-y-1">
-          <div className="font-mono text-[10px] sm:text-[11px] uppercase tracking-[0.26em] text-cyan-400/90">
-            Cellule d'urgence HYDROSAVE
-          </div>
-          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white">
-            MISSION <span className="text-emerald-400">AQUA-IA</span>
-          </h1>
-        </div>
-
-        {/* NAÏA Character Intro Bubble */}
-        <NaiaDialogue
-          hideHintButton
-          emotion="neutral"
-          message={
-            <>
-              Salut Agent ! Moi, c'est <strong className="text-cyan-300">NAÏA</strong>, votre petite <TechTerm term="IA" /> tactique sobre. Le réseau central <strong className="text-red-400 font-mono">HYDRA</strong> pompe toute l'eau potable de la ville pour refroidir ses immenses <TechTerm term="Serveur">serveurs</TechTerm> !
-            </>
-          }
-          objective="Infiltrez ses 13 systèmes, stoppez le gaspillage et reprogrammez HYDRA en mode Symbiose."
+    <AnimatePresence mode="wait">
+      {briefingAgentName !== null ? (
+        <Briefing
+          key="briefing"
+          agentName={briefingAgentName}
+          isMuted={isMuted}
+          onToggleMute={onToggleMute}
+          onBack={() => setBriefingAgentName(null)}
+          onLaunch={() => onStart(briefingAgentName)}
         />
+      ) : (
+        <motion.div
+          key="welcome"
+          initial={{ opacity: 0, scale: 0.97, y: 10 }}
+          animate={{ opacity: 1, scale: 1, y: 0, transition: { duration: 0.3, ease: EASE_OUT_EXPO } }}
+          exit={{ opacity: 0, y: -12, transition: { duration: 0.16, ease: EASE_IN_OUT } }}
+          className="sm:bg-slate-900/90 border-transparent sm:border-white/10 sm:border p-4 sm:p-8 sm:rounded-2xl max-w-2xl mx-auto backdrop-blur-xl font-sans sm:shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_24px_48px_rgba(0,0,0,0.55)]"
+        >
+          <div className="flex flex-col items-center space-y-6">
+            {/* Centered Header */}
+            <div className="text-center space-y-1.5">
+              <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white">
+                <span className="block font-mono text-[11px] sm:text-xs font-bold uppercase tracking-[0.28em] text-cyan-400 mb-1">
+                  MISSION
+                </span>
+                AQUA <span className="text-emerald-400">IA</span>
+              </h1>
+              <p className="text-xs sm:text-sm text-slate-400">
+                Escape game · <span className="font-mono text-slate-300">13 niveaux</span> ·{' '}
+                <span
+                  className="font-mono text-slate-300"
+                  title="40 min pour les niveaux 1 à 12, puis Innovation Lab en temps libre"
+                >
+                  {MISSION_DURATION_MINUTES} min
+                </span>
+              </p>
+            </div>
 
-        {/* Compact Mission Specs Strip */}
-        <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs sm:text-[13px] text-slate-300">
-          <span className="inline-flex items-center gap-1.5">
-            <Layers className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-            <span className="font-mono font-semibold text-white">13 niveaux</span>
-          </span>
-          <span className="hidden sm:block w-px h-3.5 bg-white/10" aria-hidden="true" />
-          <span
-            className="inline-flex items-center gap-1.5"
-            title="40 min pour les niveaux 1 à 12, puis Innovation Lab en temps libre (prévoir 55 à 75 min au total)"
-          >
-            <Clock className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-            <span className="font-mono font-semibold text-white">{MISSION_DURATION_MINUTES} min chrono</span>
-          </span>
-          <span className="hidden sm:block w-px h-3.5 bg-white/10" aria-hidden="true" />
-          <span className="inline-flex items-center gap-1.5">
-            <Cpu className="w-3.5 h-3.5 text-cyan-300 shrink-0" />
-            <span className="font-mono font-semibold text-white">Innovation Lab</span>
-          </span>
-        </div>
+            {/* NAÏA Character Intro Bubble */}
+            <NaiaDialogue
+              hideHintButton
+              emotion="neutral"
+              message={
+                <>
+                  Agent, situation critique. Le réseau central{' '}
+                  <strong className="text-rose-300 font-mono">HYDRA</strong> assèche les réserves d'eau de la ville pour refroidir ses serveurs : infiltrez ses systèmes et coupez la surchauffe avant la pénurie.
+                </>
+              }
+            />
 
         {/* Action Section */}
-        <div className="w-full pt-5 border-t border-white/[0.07] space-y-3.5">
+        <div className="w-full space-y-3.5">
           {hasSavedGame ? (
             <>
               {/* Priority Resume Card */}
@@ -103,6 +125,8 @@ export default function Intro({ onStart, hasSavedGame, savedGameInfo, onLoadGame
                   <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-cyan-400">
                     {isFinished
                       ? 'Dossier final prêt'
+                      : savedGameInfo?.isActCheckpointOver
+                      ? 'Point de contrôle disponible'
                       : savedGameInfo?.isLockedOut
                       ? 'Seconde chance disponible'
                       : savedAgentLabel}
@@ -111,6 +135,8 @@ export default function Intro({ onStart, hasSavedGame, savedGameInfo, onLoadGame
                     <div className="text-sm font-semibold text-white truncate">
                       {isFinished
                         ? `${savedGameInfo.nickname ? `${savedGameInfo.nickname} · ` : ''}${savedGameInfo.score} pts`
+                        : savedGameInfo.isActCheckpointOver && savedGameInfo.actCheckpointLevel
+                        ? `${savedGameInfo.actCheckpointLabel ? `${savedGameInfo.actCheckpointLabel} · ` : ''}Niveau ${savedGameInfo.actCheckpointLevel}/13 : ${LEVEL_NAMES[savedGameInfo.actCheckpointLevel] || `Mission ${savedGameInfo.actCheckpointLevel}`}`
                         : `Niveau ${savedGameInfo.level}/13 : ${LEVEL_NAMES[savedGameInfo.level] || `Mission ${savedGameInfo.level}`}`}
                     </div>
                   )}
@@ -118,6 +144,8 @@ export default function Intro({ onStart, hasSavedGame, savedGameInfo, onLoadGame
                     <div className="font-mono text-[11px] text-slate-400">
                       {isFinished
                         ? 'Brevet final & attestation A4 prêts'
+                        : savedGameInfo.isActCheckpointOver
+                        ? `${savedGameInfo.actCheckpointScore ?? savedGameInfo.score} pts · Reprise au début de l'acte`
                         : `${savedGameInfo.score} pts · Progression sauvegardée`}
                     </div>
                   )}
@@ -142,73 +170,66 @@ export default function Intro({ onStart, hasSavedGame, savedGameInfo, onLoadGame
                 </button>
               </div>
 
-              {/* Secondary actions or collapsible New Game form */}
-              <AnimatePresence mode="wait" initial={false}>
-                {showNewGameForm ? (
-                  <motion.form
-                    key="new-game-form"
-                    initial={{ opacity: 0, y: -6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -6 }}
-                    transition={{ duration: 0.16 }}
-                    onSubmit={handleSubmit}
-                    className="space-y-2.5 pt-1"
-                  >
-                    <div className="flex items-center justify-between px-0.5">
-                      <label htmlFor="agent-name" className="text-slate-400 font-mono text-[10px] uppercase tracking-[0.2em]">
-                        Nouvelle mission · Identification
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => setShowNewGameForm(false)}
-                        className="text-xs text-slate-400 hover:text-white transition-colors"
-                      >
-                        Annuler
-                      </button>
-                    </div>
-                    <div className="flex flex-col sm:flex-row gap-2.5">
-                      <input
-                        id="agent-name"
-                        type="text"
-                        autoFocus
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        placeholder="Entrez votre pseudo"
-                        className="flex-1 bg-slate-950/80 border border-white/15 rounded-xl px-4 py-2.5 text-white text-center sm:text-left font-mono text-sm placeholder:text-slate-500 focus:outline-none focus:border-emerald-400/70 focus:ring-2 focus:ring-emerald-400/20 transition-all"
-                        maxLength={20}
-                      />
-                      <button
-                        type="submit"
-                        className="shrink-0 inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm bg-emerald-600 hover:bg-emerald-500 text-white transition-all shadow-[inset_0_1px_0_rgba(255,255,255,0.2)] hover:shadow-[0_0_18px_rgba(16,185,129,0.35),inset_0_1px_0_rgba(255,255,255,0.25)]"
-                      >
-                        <Play className="w-4 h-4 fill-current" />
-                        DÉMARRER
-                      </button>
-                    </div>
-                  </motion.form>
-                ) : (
-                  <motion.div
-                    key="secondary-actions"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.14 }}
-                    className="flex flex-wrap items-center justify-center sm:justify-between gap-3 px-1 text-xs"
-                  >
+              {/* Secondary actions & smoothly collapsible New Game form */}
+              <Collapsible isOpen={showNewGameForm} innerClassName="pt-1">
+                <form onSubmit={handleSubmit} className="space-y-2.5">
+                  <div className="flex items-center justify-between px-0.5">
+                    <label htmlFor="agent-name" className="text-slate-400 font-mono text-[10px] uppercase tracking-[0.2em]">
+                      Nouvelle mission · Identification
+                    </label>
                     <button
                       type="button"
-                      onClick={() => {
-                        setConfirmClear(false);
-                        setShowNewGameForm(true);
-                      }}
-                      className="inline-flex items-center gap-1.5 text-emerald-400 hover:text-emerald-300 font-semibold transition-colors"
+                      onClick={() => setShowNewGameForm(false)}
+                      className="text-xs text-slate-400 hover:text-white transition-colors"
                     >
-                      <Play className="w-3.5 h-3.5 fill-current" />
-                      Commencer une nouvelle partie
+                      Annuler
                     </button>
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-2.5">
+                    <input
+                      id="agent-name"
+                      type="text"
+                      autoFocus
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="Entrez votre pseudo"
+                      className="flex-1 bg-slate-950/80 border border-white/15 rounded-xl px-4 py-2.5 text-white text-center sm:text-left font-mono text-sm placeholder:text-slate-500 focus:outline-none focus:border-emerald-400/70 focus:ring-2 focus:ring-emerald-400/20 transition-all"
+                      maxLength={20}
+                    />
+                    <button
+                      type="submit"
+                      className="shrink-0 inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm bg-emerald-600 hover:bg-emerald-500 text-white transition-all shadow-[inset_0_1px_0_rgba(255,255,255,0.2)] hover:shadow-[0_0_18px_rgba(16,185,129,0.35),inset_0_1px_0_rgba(255,255,255,0.25)]"
+                    >
+                      <Play className="w-4 h-4 fill-current" />
+                      DÉMARRER
+                    </button>
+                  </div>
+                </form>
+              </Collapsible>
 
+              <Collapsible isOpen={!showNewGameForm}>
+                <div className="flex flex-wrap items-center justify-center sm:justify-between gap-3 px-1 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setConfirmClear(false);
+                      setShowNewGameForm(true);
+                    }}
+                    className="inline-flex items-center gap-1.5 text-emerald-400 hover:text-emerald-300 font-semibold transition-colors"
+                  >
+                    <Play className="w-3.5 h-3.5 fill-current" />
+                    Commencer une nouvelle partie
+                  </button>
+
+                  <AnimatePresence mode="wait" initial={false}>
                     {confirmClear ? (
-                      <div className="flex items-center gap-2">
+                      <motion.div
+                        key="confirm-clear"
+                        initial={{ opacity: 0, x: 6 }}
+                        animate={{ opacity: 1, x: 0, transition: { duration: 0.16, ease: EASE_OUT_EXPO } }}
+                        exit={{ opacity: 0, x: 6, transition: { duration: 0.12 } }}
+                        className="flex items-center gap-2"
+                      >
                         <button
                           type="button"
                           onClick={() => {
@@ -227,25 +248,29 @@ export default function Intro({ onStart, hasSavedGame, savedGameInfo, onLoadGame
                         >
                           Annuler
                         </button>
-                      </div>
+                      </motion.div>
                     ) : (
-                      <button
+                      <motion.button
+                        key="trigger-clear"
                         type="button"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1, transition: { duration: 0.16 } }}
+                        exit={{ opacity: 0, transition: { duration: 0.12 } }}
                         onClick={() => setConfirmClear(true)}
                         className="inline-flex items-center gap-1.5 text-slate-400 hover:text-red-400 transition-colors"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                         Effacer la sauvegarde
-                      </button>
+                      </motion.button>
                     )}
-                  </motion.div>
-                )}
-              </AnimatePresence>
+                  </AnimatePresence>
+                </div>
+              </Collapsible>
             </>
           ) : (
-            <form onSubmit={handleSubmit} className="space-y-2.5">
-              <label htmlFor="agent-name" className="block text-slate-400 font-mono text-[10px] uppercase tracking-[0.22em] text-center sm:text-left">
-                Identification de l'agent
+            <form onSubmit={handleSubmit}>
+              <label htmlFor="agent-name" className="sr-only">
+                Pseudo de l'agent
               </label>
               <div className="flex flex-col sm:flex-row gap-2.5">
                 <input
@@ -253,7 +278,7 @@ export default function Intro({ onStart, hasSavedGame, savedGameInfo, onLoadGame
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Entrez votre pseudo"
+                  placeholder="Votre pseudo d'agent"
                   className="flex-1 bg-slate-950/80 border border-white/15 rounded-xl px-4 py-3 text-white text-center sm:text-left font-mono text-sm placeholder:text-slate-500 focus:outline-none focus:border-cyan-400/70 focus:ring-2 focus:ring-cyan-400/20 transition-all"
                   maxLength={20}
                 />
@@ -268,12 +293,9 @@ export default function Intro({ onStart, hasSavedGame, savedGameInfo, onLoadGame
             </form>
           )}
         </div>
-
-        {/* Quiet Pedagogical / Autosave Footnote */}
-        <p className="text-[11px] text-slate-500 text-center leading-relaxed -mt-2">
-          Progression sauvegardée automatiquement · Parcours complet ~55–75 min (Lab &amp; bonus inclus)
-        </p>
       </div>
-    </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

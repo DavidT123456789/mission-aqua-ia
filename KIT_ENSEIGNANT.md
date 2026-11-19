@@ -1,6 +1,6 @@
-# 🎓 Kit Enseignant : Mission Aqua-IA
+# 🎓 Kit Enseignant : Mission Aqua IA
 
-Fiche synthétique **sans corrigés** pour préparer, animer et débriefer **Mission Aqua-IA** au collège (Cycle 4) ou en lycée (Seconde SNT).
+Fiche synthétique **sans corrigés** pour préparer, animer et débriefer **Mission Aqua IA** au collège (Cycle 4) ou en lycée (Seconde SNT).
 
 > **Accès intégré dans l'application :** ouvrez la fenêtre enseignant (`Alt+Shift+P` ou double-clic sur le crédit en pied de page) puis cliquez sur **« Kit Enseignant »** (accessible sans mot de passe, avec export **Imprimer / PDF A4**). Les réponses aux énigmes restent protégées par mot de passe dans le **Menu Enseignant**.
 

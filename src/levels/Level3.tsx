@@ -1,15 +1,16 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Radar, Search, AlertCircle, CheckCircle2, Waves, Wrench, Droplets, ShieldCheck } from 'lucide-react';
+import { Radar, Search, AlertCircle, CheckCircle2, Wrench, Droplets, ShieldCheck } from 'lucide-react';
 import NaiaDialogue from '../components/NaiaDialogue';
-import HydraLog from '../components/HydraLog';
 import TechTerm from '../components/TechTerm';
 import LevelHeader from '../components/LevelHeader';
 import LevelShell from '../components/LevelShell';
 import ActionButton from '../components/ActionButton';
 import LevelSuccessCard from '../components/LevelSuccessCard';
+import Collapsible from '../components/Collapsible';
 import { soundManager } from '../utils/soundManager';
 import { useErrorFeedback } from '../utils/useErrorFeedback';
+import { EASE_OUT_EXPO } from '../utils/motion';
 
 export default function Level3({ onComplete, onScoreUpdate, onMistake }: { onComplete: () => void; onScoreUpdate: (points: number, water: number) => void; onMistake?: () => void; key?: string }) {
   const [selectedSensor, setSelectedSensor] = useState<string | null>(null);
@@ -42,7 +43,7 @@ export default function Level3({ onComplete, onScoreUpdate, onMistake }: { onCom
     setRepairSubStage('isolating');
     const midTimer = setTimeout(() => {
       setRepairSubStage('closing');
-    }, 1250);
+    }, 750);
     const doneTimer = setTimeout(() => {
       setRepairPhase('done');
       soundManager.playSuccess();
@@ -50,7 +51,7 @@ export default function Level3({ onComplete, onScoreUpdate, onMistake }: { onCom
         setHasScored(true);
         onScoreUpdateRef.current(150, 35);
       }
-    }, 2500);
+    }, 1450);
     return () => {
       clearTimeout(midTimer);
       clearTimeout(doneTimer);
@@ -86,7 +87,7 @@ export default function Level3({ onComplete, onScoreUpdate, onMistake }: { onCom
       // After detection phase, start repair
       detectTimerRef.current = setTimeout(() => {
         setRepairPhase('repairing');
-      }, 1200);
+      }, 750);
     } else {
       const wrongId = selectedSensor;
       setFailedSensors(prev => (prev.includes(wrongId) ? prev : [...prev, wrongId]));
@@ -117,12 +118,12 @@ export default function Level3({ onComplete, onScoreUpdate, onMistake }: { onCom
       
       <LevelHeader level={3} icon={Radar} />
 
-      <div className="mb-4 space-y-2">
-        <HydraLog
-          status="hostile"
-          message="Chute de pression détectée sur le réseau municipal. Pompage compensatoire maintenu pour sécuriser les serveurs."
-        />
-        <NaiaDialogue 
+      <div className="mb-3.5">
+        <NaiaDialogue
+          hydra={{
+            status: 'hostile',
+            message: "Chute de pression détectée sur le réseau municipal. Pompage compensatoire maintenu pour sécuriser les serveurs.",
+          }}
           message={
             <>
               Le refroidissement d'HYDRA est stabilisé, mais les réserves continuent de baisser : une fuite souterraine aggrave la pénurie ! Heureusement, l'<TechTerm term="IA" /> croise la pression et le débit la nuit (03h00) pour éviter les faux positifs.
@@ -377,117 +378,119 @@ export default function Level3({ onComplete, onScoreUpdate, onMistake }: { onCom
               })}
             </div>
 
-            {/* Inline Repair Progress Bar — replaces the old modal */}
-            <AnimatePresence>
-              {(isActive || isSuccess) && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0, marginTop: 0 }}
-                  animate={{ opacity: 1, height: 'auto', marginTop: 12 }}
-                  exit={{ opacity: 0, height: 0, marginTop: 0 }}
-                  transition={{ duration: 0.4, ease: 'easeOut' }}
-                  className="overflow-hidden"
-                >
-                  <div className={`rounded-xl border p-4 transition-colors duration-500 ${
-                    isSuccess 
-                      ? 'bg-emerald-950/40 border-emerald-500/50' 
-                      : 'bg-amber-950/30 border-amber-500/40'
+            {/* Inline Repair Progress Bar — smooth collapsible drawer */}
+            <Collapsible isOpen={isActive || isSuccess} innerClassName="pt-3">
+              <div className={`rounded-xl border p-4 transition-colors duration-500 ${
+                isSuccess 
+                  ? 'bg-emerald-950/40 border-emerald-500/50' 
+                  : 'bg-amber-950/30 border-amber-500/40'
+              }`}>
+                {/* Status header */}
+                <div className="flex items-center gap-3 mb-3">
+                  {isSuccess ? (
+                    <motion.div
+                      initial={{ scale: 0, rotate: -180 }}
+                      animate={{ scale: 1, rotate: 0 }}
+                      transition={{ type: 'spring', stiffness: 260, damping: 18 }}
+                    >
+                      <ShieldCheck className="w-5 h-5 text-emerald-400" />
+                    </motion.div>
+                  ) : repairPhase === 'detecting' ? (
+                    <motion.div
+                      animate={{ scale: [1, 1.2, 1] }}
+                      transition={{ duration: 0.9, repeat: Infinity }}
+                    >
+                      <Search className="w-5 h-5 text-amber-400" />
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      animate={{ rotate: [0, -15, 15, 0] }}
+                      transition={{ duration: 0.55, repeat: Infinity }}
+                    >
+                      <Wrench className="w-5 h-5 text-amber-400" />
+                    </motion.div>
+                  )}
+                  <span className={`text-sm font-bold uppercase tracking-wider ${
+                    isSuccess ? 'text-emerald-400' : 'text-amber-400'
                   }`}>
-                    {/* Status header */}
-                    <div className="flex items-center gap-3 mb-3">
-                      {isSuccess ? (
-                        <motion.div
-                          initial={{ scale: 0, rotate: -180 }}
-                          animate={{ scale: 1, rotate: 0 }}
-                          transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-                        >
-                          <ShieldCheck className="w-5 h-5 text-emerald-400" />
-                        </motion.div>
-                      ) : repairPhase === 'detecting' ? (
-                        <motion.div
-                          animate={{ scale: [1, 1.2, 1] }}
-                          transition={{ duration: 1, repeat: Infinity }}
-                        >
-                          <Search className="w-5 h-5 text-amber-400" />
-                        </motion.div>
-                      ) : (
-                        <motion.div
-                          animate={{ rotate: [0, -15, 15, 0] }}
-                          transition={{ duration: 0.6, repeat: Infinity }}
-                        >
-                          <Wrench className="w-5 h-5 text-amber-400" />
-                        </motion.div>
-                      )}
-                      <span className={`text-sm font-bold uppercase tracking-wider ${
-                        isSuccess ? 'text-emerald-400' : 'text-amber-400'
+                    {getRepairStatusText()}
+                  </span>
+                </div>
+
+                {/* Progress bar */}
+                <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden mb-2">
+                  <motion.div
+                    className={`h-full rounded-full ${
+                      isSuccess ? 'bg-emerald-500' : 'bg-amber-500'
+                    }`}
+                    initial={{ width: '0%' }}
+                    animate={{
+                      width: repairPhase === 'detecting' ? '32%' : '100%'
+                    }}
+                    transition={{
+                      duration: repairPhase === 'detecting' ? 0.75 : repairPhase === 'repairing' ? 1.45 : 0.25,
+                      ease: EASE_OUT_EXPO
+                    }}
+                    style={!isSuccess ? {
+                      boxShadow: '0 0 10px rgba(245, 158, 11, 0.5), 0 0 20px rgba(245, 158, 11, 0.2)'
+                    } : {
+                      boxShadow: '0 0 10px rgba(16, 185, 129, 0.5), 0 0 20px rgba(16, 185, 129, 0.2)'
+                    }}
+                  />
+                </div>
+
+                {/* Step indicators */}
+                <div className="flex justify-between text-xs mt-2">
+                  {[
+                    { label: 'Détection', active: repairPhase === 'detecting', done: repairPhase === 'repairing' || isSuccess },
+                    { label: 'Isolation', active: repairPhase === 'repairing' && repairSubStage === 'isolating', done: (repairPhase === 'repairing' && repairSubStage === 'closing') || isSuccess },
+                    { label: 'Fermeture', active: repairPhase === 'repairing' && repairSubStage === 'closing', done: isSuccess },
+                  ].map((step, i) => (
+                    <div key={i} className="flex items-center gap-1.5">
+                      <div className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                        step.done 
+                          ? 'bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.6)]' 
+                          : step.active 
+                            ? 'bg-amber-500 shadow-[0_0_6px_rgba(245,158,11,0.6)] animate-pulse' 
+                            : 'bg-slate-700'
+                      }`} />
+                      <span className={`transition-colors duration-300 ${
+                        step.done ? 'text-emerald-400' : step.active ? 'text-amber-400' : 'text-slate-600'
                       }`}>
-                        {getRepairStatusText()}
+                        {step.label}
                       </span>
                     </div>
-
-                    {/* Progress bar */}
-                    <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden mb-2">
-                      <motion.div
-                        className={`h-full rounded-full ${
-                          isSuccess ? 'bg-emerald-500' : 'bg-amber-500'
-                        }`}
-                        initial={{ width: '0%' }}
-                        animate={{
-                          width: repairPhase === 'detecting' ? '30%' : '100%'
-                        }}
-                        transition={{
-                          duration: repairPhase === 'detecting' ? 1.2 : repairPhase === 'repairing' ? 2.5 : 0.25,
-                          ease: 'easeInOut'
-                        }}
-                        style={!isSuccess ? {
-                          boxShadow: '0 0 10px rgba(245, 158, 11, 0.5), 0 0 20px rgba(245, 158, 11, 0.2)'
-                        } : {
-                          boxShadow: '0 0 10px rgba(16, 185, 129, 0.5), 0 0 20px rgba(16, 185, 129, 0.2)'
-                        }}
-                      />
-                    </div>
-
-                    {/* Step indicators */}
-                    <div className="flex justify-between text-xs mt-2">
-                      {[
-                        { label: 'Détection', active: repairPhase === 'detecting', done: repairPhase === 'repairing' || isSuccess },
-                        { label: 'Isolation', active: repairPhase === 'repairing' && repairSubStage === 'isolating', done: (repairPhase === 'repairing' && repairSubStage === 'closing') || isSuccess },
-                        { label: 'Fermeture', active: repairPhase === 'repairing' && repairSubStage === 'closing', done: isSuccess },
-                      ].map((step, i) => (
-                        <div key={i} className="flex items-center gap-1.5">
-                          <div className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                            step.done 
-                              ? 'bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.6)]' 
-                              : step.active 
-                                ? 'bg-amber-500 shadow-[0_0_6px_rgba(245,158,11,0.6)] animate-pulse' 
-                                : 'bg-slate-700'
-                          }`} />
-                          <span className={`transition-colors duration-300 ${
-                            step.done ? 'text-emerald-400' : step.active ? 'text-amber-400' : 'text-slate-600'
-                          }`}>
-                            {step.label}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                  ))}
+                </div>
+              </div>
+            </Collapsible>
           </div>
 
           {/* Sensor Data List */}
           <div className="w-full lg:w-1/2 flex flex-col gap-3">
-            <p className="text-lg font-bold mb-2">
-              Données Télémétriques :
-            </p>
-            <div className="grid grid-cols-1 gap-3">
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <p className="text-sm font-bold uppercase tracking-wider text-slate-200">
+                Relevés télémétriques (03h00)
+              </p>
+              <span className="text-[11px] font-mono text-slate-400">
+                {scannedSensors.length}/{sensors.length} scannés
+              </span>
+            </div>
+
+            <div className="rounded-xl border border-white/10 bg-slate-950/75 overflow-hidden divide-y divide-white/[0.06]">
+              {/* Compact Column Header */}
+              <div className="grid grid-cols-[1fr_auto_auto] gap-3 px-3 py-2 bg-slate-900/80 text-[10px] font-mono uppercase tracking-wider text-slate-400">
+                <span>Capteur · Secteur</span>
+                <span className="w-16 text-right">Pression</span>
+                <span className="w-20 text-right">Débit 03h</span>
+              </div>
+
               {sensors.map((sensor) => {
                 const isSelected = selectedSensor === sensor.id;
                 const isScanned = scannedSensors.includes(sensor.id) || isSuccess;
                 const isAnomaly = sensor.id === 'C';
                 const isFailed = failedSensors.includes(sensor.id);
                 const isLastFailed = isFailed && lastFailedSensor === sensor.id;
-                const pressurePercent = (sensor.pressure / 5) * 100;
 
                 return (
                   <button
@@ -496,27 +499,25 @@ export default function Level3({ onComplete, onScoreUpdate, onMistake }: { onCom
                     onClick={() => handleSelect(sensor.id)}
                     disabled={repairPhase !== 'idle' || isFailed}
                     aria-pressed={isSelected}
-                    className={`relative p-3 rounded-xl border-2 flex flex-col items-start transition-all duration-200 ${
+                    className={`w-full text-left px-3 py-2.5 transition-all cursor-pointer ${
                       isAnomaly && isActive
-                        ? 'bg-amber-900/30 border-amber-500/60 scale-[1.02]'
+                        ? 'bg-amber-900/30 border-l-2 border-l-amber-400'
                         : isAnomaly && isSuccess
-                          ? 'bg-emerald-900/40 border-emerald-500 scale-[1.02]'
+                          ? 'bg-emerald-900/35 border-l-2 border-l-emerald-400'
                           : isFailed
-                            ? `bg-red-950/25 border-red-500/45 opacity-65 ${isLastFailed && isErrorFlash ? 'animate-shake' : ''}`
+                            ? `bg-red-950/20 opacity-60 cursor-not-allowed ${isLastFailed && isErrorFlash ? 'animate-shake' : ''}`
                             : isSelected
-                              ? 'bg-cyan-950/40 border-cyan-400 shadow-[0_0_14px_rgba(34,211,238,0.18)] active:scale-[0.985]'
-                              : isScanned
-                                ? 'bg-slate-900 border-slate-700 hover:border-slate-500 active:scale-[0.985]'
-                                : 'bg-slate-950/80 border-slate-800 border-dashed hover:border-cyan-500/50 active:scale-[0.985]'
+                              ? 'bg-cyan-950/45 border-l-2 border-l-cyan-400'
+                              : 'hover:bg-slate-900/70'
                     }`}
                   >
-                    <div className="flex justify-between w-full mb-2">
-                      <div className="flex items-center gap-2">
-                        <div className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs ${
-                          isAnomaly && isActive 
-                            ? 'bg-amber-500 text-slate-900' 
-                            : isAnomaly && isSuccess 
-                              ? 'bg-emerald-500 text-slate-900' 
+                    <div className="grid grid-cols-[1fr_auto_auto] items-center gap-3">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${
+                          isAnomaly && isActive
+                            ? 'bg-amber-500 text-slate-900'
+                            : isAnomaly && isSuccess
+                              ? 'bg-emerald-500 text-slate-900'
                               : isFailed
                                 ? 'bg-red-950 text-red-300 border border-red-500/40'
                                 : isSelected
@@ -527,86 +528,62 @@ export default function Level3({ onComplete, onScoreUpdate, onMistake }: { onCom
                         }`}>
                           {sensor.id}
                         </div>
-                        <span className="text-xs text-slate-400 uppercase tracking-wider">{sensor.location}</span>
-                      </div>
-                      {!isScanned && (
-                        <span className="flex items-center gap-1 text-[10px] font-mono uppercase text-cyan-400/80 shrink-0">
-                          <Radar className="w-3 h-3" /> À scanner
-                        </span>
-                      )}
-                      {isFailed && (
-                        <span className="flex items-center gap-1 text-[10px] font-bold uppercase text-red-400 shrink-0">
-                          <AlertCircle className="w-3.5 h-3.5" /> Écarté
-                        </span>
-                      )}
-                      {isAnomaly && isActive && (
-                        <motion.div animate={{ rotate: [0, -15, 15, 0] }} transition={{ duration: 0.6, repeat: Infinity }}>
-                          <Wrench className="w-4 h-4 text-amber-500" />
-                        </motion.div>
-                      )}
-                      {isAnomaly && isSuccess && <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
-                    </div>
-                    
-                    {!isScanned ? (
-                      <div className="w-full py-2 px-2.5 rounded-md bg-slate-900/70 border border-slate-800/80 flex items-center justify-between text-[11px] font-mono text-slate-400">
-                        <span>Télémétrie non relevée</span>
-                        <span className="text-cyan-400/90">Cliquer pour scanner</span>
-                      </div>
-                    ) : (
-                      <div className="w-full space-y-2">
-                        <div className="flex justify-between text-xs">
-                          <span className="text-slate-400 uppercase">Pression • <span className="normal-case text-slate-300">{sensor.note}</span></span>
-                          <span className={`font-bold font-mono tabular-nums shrink-0 ${
-                            isFailed ? 'text-red-200' : 
-                            isAnomaly && isActive ? 'text-amber-300' :
-                            isAnomaly && isSuccess ? 'text-white drop-shadow-md' : 'text-slate-300'
-                          }`}>{sensor.pressure.toFixed(1).replace('.', ',')} bar</span>
-                        </div>
-                        <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                          <motion.div 
-                            className={`h-full ${
-                              isFailed ? 'bg-red-500/75' : 
-                              isAnomaly && isActive ? 'bg-amber-500' :
-                              isAnomaly && isSuccess ? 'bg-emerald-500' : 
-                              isSelected ? 'bg-cyan-400' :
-                              'bg-blue-600'
-                            }`}
-                            initial={{ width: 0 }}
-                            animate={{ width: `${pressurePercent}%` }}
-                            transition={{ duration: 0.5 }}
-                          />
-                        </div>
-                        <div className="flex justify-between text-xs pt-0.5">
-                          <span className="text-slate-400 uppercase">Débit nocturne (03h00)</span>
-                          <span className="font-bold font-mono tabular-nums text-cyan-300">{sensor.nightFlow} L/min</span>
-                        </div>
-                        <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                          <motion.div
-                            className={`h-full ${
-                              isFailed ? 'bg-red-500/75' :
-                              isAnomaly && isActive ? 'bg-amber-500' :
-                              isAnomaly && isSuccess ? 'bg-emerald-500' :
-                              'bg-cyan-500'
-                            }`}
-                            initial={{ width: 0 }}
-                            animate={{ width: `${Math.min((sensor.nightFlow / 50) * 100, 100)}%` }}
-                            transition={{ duration: 0.5 }}
-                          />
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs sm:text-[13px] font-semibold text-white truncate">
+                              {sensor.location}
+                            </span>
+                            {isFailed && (
+                              <span className="inline-flex items-center gap-0.5 text-[10px] font-bold uppercase text-red-400 shrink-0">
+                                <AlertCircle className="w-3 h-3" /> Écarté
+                              </span>
+                            )}
+                            {isAnomaly && isActive && (
+                              <motion.div animate={{ rotate: [0, -15, 15, 0] }} transition={{ duration: 0.6, repeat: Infinity }}>
+                                <Wrench className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                              </motion.div>
+                            )}
+                            {isAnomaly && isSuccess && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />}
+                          </div>
+                          <div className="text-[11px] text-slate-400 truncate">
+                            {isScanned ? sensor.note : 'Cliquer pour lancer le scan'}
+                          </div>
                         </div>
                       </div>
-                    )}
 
-                    {/* Water leak animation for the anomaly once repair started */}
-                    {isAnomaly && isActive && (
-                      <motion.div 
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: [0.5, 0.2, 0.5] }}
-                        transition={{ duration: 1.5, repeat: Infinity }}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 text-blue-400/30"
-                      >
-                        <Waves className="w-12 h-12" />
-                      </motion.div>
-                    )}
+                      {!isScanned ? (
+                        <div className="col-span-2 flex justify-end">
+                          <span className="inline-flex items-center gap-1 text-[10px] font-mono uppercase text-cyan-400/90 bg-cyan-950/40 border border-cyan-500/25 px-2 py-0.5 rounded-full">
+                            <Radar className="w-3 h-3" /> Scanner
+                          </span>
+                        </div>
+                      ) : (
+                        <>
+                          <span className={`w-16 text-right font-mono text-xs sm:text-[13px] font-bold tabular-nums ${
+                            isFailed
+                              ? 'text-red-300'
+                              : isAnomaly && isActive
+                                ? 'text-amber-300'
+                                : isAnomaly && isSuccess
+                                  ? 'text-emerald-300'
+                                  : isSelected
+                                    ? 'text-white'
+                                    : 'text-slate-200'
+                          }`}>
+                            {sensor.pressure.toFixed(1).replace('.', ',')} bar
+                          </span>
+                          <span className={`w-20 text-right font-mono text-xs sm:text-[13px] font-bold tabular-nums ${
+                            isFailed
+                              ? 'text-red-300/80'
+                              : isAnomaly && isSuccess
+                                ? 'text-emerald-300'
+                                : 'text-cyan-300'
+                          }`}>
+                            {sensor.nightFlow} L/min
+                          </span>
+                        </>
+                      )}
+                    </div>
                   </button>
                 );
               })}

@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { CheckCircle2, Scale, Stamp, FileSignature } from 'lucide-react';
 import NaiaDialogue from '../components/NaiaDialogue';
-import HydraLog from '../components/HydraLog';
 import TechTerm from '../components/TechTerm';
 import LevelHeader from '../components/LevelHeader';
 import LevelShell from '../components/LevelShell';
@@ -83,13 +82,13 @@ export default function Level10({ onComplete, onScoreUpdate, onMistake }: { onCo
       
       <LevelHeader level={10} icon={Scale} />
 
-      <div className="mb-3 space-y-2">
-        <HydraLog
-          status="warning"
-          label="HYDRA // GOUVERNANCE"
-          message="Verrouillage éthique activé. En attente de signature de la Charte municipale pour autoriser le redémarrage."
-        />
-        <NaiaDialogue 
+      <div className="mb-3">
+        <NaiaDialogue
+          hydra={{
+            status: 'warning',
+            label: 'HYDRA // GOUVERNANCE',
+            message: "Verrouillage éthique activé. En attente de signature de la Charte municipale pour autoriser le redémarrage.",
+          }}
           message={
             <>
               La technique ne suffit pas : pour éviter qu'une telle crise se reproduise, la ville exige un arrêté municipal portant « Charte de l'<TechTerm term="IA" /> Responsable » avant de redémarrer HYDRA.
@@ -112,7 +111,7 @@ export default function Level10({ onComplete, onScoreUpdate, onMistake }: { onCo
               <div className="space-y-1">
                 <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.2em] text-cyan-400">
                   <FileSignature className="w-3.5 h-3.5" />
-                  <span>Municipalité · Arrêté N°2026-IA-01</span>
+                  <span>Municipalité · Arrêté N°{new Date().getFullYear()}-IA-01</span>
                 </div>
                 <h3 className="font-bold text-base sm:text-lg uppercase tracking-wider text-white">
                   Charte Municipale de l'IA Responsable
@@ -168,7 +167,7 @@ export default function Level10({ onComplete, onScoreUpdate, onMistake }: { onCo
             {/* Pied de décret : bloc signature & tampon animé */}
             <div className="mt-5 pt-4 border-t border-slate-800/90 flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
               <div className="text-slate-500">
-                Visa technique : <span className="text-slate-300">Agent HydroSave · Supervision NAÏA</span>
+                Visa technique : <span className="text-slate-300">Agent de liaison · Supervision NAÏA</span>
               </div>
               {isSuccess ? (
                 <motion.div

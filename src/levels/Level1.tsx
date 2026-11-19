@@ -1,16 +1,17 @@
 import React, { useState } from 'react';
-import { AnimatePresence } from 'motion/react';
-import { Lock, AlertTriangle, Droplets, Image as ImageIcon, ArrowRight, ArrowDown, Calculator, CheckCircle2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { Lock, AlertTriangle, Droplets, Image as ImageIcon, ArrowRight, ArrowDown, Calculator, CheckCircle2, ChevronDown } from 'lucide-react';
 import NaiaDialogue from '../components/NaiaDialogue';
-import HydraLog from '../components/HydraLog';
 import TechTerm from '../components/TechTerm';
 import NumberInput from '../components/NumberInput';
 import LevelHeader from '../components/LevelHeader';
 import LevelShell from '../components/LevelShell';
 import ActionButton from '../components/ActionButton';
 import LevelSuccessCard from '../components/LevelSuccessCard';
+import Collapsible from '../components/Collapsible';
 import { soundManager } from '../utils/soundManager';
 import { useErrorFeedback } from '../utils/useErrorFeedback';
+import { EASE_OUT_EXPO, SPRING_SNAPPY } from '../utils/motion';
 
 export default function Level1({ onComplete, onScoreUpdate, onMistake }: { onComplete: () => void; onScoreUpdate: (points: number, water: number) => void; onMistake?: () => void; key?: string }) {
   const [waterAmount, setWaterAmount] = useState<number>(0);
@@ -45,15 +46,15 @@ export default function Level1({ onComplete, onScoreUpdate, onMistake }: { onCom
       
       <LevelHeader level={1} icon={Calculator} />
 
-      <div className="mb-4 space-y-2">
-        <HydraLog
-          status="hostile"
-          message="Génération HD en continu : 1 500 images/session. Pompage prioritaire de 18 L sur le réseau potable."
-        />
-        <NaiaDialogue 
+      <div className="mb-3.5">
+        <NaiaDialogue
+          hydra={{
+            status: 'hostile',
+            message: "Génération HD en continu : 1 500 images/session. Pompage prioritaire de 18 L sur le réseau potable.",
+          }}
           message={
             <>
-              Bonjour Agent ! Pour stopper HYDRA, on doit d'abord mesurer sa soif. Ce relevé montre l'eau consommée pour générer des images haute définition par <TechTerm term="IA" />.
+              Première étape, Agent : avant de brider HYDRA, mesurons précisément sa consommation d'eau. Ce relevé indique le volume pompé pour générer des images haute définition par <TechTerm term="IA" />.
             </>
           }
           objective={
@@ -125,17 +126,19 @@ export default function Level1({ onComplete, onScoreUpdate, onMistake }: { onCom
 
           {/* Interaction Area */}
           <div className="w-full lg:w-2/5 flex flex-col justify-between gap-4">
-            <div className="bg-blue-950/25 border border-blue-500/25 p-4 rounded-2xl space-y-2">
-              <p className="font-mono font-bold text-blue-300 text-xs uppercase tracking-wider">
-                Question de sécurité
-              </p>
-              <p className="text-slate-200 text-sm leading-relaxed">
-                Combien de millilitres (mL) d'eau sont consommés par le <TechTerm term="Datacenter" /> pour générer <strong className="text-white">1 seule image</strong> ?
-              </p>
-              <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5">
-                <p className="text-[11px] font-mono text-cyan-300/90 bg-slate-950/60 border border-cyan-500/20 rounded-lg px-2.5 py-1.5 inline-block">
-                  Rappel conversion : 1 L = 1 000 mL
+            <div className="bg-blue-950/25 border border-blue-500/25 p-4 rounded-2xl space-y-2.5">
+              <div className="flex items-center justify-between gap-2">
+                <p className="font-mono font-bold text-blue-300 text-xs uppercase tracking-wider">
+                  Console <TechTerm term="Datacenter" />
                 </p>
+                <span className="text-[11px] font-mono text-cyan-300/90 bg-slate-950/60 border border-cyan-500/20 rounded-md px-2 py-0.5">
+                  1 L = 1 000 mL
+                </span>
+              </div>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-xs text-slate-300">
+                  Eau consommée pour <strong className="text-white">1 image</strong> (en mL)
+                </span>
                 {!isSuccess && (
                   <button
                     type="button"
@@ -144,16 +147,25 @@ export default function Level1({ onComplete, onScoreUpdate, onMistake }: { onCom
                       setShowConversionHelper((prev) => !prev);
                     }}
                     aria-expanded={showConversionHelper}
-                    className="inline-flex items-center gap-1.5 text-[11px] font-mono font-bold px-2.5 py-1.5 rounded-lg bg-slate-900/80 border border-slate-700 text-slate-300 hover:border-cyan-400/60 hover:text-cyan-200 transition-colors"
+                    className={`inline-flex items-center gap-1.5 text-[11px] font-mono font-bold px-2.5 py-1 rounded-lg border transition-colors cursor-pointer ${
+                      showConversionHelper
+                        ? 'bg-cyan-950/60 border-cyan-400/50 text-cyan-200'
+                        : 'bg-slate-900/80 border-slate-700 text-slate-300 hover:border-cyan-400/60 hover:text-cyan-200'
+                    }`}
                   >
                     <Calculator className="w-3.5 h-3.5 text-cyan-400" />
-                    {showConversionHelper ? 'Masquer l\'aide' : 'Aide conversion'}
+                    <span>{showConversionHelper ? "Masquer l'aide" : 'Aide calcul'}</span>
+                    <ChevronDown
+                      className={`w-3.5 h-3.5 text-cyan-400/80 transition-transform duration-200 ease-out ${
+                        showConversionHelper ? 'rotate-180' : ''
+                      }`}
+                    />
                   </button>
                 )}
               </div>
 
-              {showConversionHelper && !isSuccess && (
-                <div className="mt-2 p-3 rounded-lg bg-slate-950/80 border border-cyan-500/25 space-y-2 text-xs">
+              <Collapsible isOpen={showConversionHelper && !isSuccess} innerClassName="pt-2">
+                <div className="p-3 rounded-lg bg-slate-950/80 border border-cyan-500/25 space-y-2 text-xs">
                   <div className="flex flex-wrap items-center gap-2 font-mono">
                     <span className="text-slate-300 font-bold">1.</span>
                     <span className="text-slate-200">18 L =</span>
@@ -173,21 +185,47 @@ export default function Level1({ onComplete, onScoreUpdate, onMistake }: { onCom
                       }`}
                     />
                     <span className="text-cyan-300 font-bold">mL</span>
-                    {isConversionValid && (
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" aria-hidden="true" />
-                    )}
+                    <AnimatePresence>
+                      {isConversionValid && (
+                        <motion.span
+                          initial={{ scale: 0.5, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          exit={{ scale: 0.5, opacity: 0 }}
+                          transition={SPRING_SNAPPY}
+                          className="inline-flex shrink-0"
+                        >
+                          <CheckCircle2 className="w-4 h-4 text-emerald-400" aria-hidden="true" />
+                        </motion.span>
+                      )}
+                    </AnimatePresence>
                   </div>
                   <div className="text-[11px] font-mono text-slate-400">
-                    {isConversionValid ? (
-                      <span className="text-emerald-300">
-                        2. Calculez ensuite : <strong>18 000 mL ÷ 1 500 images</strong> = ? mL
-                      </span>
-                    ) : (
-                      <span>Multipliez 18 par 1 000 pour passer en mL, puis divisez par 1 500 images.</span>
-                    )}
+                    <AnimatePresence mode="wait" initial={false}>
+                      {isConversionValid ? (
+                        <motion.span
+                          key="conv-valid"
+                          initial={{ opacity: 0, y: 3 }}
+                          animate={{ opacity: 1, y: 0, transition: { duration: 0.2, ease: EASE_OUT_EXPO } }}
+                          exit={{ opacity: 0 }}
+                          className="text-emerald-300 block"
+                        >
+                          2. Calculez ensuite : <strong>18 000 mL ÷ 1 500 images</strong> = ? mL
+                        </motion.span>
+                      ) : (
+                        <motion.span
+                          key="conv-hint"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1, transition: { duration: 0.16 } }}
+                          exit={{ opacity: 0 }}
+                          className="block"
+                        >
+                          2. Puis divisez ce volume en mL par 1 500 images.
+                        </motion.span>
+                      )}
+                    </AnimatePresence>
                   </div>
                 </div>
-              )}
+              </Collapsible>
             </div>
 
             {!isSuccess ? (
@@ -213,19 +251,24 @@ export default function Level1({ onComplete, onScoreUpdate, onMistake }: { onCom
                 </ActionButton>
               </form>
             ) : (
-              <AnimatePresence>
-                <LevelSuccessCard
-                  title="ACCÈS AUTORISÉ"
-                  description="Exactement : 18 000 mL ÷ 1 500 = 12 mL par image HD (eau directe de refroidissement et indirecte des centrales électriques). Multiplié par des milliards de requêtes, l'impact devient colossal ! Vous avez mesuré la fuite, passons à l'action sur le circuit d'HYDRA."
-                  buttonLabel="CONTINUER"
-                  onContinue={onComplete}
-                  compact
-                  fullWidthButton
-                />
-              </AnimatePresence>
+              <div className="flex-1 flex flex-col items-center justify-center rounded-2xl bg-emerald-950/25 border border-emerald-500/35 p-5 text-center gap-1.5">
+                <CheckCircle2 className="w-7 h-7 text-emerald-400" />
+                <div className="font-mono text-2xl font-black text-emerald-300 tabular-nums">12 mL / image</div>
+                <span className="text-xs font-mono text-emerald-300/75 uppercase tracking-wider">Relevé confirmé</span>
+              </div>
             )}
           </div>
         </div>
+
+        <AnimatePresence>
+          {isSuccess && (
+            <LevelSuccessCard
+              title="ACCÈS AUTORISÉ"
+              description="Exactement : 18 000 mL ÷ 1 500 = 12 mL par image HD (eau directe de refroidissement et indirecte des centrales électriques). Multiplié par des milliards de requêtes, l'impact devient colossal ! Passons maintenant à l'action sur le circuit d'HYDRA."
+              onContinue={onComplete}
+            />
+          )}
+        </AnimatePresence>
       </div>
     </LevelShell>
   );

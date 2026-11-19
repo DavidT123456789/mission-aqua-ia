@@ -25,7 +25,7 @@ const FALLBACK_PROTOTYPE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox=
   <path d="M 300 205 C 300 205 348 260 348 296 C 348 324 326 346 300 346 C 274 346 252 324 252 296 C 252 260 300 205 300 205 Z" fill="url(#drop)" fill-opacity="0.9"/>
   <path d="M 281 260 C 272 275 268 289 270 301" fill="none" stroke="#ecfeff" stroke-opacity="0.55" stroke-width="4" stroke-linecap="round"/>
   <rect x="150" y="470" width="300" height="38" rx="19" fill="#020617" fill-opacity="0.86" stroke="#10b981" stroke-opacity="0.5"/>
-  <text x="300" y="494" text-anchor="middle" fill="#6ee7b7" font-family="monospace" font-size="14" font-weight="bold" letter-spacing="1.5">PROTOTYPE HYDROSAVE</text>
+  <text x="300" y="494" text-anchor="middle" fill="#6ee7b7" font-family="monospace" font-size="14" font-weight="bold" letter-spacing="1.5">BREVET DERNIÈRE SOURCE</text>
 </svg>`;
 
 export const FALLBACK_PROTOTYPE_DATA_URI = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(FALLBACK_PROTOTYPE_SVG)}`;
@@ -58,7 +58,7 @@ function normalizeForMatch(value: string): string {
 
 function wrapText(text: string, maxCharsPerLine: number, maxLines: number): string[] {
   const words = text.trim().split(/\s+/).filter(Boolean);
-  if (words.length === 0) return ['PROTOTYPE HYDROSAVE'];
+  if (words.length === 0) return ['BREVET DERNIÈRE SOURCE'];
   const lines: string[] = [];
   let current = '';
   let truncated = false;
@@ -140,9 +140,9 @@ export function buildSoberBlueprintDataUri(options: SoberBlueprintOptions): stri
   }
   const modules = selectedModules.slice(0, 4);
 
-  const titleLines = wrapText(options.title || 'Prototype HydroSave', 28, 2);
+  const titleLines = wrapText(options.title || 'Brevet Dernière Source', 28, 2);
   const patentLabel = escapeXml(options.patentNumber || 'FR-SOBRE');
-  const inventorLabel = escapeXml((options.inventor || 'Agent HydroSave').slice(0, 22));
+  const inventorLabel = escapeXml((options.inventor || 'Agent').slice(0, 22));
   const waterSavedLabel = escapeXml((options.waterSaved || '—').slice(0, 18));
   const scoreLabel = `${Math.max(0, Math.min(100, Math.round(options.score || 0)))}%`;
   const badgeLabel = options.isSoberChoice ? 'BLUEPRINT SOBRE · 0 mL IA' : 'SCHEMA TECHNIQUE LOCAL';

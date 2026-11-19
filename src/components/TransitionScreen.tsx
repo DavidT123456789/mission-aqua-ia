@@ -1,10 +1,96 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'motion/react';
-import { ChevronRight, Star, ArrowUpRight, Heart } from 'lucide-react';
-import { NaiaAvatar } from './NaiaDialogue';
+import { useState, useEffect, useMemo } from 'react';
+import { motion, useReducedMotion } from 'motion/react';
+import {
+  ChevronRight,
+  Star,
+  ArrowUpRight,
+  Heart,
+  Clock,
+  CheckCircle2,
+  ShieldCheck,
+  BookmarkCheck,
+  FastForward,
+  Volume2,
+  VolumeX,
+} from 'lucide-react';
+import NaiaDialogue, { NaiaAvatar } from './NaiaDialogue';
+import ActionButton from './ActionButton';
 import { getLevelIcon } from './levelIcons';
-import { LEVEL_NAMES, MISSION_DURATION_SECONDS, getActForLevel } from '../constants';
+import { LEVEL_NAMES, getActForLevel } from '../constants';
 import { soundManager } from '../utils/soundManager';
+import { EASE_OUT_EXPO, EASE_IN_OUT, SPRING_SNAPPY } from '../utils/motion';
+
+const FACT_REVEAL_START_DELAY_MS = 320;
+const ATTACH_TO_PREV = new Set([':', ';', '!', '?', '»', '%']);
+
+function tokenizeFrenchWords(text: string): string[] {
+  const raw = text.trim().split(/\s+/);
+  const tokens: string[] = [];
+  for (let i = 0; i < raw.length; i++) {
+    const part = raw[i];
+    if (tokens.length > 0 && (ATTACH_TO_PREV.has(part) || tokens[tokens.length - 1] === '«')) {
+      tokens[tokens.length - 1] = `${tokens[tokens.length - 1]}\u00A0${part}`;
+    } else {
+      tokens.push(part);
+    }
+  }
+  return tokens;
+}
+
+function buildFactRevealSchedule(text: string) {
+  const tokens = tokenizeFrenchWords(text);
+  let cursorSec = FACT_REVEAL_START_DELAY_MS / 1000;
+  const items = tokens.map((word) => {
+    const delay = cursorSec;
+    const cleanLen = word.replace(/[^a-zA-ZÀ-ÿ0-9]/g, '').length;
+    // Rythme organique : mots courts enchaînés naturellement, mots longs plus posés
+    let stepMs = 52 + Math.min(cleanLen, 10) * 11;
+    // Micro-respiration naturelle sur la ponctuation
+    if (/[.!?…][»")]?$/.test(word)) {
+      stepMs += 260;
+    } else if (/[,;:][»")]?$/.test(word)) {
+      stepMs += 140;
+    }
+    cursorSec += stepMs / 1000;
+    return { word, delay };
+  });
+  const totalMs = Math.round((cursorSec + 0.24) * 1000);
+  return { items, totalMs };
+}
+
+/**
+ * Emplacements prêts pour de futures vidéos d'interlude d'acte plein écran (16:9).
+ * Les illustrations locales servent automatiquement de décor (et de `poster` vidéo).
+ * Pour activer une vidéo, déposez le fichier dans `public/` et renseignez `videoUrl`, ex. `'/acte-2.mp4'`.
+ */
+export const ACT_INTERLUDE_MEDIA: Record<2 | 3, { videoUrl: string | null; imageUrl: string }> = {
+  2: { videoUrl: null, imageUrl: '/chapters/acte-2.jpg' },
+  3: { videoUrl: null, imageUrl: '/chapters/acte-3.jpg' },
+};
+
+interface ActInterludeConfig {
+  statusPill: string;
+  rangeLabel: string;
+  naiaMessage: string;
+  ctaLabel: string;
+}
+
+const ACT_INTERLUDES: Record<2 | 3, ActInterludeConfig> = {
+  2: {
+    statusPill: 'Réseau stabilisé · 16 %',
+    rangeLabel: 'Niveaux 4 à 10',
+    naiaMessage:
+      "L'urgence immédiate est contenue : vannes régulées et fuite souterraine localisée. Mais HYDRA continue d'absorber eau et électricité à l'échelle de ses datacenters. Dans cet acte, nous allons repenser son architecture, ses modèles et imposer des règles durables.",
+    ctaLabel: "ENTRER DANS L'ACTE II",
+  },
+  3: {
+    statusPill: 'Charte ratifiée · 71 % stabilisé',
+    rangeLabel: 'Niveaux 11 à 13 · Labo en temps libre',
+    naiaMessage:
+      "La charte municipale est ratifiée : HYDRA est désormais encadrée et 71 % du réseau est stabilisé. Dernière étape : faire basculer l'IA en mode Symbiose pour piloter l'eau intelligemment, équilibrer la ville et concevoir votre propre solution.",
+    ctaLabel: "ENTRER DANS L'ACTE III",
+  },
+};
 
 interface TransitionScreenProps {
   level: number;
@@ -14,30 +100,69 @@ interface TransitionScreenProps {
   pointsGained: number;
   timeRemaining: number;
   lifeRestored?: boolean;
+  isMuted?: boolean;
+  onToggleMute?: () => void;
+  skipReadDelay?: boolean;
   key?: string;
 }
 
-export default function TransitionScreen({ level, fact, onTransitionComplete, score, pointsGained, timeRemaining, lifeRestored = false }: TransitionScreenProps) {
-  const [isComplete, setIsComplete] = useState(false);
+export default function TransitionScreen({
+  level,
+  fact,
+  onTransitionComplete,
+  score,
+  pointsGained,
+  timeRemaining,
+  lifeRestored = false,
+  isMuted = false,
+  onToggleMute,
+  skipReadDelay = false,
+}: TransitionScreenProps) {
   const [displayScore, setDisplayScore] = useState(score - pointsGained);
+  const [videoFailed, setVideoFailed] = useState(false);
+  const prefersReducedMotion = useReducedMotion();
+
   const currentAct = getActForLevel(level);
-  const isNewAct = Boolean(currentAct && level === currentAct.startLevel);
+  const isActInterlude = Boolean(
+    currentAct && level === currentAct.startLevel && (currentAct.id === 2 || currentAct.id === 3)
+  );
+  const actId = isActInterlude ? (currentAct!.id as 2 | 3) : null;
+  const actConfig = actId ? ACT_INTERLUDES[actId] : null;
+  const actMedia = actId ? ACT_INTERLUDE_MEDIA[actId] : null;
+  const showActVideo = Boolean(actMedia?.videoUrl) && !videoFailed;
   const LevelIcon = getLevelIcon(level);
+  const stageTwoDelay = prefersReducedMotion ? 0 : 0.48;
+  const factSchedule = useMemo(
+    () => (fact ? buildFactRevealSchedule(fact) : { items: [], totalMs: 0 }),
+    [fact]
+  );
+  const shouldRevealFact = Boolean(
+    !isActInterlude && factSchedule.items.length > 0 && !prefersReducedMotion && !skipReadDelay
+  );
+  const [isContinueReady, setIsContinueReady] = useState(() => !shouldRevealFact);
 
   useEffect(() => {
-    // Prevent body scroll when transition screen is mounted
+    if (!shouldRevealFact) {
+      setIsContinueReady(true);
+      return;
+    }
+
+    setIsContinueReady(false);
+    const doneTimer = setTimeout(() => {
+      setIsContinueReady(true);
+    }, factSchedule.totalMs);
+
+    return () => clearTimeout(doneTimer);
+  }, [shouldRevealFact, factSchedule.totalMs, level]);
+
+  const isRevealingFact = shouldRevealFact && !isContinueReady;
+
+  useEffect(() => {
     const originalStyle = window.getComputedStyle(document.body).overflow;
     document.body.style.overflow = 'hidden';
     return () => {
       document.body.style.overflow = originalStyle;
     };
-  }, []);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsComplete(true);
-    }, 1600);
-    return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {
@@ -49,9 +174,12 @@ export default function TransitionScreen({ level, fact, onTransitionComplete, sc
   }, [lifeRestored]);
 
   useEffect(() => {
-    if (pointsGained <= 0) return;
-    
-    const duration = 1500;
+    if (pointsGained <= 0) {
+      setDisplayScore(score);
+      return;
+    }
+
+    const duration = 900;
     const start = score - pointsGained;
     const end = score;
     const startTime = performance.now();
@@ -61,10 +189,7 @@ export default function TransitionScreen({ level, fact, onTransitionComplete, sc
       const elapsed = currentTime - startTime;
       const progress = Math.min(elapsed / duration, 1);
       const easedProgress = 1 - Math.pow(1 - progress, 3);
-      
-      const currentScore = Math.floor(start + (end - start) * easedProgress);
-      setDisplayScore(currentScore);
-
+      setDisplayScore(Math.floor(start + (end - start) * easedProgress));
       if (progress < 1) {
         rafId = requestAnimationFrame(animate);
       }
@@ -74,231 +199,370 @@ export default function TransitionScreen({ level, fact, onTransitionComplete, sc
     return () => cancelAnimationFrame(rafId);
   }, [score, pointsGained]);
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: { 
-      opacity: 1,
-      transition: { staggerChildren: 0.1, delayChildren: 0.2 }
-    }
-  };
+  const formattedTime = `${Math.floor(timeRemaining / 60)}:${(timeRemaining % 60).toString().padStart(2, '0')}`;
 
-  const itemVariants = {
-    hidden: { opacity: 0, y: 30, scale: 0.9 },
-    visible: { 
-      opacity: 1, 
-      y: 0, 
-      scale: 1,
-      transition: { type: "spring" as const, stiffness: 100, damping: 15 }
-    }
-  };
+  // Full-Bleed 2-Stage Cinematic Chapter Interlude (Acte II before N4, Acte III before N11)
+  if (isActInterlude && currentAct && actConfig && actMedia) {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1, transition: { duration: 0.28, ease: EASE_OUT_EXPO } }}
+        exit={{ opacity: 0, transition: { duration: 0.22, ease: EASE_IN_OUT } }}
+        className="fixed inset-0 z-[120] bg-slate-950 overflow-y-auto font-sans"
+      >
+        {/* Full-Bleed Edge-to-Edge Backdrop */}
+        <div className="fixed inset-0 pointer-events-none select-none overflow-hidden">
+          {showActVideo ? (
+            <video
+              src={actMedia.videoUrl ?? undefined}
+              poster={actMedia.imageUrl}
+              autoPlay
+              playsInline
+              controls
+              onError={() => setVideoFailed(true)}
+              className="w-full h-full object-cover bg-black pointer-events-auto"
+            >
+              Votre navigateur ne supporte pas la lecture vidéo intégrée.
+            </video>
+          ) : (
+            <motion.img
+              src={actMedia.imageUrl}
+              alt={currentAct.title}
+              initial={prefersReducedMotion ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 1.04 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.95, ease: EASE_OUT_EXPO }}
+              className="w-full h-full object-cover object-center"
+            />
+          )}
 
+          {/* Top subtle vignette */}
+          <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-slate-950/85 via-slate-950/40 to-transparent" />
+
+          {/* Stage 2 Bottom Scrim */}
+          <motion.div
+            initial={{ opacity: 0.45 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5, delay: stageTwoDelay, ease: EASE_OUT_EXPO }}
+            className="absolute inset-x-0 bottom-0 h-[46%] bg-gradient-to-t from-slate-950 via-slate-950/75 to-transparent"
+          />
+        </div>
+
+        {/* Foreground Diegetic Layer */}
+        <div className="relative z-10 min-h-full flex flex-col justify-between px-4 sm:px-8 pt-4 sm:pt-6 pb-4 sm:pb-5 max-w-7xl w-full mx-auto">
+          {/* Top Diegetic HUD Strip */}
+          <motion.div
+            initial={prefersReducedMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: EASE_OUT_EXPO }}
+            className="flex flex-wrap items-start justify-between gap-3"
+          >
+            <div className="space-y-0.5">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[11px] font-bold uppercase tracking-[0.22em] text-emerald-400">
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.85)]" />
+                  {currentAct.label}
+                </span>
+                <span className="text-slate-500">·</span>
+                <span className="text-slate-300/80 font-normal tracking-wider normal-case">{actConfig.rangeLabel}</span>
+                <span className="text-slate-500">·</span>
+                <span className="inline-flex items-center gap-1 text-cyan-300/90 font-semibold tracking-wider normal-case">
+                  <BookmarkCheck className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                  Point de contrôle
+                </span>
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white drop-shadow-[0_2px_14px_rgba(0,0,0,0.85)]">
+                {currentAct.title}
+              </h2>
+            </div>
+
+            <div className="flex items-center gap-2 ml-auto">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3 min-h-8 font-mono text-[11px] sm:text-xs bg-slate-950/65 backdrop-blur-md border border-white/10 rounded-full px-3.5 py-1 shadow-lg">
+                <span className="inline-flex items-center gap-1.5 text-emerald-300 font-bold">
+                  {actId === 3 ? (
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                  ) : (
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                  )}
+                  {actConfig.statusPill}
+                </span>
+                <span className="w-px h-3.5 bg-white/15" aria-hidden="true" />
+                <span className="inline-flex items-center gap-1 text-white font-bold tabular-nums">
+                  <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />
+                  {displayScore}
+                  {pointsGained > 0 && <span className="text-emerald-400 ml-0.5">(+{pointsGained})</span>}
+                </span>
+                <span className="w-px h-3.5 bg-white/15" aria-hidden="true" />
+                <span className={`inline-flex items-center gap-1 font-bold tabular-nums ${timeRemaining < 300 ? 'text-red-400' : 'text-cyan-300'}`}>
+                  <Clock className="w-3.5 h-3.5" />
+                  {formattedTime}
+                </span>
+                {lifeRestored && (
+                  <>
+                    <span className="w-px h-3.5 bg-white/15" aria-hidden="true" />
+                    <span className="inline-flex items-center gap-1 text-rose-300 font-bold">
+                      <Heart className="w-3.5 h-3.5 text-rose-400 fill-rose-400" />
+                      +1 vie
+                    </span>
+                  </>
+                )}
+                {showActVideo && (
+                  <>
+                    <span className="w-px h-3.5 bg-white/15" aria-hidden="true" />
+                    <button
+                      type="button"
+                      onClick={onTransitionComplete}
+                      className="inline-flex items-center gap-1 text-slate-300 hover:text-emerald-300 transition-colors cursor-pointer"
+                    >
+                      <span>Passer</span>
+                      <FastForward className="w-3 h-3" />
+                    </button>
+                  </>
+                )}
+              </div>
+
+              {onToggleMute && (
+                <button
+                  type="button"
+                  onClick={onToggleMute}
+                  aria-label={isMuted ? 'Activer le son' : 'Couper le son'}
+                  title={isMuted ? 'Activer le son' : 'Couper le son'}
+                  className={`inline-flex items-center justify-center w-8 h-8 rounded-full backdrop-blur-md border transition-all shadow-lg cursor-pointer shrink-0 ${
+                    isMuted
+                      ? 'bg-red-950/65 border-red-400/45 text-red-300 hover:bg-red-900/70 hover:shadow-[0_0_12px_rgba(239,68,68,0.28)]'
+                      : 'bg-slate-950/65 border-cyan-400/30 text-cyan-300 hover:bg-cyan-950/60 hover:border-cyan-400/60 hover:shadow-[0_0_12px_rgba(34,211,238,0.28)]'
+                  }`}
+                >
+                  {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+                </button>
+              )}
+            </div>
+          </motion.div>
+
+          {/* Unobstructed Center Breathing Room */}
+          <div className="flex-1 min-h-[160px] sm:min-h-[220px]" aria-hidden="true" />
+
+          {/* Stage 2: Bottom Cinematic Dialogue Dock */}
+          <motion.div
+            initial={prefersReducedMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 22 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.46, delay: stageTwoDelay, ease: EASE_OUT_EXPO }}
+            className="space-y-2.5 max-w-4xl w-full mx-auto"
+          >
+            <NaiaDialogue
+              hideHintButton
+              emotion="happy"
+              message={actConfig.naiaMessage}
+            />
+
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-2.5">
+              {fact ? (
+                <p className="text-xs text-slate-200/90 leading-relaxed max-w-2xl px-3.5 py-2 rounded-xl bg-slate-950/60 backdrop-blur-md border border-white/10 shadow-lg">
+                  <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-emerald-400 mr-2">
+                    Le saviez-vous ?
+                  </span>
+                  {fact}
+                </p>
+              ) : (
+                <span className="text-xs font-mono text-slate-300 px-3.5 py-2 rounded-xl bg-slate-950/60 backdrop-blur-md border border-white/10 shadow-lg">
+                  Chrono en pause · Niveau {level}/13 prêt
+                </span>
+              )}
+
+              <button
+                type="button"
+                onClick={onTransitionComplete}
+                className="shrink-0 w-full md:w-auto inline-flex items-center justify-center gap-2 px-7 py-3 rounded-xl font-black text-sm sm:text-[15px] tracking-wide bg-gradient-to-r from-emerald-400/85 via-teal-400/85 to-cyan-400/85 hover:from-emerald-400/95 hover:via-teal-400/95 hover:to-cyan-400/95 text-slate-950 border border-cyan-200/35 hover:border-cyan-200/45 transition-all duration-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.34),0_8px_22px_rgba(6,182,212,0.15)] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.42),0_8px_24px_rgba(20,184,166,0.26)] active:scale-[0.985] cursor-pointer"
+              >
+                <span>{actConfig.ctaLabel}</span>
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      </motion.div>
+    );
+  }
+
+  // Crisp Intra-Act Transition with gentle reading-pace cue on the CTA when a fact memo is shown
   return (
     <motion.div
       initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[120] bg-slate-950/98 backdrop-blur-xl overflow-y-auto font-mono flex items-center justify-center p-4"
+      animate={{ opacity: 1, transition: { duration: 0.24, ease: 'easeOut' } }}
+      exit={{ opacity: 0, transition: { duration: 0.2, ease: EASE_IN_OUT } }}
+      className="fixed inset-0 z-[120] bg-slate-950/96 backdrop-blur-xl overflow-y-auto flex items-center justify-center p-4 font-sans"
     >
-      {/* Background Decorative Grid */}
-      <div className="absolute inset-0 pointer-events-none opacity-20">
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(13,148,136,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(13,148,136,0.1)_1px,transparent_1px)] bg-[size:50px_50px]" />
-      </div>
-
       <motion.div
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-        className="max-w-2xl w-full sm:bg-slate-900/90 border-transparent sm:border-white/10 sm:border sm:px-8 sm:py-6 sm:rounded-3xl backdrop-blur-3xl sm:shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_24px_48px_rgba(0,0,0,0.55)] relative overflow-hidden flex flex-col items-center gap-4 sm:gap-5 py-4 px-4 my-auto"
+        initial={{ opacity: 0, scale: 0.955, y: 16 }}
+        animate={{
+          opacity: 1,
+          scale: 1,
+          y: 0,
+          transition: { duration: 0.34, ease: EASE_OUT_EXPO },
+        }}
+        exit={{
+          opacity: 0,
+          scale: 0.97,
+          y: -8,
+          transition: { duration: 0.18, ease: EASE_IN_OUT },
+        }}
+        className="max-w-xl w-full sm:bg-slate-900/95 border-transparent sm:border-white/10 sm:border p-5 sm:p-7 sm:rounded-3xl backdrop-blur-2xl sm:shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_24px_48px_rgba(0,0,0,0.55)] relative overflow-hidden flex flex-col items-center gap-4 sm:gap-5 my-auto"
       >
-        {/* Subtle Scan Line */}
-        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-cyan-500/20 to-transparent animate-pulse" />
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-cyan-500/35 to-transparent" />
 
-        {/* Central Icon Section */}
-        <motion.div variants={itemVariants} className="relative">
-          <div className="relative flex items-center justify-center">
-            {/* Processing Rings */}
-            <motion.div 
-              animate={{ rotate: 360 }}
-              transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-              className="absolute w-20 h-20 border-2 border-dashed border-emerald-500/30 rounded-full"
-            />
-            <motion.div 
-              animate={{ rotate: -360 }}
-              transition={{ duration: 12, repeat: Infinity, ease: "linear" }}
-              className="absolute w-24 h-24 border border-cyan-500/15 rounded-full"
-            />
-            <div className="p-4 bg-slate-950/80 border border-emerald-500/30 rounded-2xl backdrop-blur-md shadow-xl relative overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-transparent" />
-              <LevelIcon className="w-9 h-9 text-emerald-400" />
-            </div>
-          </div>
-        </motion.div>
-        
-        <div className="text-center space-y-3 w-full">
-          {currentAct && (
-            <motion.div
-              variants={itemVariants}
-              className={`inline-flex flex-col items-center gap-0.5 px-3.5 py-1.5 rounded-xl border text-center ${
-                isNewAct
-                  ? 'bg-emerald-950/60 border-emerald-400/50 text-emerald-300 shadow-[0_0_20px_rgba(16,185,129,0.2)]'
-                  : 'bg-slate-950/60 border-white/10 text-slate-300'
-              }`}
-            >
-              <span className="text-[10px] font-black uppercase tracking-[0.22em]">
-                {isNewAct ? `Nouveau Chapitre · ${currentAct.label} : ${currentAct.title}` : `${currentAct.label} · ${currentAct.title}`}
-              </span>
-              {isNewAct && (
-                <span className="text-[11px] font-sans text-emerald-100/90 font-normal">
-                  {currentAct.subtitle}
-                </span>
-              )}
-            </motion.div>
-          )}
+        {/* Compact Header */}
+        <motion.div
+          initial={prefersReducedMotion ? false : { opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.04, ease: EASE_OUT_EXPO }}
+          className="flex flex-col items-center text-center gap-2.5"
+        >
+          <motion.div
+            initial={prefersReducedMotion ? false : { scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ ...SPRING_SNAPPY, delay: 0.06 }}
+            className="p-3 bg-slate-950/85 border border-emerald-500/30 rounded-2xl shadow-lg"
+          >
+            <LevelIcon className="w-7 h-7 text-emerald-400" />
+          </motion.div>
+
           <div className="space-y-1">
-            <motion.h2 
-              variants={itemVariants}
-              className="text-4xl sm:text-5xl font-black text-white tracking-widest uppercase leading-none block"
-            >
-              Niveau <span className="text-transparent bg-clip-text bg-gradient-to-b from-cyan-300 to-cyan-500">{level}</span>
-              <span className="text-xl sm:text-2xl text-slate-400 font-bold ml-2">/ 13</span>
-            </motion.h2>
+            {currentAct && (
+              <div className="font-mono text-[10px] font-semibold uppercase tracking-[0.22em] text-cyan-300/85">
+                {currentAct.label} · {currentAct.title}
+              </div>
+            )}
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight font-sans">
+              Niveau <span className="text-cyan-300">{level}</span>
+              <span className="text-base sm:text-lg text-slate-500 font-semibold ml-1.5">/ 13</span>
+            </h2>
             {LEVEL_NAMES[level] && (
-              <motion.p
-                variants={itemVariants}
-                className="text-xs sm:text-sm font-bold text-cyan-300/90 uppercase tracking-[0.18em]"
-              >
+              <p className="text-xs sm:text-sm font-medium text-slate-300">
                 {LEVEL_NAMES[level]}
-              </motion.p>
+              </p>
             )}
           </div>
 
-          {/* Stats Dashboard */}
           {lifeRestored && (
             <motion.div
-              variants={itemVariants}
-              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-rose-950/60 border border-rose-400/45 text-rose-200 text-xs font-mono font-bold shadow-[0_0_16px_rgba(244,63,94,0.2)]"
+              initial={prefersReducedMotion ? false : { scale: 0.85, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ ...SPRING_SNAPPY, delay: 0.16 }}
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-950/60 border border-rose-400/45 text-rose-200 text-xs font-mono font-bold"
             >
               <Heart className="w-3.5 h-3.5 text-rose-400 fill-rose-400 shrink-0" />
               <span>+1 vie restaurée · Palier niveau {level}</span>
             </motion.div>
           )}
-          <motion.div 
-            variants={itemVariants}
-            className="grid grid-cols-2 gap-3 sm:gap-4 mt-3"
-          >
-            <div className="bg-slate-950/60 border border-white/10 backdrop-blur-md p-3 sm:p-3.5 rounded-2xl flex flex-col items-center justify-center shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_8px_32px_rgba(0,0,0,0.4)] relative overflow-hidden">
-              <span className="text-[11px] text-slate-400 uppercase tracking-widest font-bold mb-1">Score Total</span>
-              <div className="flex items-center gap-2.5">
-                <Star className="w-5 h-5 fill-yellow-400 text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.5)]" />
-                <span className="text-2xl sm:text-3xl font-black text-white tabular-nums">{displayScore}</span>
-              </div>
-              {pointsGained > 0 && (
-                <motion.div 
-                  initial={{ opacity: 0, x: 10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className="mt-1.5 flex items-center gap-1 text-emerald-400 font-bold text-xs bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20"
-                >
-                  <ArrowUpRight className="w-3 h-3" />
-                  <span className="text-[11px]">+ {pointsGained}</span>
-                  <span className="text-[10px] uppercase opacity-85">pts</span>
-                </motion.div>
-              )}
+        </motion.div>
+
+        {/* Clean Stats Row */}
+        <motion.div
+          initial={prefersReducedMotion ? false : { opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.1, ease: EASE_OUT_EXPO }}
+          className="grid grid-cols-2 gap-3 w-full"
+        >
+          <div className="bg-slate-950/65 border border-white/10 p-3.5 rounded-2xl flex flex-col items-center justify-center">
+            <span className="text-[10px] font-mono text-slate-400 uppercase tracking-widest font-bold mb-1">
+              Score total
+            </span>
+            <div className="flex items-center gap-2">
+              <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+              <span className="text-2xl font-mono font-black text-white tabular-nums">{displayScore}</span>
             </div>
-            
-            <div className="bg-slate-950/60 border border-white/10 backdrop-blur-md p-3 sm:p-3.5 rounded-2xl flex flex-col items-center justify-center shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_8px_32px_rgba(0,0,0,0.4)] relative overflow-hidden">
-              <span className="text-[11px] text-slate-400 uppercase tracking-widest font-bold mb-1">Temps restant</span>
-              <div className="flex items-center gap-2">
-                <span className={`text-2xl sm:text-3xl font-black tabular-nums ${timeRemaining < 300 ? 'text-red-400' : 'text-cyan-400'}`}>
-                  {Math.floor(timeRemaining / 60)}:{(timeRemaining % 60).toString().padStart(2, '0')}
-                </span>
+            {pointsGained > 0 && (
+              <div className="mt-1 inline-flex items-center gap-0.5 text-emerald-400 font-mono font-bold text-[11px] bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                <ArrowUpRight className="w-3 h-3" />
+                <span>+{pointsGained} pts</span>
               </div>
-              <div className="mt-1.5 text-[10px] text-slate-300 uppercase tracking-widest flex items-center gap-1 bg-white/5 px-2.5 py-0.5 rounded-full border border-white/10">
-                <span>Efficacité:</span>
-                <span className="text-cyan-300 font-black ml-1">{Math.min(100, Math.round((timeRemaining / MISSION_DURATION_SECONDS) * 100))}%</span>
-                <ArrowUpRight className="w-2.5 h-2.5 text-cyan-400" />
+            )}
+          </div>
+
+          <div className="bg-slate-950/65 border border-white/10 p-3.5 rounded-2xl flex flex-col items-center justify-center">
+            <span className="text-[10px] font-mono text-slate-400 uppercase tracking-widest font-bold mb-1">
+              Temps restant
+            </span>
+            <span className={`text-2xl font-mono font-black tabular-nums ${timeRemaining < 300 ? 'text-red-400' : 'text-cyan-400'}`}>
+              {formattedTime}
+            </span>
+            <span className="mt-1 text-[10px] font-mono text-slate-500 uppercase tracking-wider">
+              {level === 13 ? 'Lab en temps libre' : 'Chrono en pause'}
+            </span>
+          </div>
+        </motion.div>
+
+        {/* NAÏA Fact Memo (progressive word-by-word reveal draws attention directly to the text) */}
+        {fact && (
+          <motion.div
+            initial={prefersReducedMotion ? false : { opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.34, delay: 0.14, ease: EASE_OUT_EXPO }}
+            className={`w-full p-4 bg-slate-950/60 border rounded-2xl text-left transition-all duration-500 ${
+              isRevealingFact
+                ? 'border-emerald-400/45 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_0_24px_rgba(16,185,129,0.12)]'
+                : 'border-emerald-500/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]'
+            }`}
+          >
+            <div className="flex items-start gap-3">
+              <NaiaAvatar emotion="happy" size="sm" />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-emerald-500/20 border border-emerald-400/35 text-emerald-300 text-[10px] font-mono font-bold rounded uppercase tracking-wider">
+                    {isRevealingFact && (
+                      <span
+                        aria-hidden="true"
+                        className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"
+                      />
+                    )}
+                    Le saviez-vous ?
+                  </span>
+                </div>
+                <p className="text-slate-100 text-xs sm:text-sm leading-relaxed" aria-label={fact}>
+                  {shouldRevealFact
+                    ? factSchedule.items.map((item, idx) => (
+                        <span key={`${level}-${idx}`}>
+                          <motion.span
+                            aria-hidden="true"
+                            initial={{ opacity: 0, y: 3, filter: 'blur(2px)' }}
+                            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                            transition={{
+                              duration: 0.38,
+                              delay: item.delay,
+                              ease: EASE_OUT_EXPO,
+                            }}
+                            className="inline-block"
+                          >
+                            {item.word}
+                          </motion.span>
+                          {idx < factSchedule.items.length - 1 ? ' ' : ''}
+                        </span>
+                      ))
+                    : fact}
+                </p>
               </div>
             </div>
           </motion.div>
-          
-          {fact && (
-            <motion.div
-              variants={itemVariants}
-              className="mt-3 p-4 sm:p-5 bg-slate-950/40 border border-white/10 rounded-2xl relative text-left backdrop-blur-sm overflow-hidden group"
-            >
-              {/* Technical Drawing */}
-              <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_top_left,rgba(6,182,212,0.05)_0%,transparent_50%)] pointer-events-none" />
-              
-              <div className="relative z-10 flex items-start gap-3">
-                <NaiaAvatar emotion="happy" size="sm" />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <span className="inline-block px-2.5 py-0.5 bg-emerald-500 text-slate-950 text-[10px] font-black rounded-md uppercase tracking-[0.18em] shadow-md">
-                      Le saviez-vous ?
-                    </span>
-                    <span className="font-mono text-[10px] text-cyan-400/80 uppercase tracking-wider">
-                      Mémo de NAÏA
-                    </span>
-                  </div>
-                  <p className="text-slate-200 text-sm sm:text-[15px] leading-relaxed font-sans font-normal">
-                    {fact}
-                  </p>
-                </div>
-              </div>
+        )}
 
-              {/* Decorative corners */}
-              <div className="absolute bottom-0 right-0 w-3.5 h-3.5 border-r-2 border-b-2 border-cyan-500/30 rounded-br-lg" />
-            </motion.div>
-          )}
-        </div>
-
-        <div className="w-full mt-1">
-          {!isComplete ? (
-            <button
-              type="button"
-              onClick={() => setIsComplete(true)}
-              className="flex flex-col items-center gap-3 w-full cursor-pointer bg-transparent border-0 p-0 text-left"
-              title="Cliquer pour passer"
-            >
-              <div className="w-full space-y-2">
-                <div className="flex justify-between text-[11px] text-emerald-400/85 font-bold uppercase tracking-widest px-1">
-                  <span>Synchronisation des protocoles...</span>
-                  <span>CLIQUER POUR PASSER</span>
-                </div>
-                {/* Segmented Loading Bar */}
-                <div className="w-full h-3 bg-slate-950 rounded-full flex gap-1 p-1 border border-white/10 overflow-hidden relative">
-                  {[...Array(20)].map((_, i) => (
-                    <motion.div
-                      key={i}
-                      initial={{ opacity: 0.1 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ 
-                        duration: 0.2, 
-                        delay: i * 0.08,
-                        repeat: Infinity,
-                        repeatType: "reverse"
-                      }}
-                      className="flex-grow h-full bg-emerald-500/60 rounded-sm"
-                    />
-                  ))}
-                </div>
-              </div>
-            </button>
-          ) : (
-            <motion.div 
-              variants={itemVariants}
-              className="w-full flex justify-center"
-            >
-              <button
-                onClick={onTransitionComplete}
-                className="group relative flex items-center gap-3 bg-gradient-to-b from-emerald-400 to-emerald-600 hover:from-emerald-300 hover:to-emerald-500 text-slate-950 px-8 py-3.5 rounded-xl font-black text-xs sm:text-sm uppercase tracking-[0.2em] transition-all shadow-[inset_0_1px_0_rgba(255,255,255,0.4)] hover:shadow-[0_0_22px_rgba(16,185,129,0.35),inset_0_1px_0_rgba(255,255,255,0.4)] border border-emerald-400 overflow-hidden"
-              >
-                <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent,25%,rgba(255,255,255,0.2)_50%,transparent_75%)] bg-[length:250%_250%] animate-[shimmer_2s_infinite] pointer-events-none" />
-                <span className="relative z-10">Continuer la Mission</span>
-                <ChevronRight className="w-5 h-5 group-hover:translate-x-1.5 transition-transform relative z-10" />
-              </button>
-            </motion.div>
-          )}
-        </div>
+        {/* Continue CTA — stays discreet while the memo reveals, unlocks once all text is displayed */}
+        <motion.div
+          initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.28, delay: 0.18, ease: EASE_OUT_EXPO }}
+          className="w-full"
+        >
+          <ActionButton
+            variant="primary"
+            size="md"
+            fullWidth
+            disabled={!isContinueReady}
+            onClick={onTransitionComplete}
+            className="transition-all duration-300"
+          >
+            <span>CONTINUER · NIVEAU {level}</span>
+            <ChevronRight className="w-4 h-4" />
+          </ActionButton>
+        </motion.div>
       </motion.div>
     </motion.div>
   );

@@ -4,10 +4,9 @@ export interface NaiaHintContextValue {
   level: number;
   score: number;
   unlockedFreeHints: number[];
-  unlockedPaidHints: number[];
   isHintOpen: boolean;
   setIsHintOpen: (open: boolean) => void;
-  useHint: (type: 'free' | 'paid') => void;
+  useHint: () => void;
 }
 
 export const NaiaHintContext = createContext<NaiaHintContextValue | null>(null);

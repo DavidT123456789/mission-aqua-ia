@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { AnimatePresence } from 'motion/react';
 import { Map, Snowflake, Sun, Building2, Wind, Fan, Droplets, Gauge, AlertTriangle } from 'lucide-react';
 import NaiaDialogue from '../components/NaiaDialogue';
-import HydraLog from '../components/HydraLog';
 import TechTerm from '../components/TechTerm';
 import LevelHeader from '../components/LevelHeader';
 import LevelShell from '../components/LevelShell';
@@ -159,76 +158,105 @@ export default function Level4({ onComplete, onScoreUpdate, onMistake }: { onCom
     <LevelShell compact wide>
       <LevelHeader level={4} icon={Map} compact />
 
-      <div className="mb-3 space-y-2">
-        <HydraLog
-          status="hostile"
-          message="Plan d'extension : implantation prioritaire pré-sélectionnée en désert chaud (foncier faible coût, tours évaporatives)."
-        />
+      <div className="mb-3">
         <NaiaDialogue
+          hydra={{
+            status: 'hostile',
+            message: "Implantation prioritaire pré-sélectionnée en désert chaud (foncier faible coût, tours évaporatives).",
+          }}
           message={
             <>
               HYDRA construit un nouveau <TechTerm term="Datacenter">datacenter</TechTerm> d'entraînement (<TechTerm term="Latence">latence</TechTerm> depuis l'Europe tolérée jusqu'à 40 ms). Testez les systèmes de <TechTerm term="Refroidissement" /> pour simuler l'eau et le <TechTerm term="PUE" /> des 4 sites.
             </>
           }
-          objective="Sélectionnez le site et le refroidissement qui respectent les 3 seuils du cahier des charges."
+          objective="Sélectionnez le site et le refroidissement qui respectent les 3 seuils :"
+          objectiveChips={
+            <>
+              <span className="px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.09] text-[11px] text-slate-200 font-semibold font-mono tabular-nums">
+                Eau &lt; 100 L/MWh
+              </span>
+              <span className="px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.09] text-[11px] text-slate-200 font-semibold font-mono tabular-nums">
+                <TechTerm term="PUE" /> &lt; 1,15
+              </span>
+              <span className="px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.09] text-[11px] text-slate-200 font-semibold font-mono tabular-nums">
+                <TechTerm term="Latence" /> ≤ 40 ms
+              </span>
+            </>
+          }
           reaction={errorMsg ? { message: errorMsg, emotion: 'alert' } : null}
           onDismissReaction={clearError}
           emotion={isSuccess ? 'happy' : 'neutral'}
         />
       </div>
 
-      <div className="space-y-2.5 text-slate-300">
-        {/* Cahier des charges */}
-        <div className="bg-slate-950/80 border border-cyan-500/30 px-3.5 py-2 rounded-xl flex flex-wrap items-center justify-between gap-2 text-xs">
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-cyan-400 uppercase tracking-wider">Cahier des charges :</span>
-            {selectedCooling ? (
-              <span className="text-[11px] text-emerald-400 bg-emerald-950/50 border border-emerald-500/30 px-2 py-0.5 rounded">
-                Simulation : {COOLING_MODES.find(m => m.id === selectedCooling)?.label}
-              </span>
-            ) : (
-              <span className="text-[11px] text-amber-300/90 bg-amber-950/40 border border-amber-500/30 px-2 py-0.5 rounded">
-                Choisissez un refroidissement ci-dessous
-              </span>
-            )}
+      <div className="space-y-3 text-slate-300">
+        {/* Step 1: Cooling System Selection (de-boxed section header above the 3 cards) */}
+        <div>
+          <div className="flex items-center justify-between gap-2 text-xs font-semibold tracking-wide text-slate-300 mb-2 px-0.5">
+            <div className="flex items-center gap-2">
+              <Fan className="w-3.5 h-3.5 text-cyan-300/90" />
+              <span className="uppercase text-[11px] font-mono tracking-[0.12em]">1. Système de refroidissement à simuler</span>
+            </div>
+            <span className="text-[11px] font-normal text-slate-400 hidden sm:inline">
+              Met à jour l'Eau et le PUE des 4 sites ci-dessous
+            </span>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <span className="px-2.5 py-1 rounded bg-slate-900 border border-slate-700 text-slate-200 font-bold tabular-nums">Eau &lt; 100 L/MWh</span>
-            <span className="px-2.5 py-1 rounded bg-slate-900 border border-slate-700 text-slate-200 font-bold tabular-nums">
-              <TechTerm term="PUE" /> &lt; 1,15
-            </span>
-            <span className="px-2.5 py-1 rounded bg-slate-900 border border-slate-700 text-slate-200 font-bold tabular-nums">
-              <TechTerm term="Latence" /> ≤ 40 ms
-            </span>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+            {COOLING_MODES.map((mode) => {
+              const isSelected = selectedCooling === mode.id;
+              return (
+                <button
+                  key={mode.id}
+                  type="button"
+                  disabled={isSuccess}
+                  onClick={() => selectCooling(mode.id)}
+                  className={`p-3 rounded-xl border text-left transition-all active:scale-[0.985] cursor-pointer ${
+                    isSelected
+                      ? 'bg-emerald-400/[0.08] border-emerald-400/50 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]'
+                      : 'bg-white/[0.025] border-white/[0.07] text-slate-300 hover:bg-white/[0.05] hover:border-white/[0.15]'
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-2 mb-0.5">
+                    <span className="font-semibold text-xs text-white">{mode.label}</span>
+                    {mode.id === 'evaporative' && (
+                      <span className="text-[10px] font-mono uppercase px-1.5 py-0.5 rounded-full bg-white/[0.05] border border-white/10 text-amber-200/85 shrink-0">
+                        Actuel HYDRA
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-[11px] text-slate-400 leading-snug">{mode.detail}</div>
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-4">
-          {/* Interactive Map Area with Explicit Climate Bands */}
-          <div className="w-full lg:w-2/5 relative bg-slate-950 rounded-2xl border border-white/10 min-h-[225px] flex items-center justify-center overflow-hidden">
+        <div className="flex flex-col lg:flex-row gap-3.5">
+          {/* Interactive Map Area with Explicit Climate Bands (desktop only to keep mobile compact) */}
+          <div className="hidden lg:flex lg:w-2/5 relative bg-slate-950/65 rounded-2xl border border-white/[0.08] min-h-[225px] items-center justify-center overflow-hidden">
             {/* Explicit Climate Bands */}
             <div className="absolute inset-0 pointer-events-none">
               <div
-                className="absolute inset-x-0 top-0 bg-gradient-to-b from-cyan-500/15 to-transparent border-b border-dashed border-cyan-500/20 flex items-start justify-start px-2 pt-1"
+                className="absolute inset-x-0 top-0 bg-gradient-to-b from-cyan-400/10 to-transparent border-b border-dashed border-cyan-400/15 flex items-start justify-start px-2.5 pt-1.5"
                 style={{ height: '24%' }}
               >
-                <span className="text-[10px] uppercase tracking-wider text-cyan-300/80 font-bold">Zone Subarctique (&lt; 5 °C)</span>
+                <span className="text-[10px] uppercase tracking-wider text-cyan-200/70 font-medium">Zone Subarctique (&lt; 5 °C)</span>
               </div>
               <div
-                className="absolute inset-x-0 bg-gradient-to-r from-amber-500/5 via-amber-500/12 to-amber-500/5 border-y border-dashed border-amber-500/20 flex items-center justify-end px-2"
+                className="absolute inset-x-0 bg-gradient-to-r from-amber-400/[0.03] via-amber-400/[0.08] to-amber-400/[0.03] border-y border-dashed border-amber-400/15 flex items-center justify-end px-2.5"
                 style={{ top: '44%', height: '22%' }}
               >
-                <span className="text-[10px] uppercase tracking-wider text-amber-300/75 font-bold">Zone Chaude / Équateur</span>
+                <span className="text-[10px] uppercase tracking-wider text-amber-200/65 font-medium">Zone Chaude / Équateur</span>
               </div>
               <div
-                className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-cyan-500/15 to-transparent border-t border-dashed border-cyan-500/20 flex items-end justify-end px-2 pb-1"
+                className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-cyan-400/10 to-transparent border-t border-dashed border-cyan-400/15 flex items-end justify-end px-2.5 pb-1.5"
                 style={{ height: '24%' }}
               >
-                <span className="text-[10px] uppercase tracking-wider text-cyan-300/80 font-bold">Zone Subantarctique (&lt; 5 °C)</span>
+                <span className="text-[10px] uppercase tracking-wider text-cyan-200/70 font-medium">Zone Subantarctique (&lt; 5 °C)</span>
               </div>
             </div>
 
-            <div className="absolute inset-0 opacity-15 pointer-events-none">
+            <div className="absolute inset-0 opacity-10 pointer-events-none">
               <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
                 <defs>
                   <pattern id="grid-map" width="20" height="20" patternUnits="userSpaceOnUse">
@@ -243,7 +271,7 @@ export default function Level4({ onComplete, onScoreUpdate, onMistake }: { onCom
             <svg
               viewBox="0 0 100 60"
               preserveAspectRatio="xMidYMid slice"
-              className="absolute inset-0 w-full h-full opacity-35 pointer-events-none"
+              className="absolute inset-0 w-full h-full opacity-30 pointer-events-none"
             >
               {/* North & South America */}
               <path d="M10,12 L28,10 L32,18 L24,27 L20,29 L22,33 L33,38 L31,52 L28,55 L24,52 L21,42 L15,28 L8,18 Z" fill="#1e293b" stroke="#475569" strokeWidth="0.4" />
@@ -269,16 +297,16 @@ export default function Level4({ onComplete, onScoreUpdate, onMistake }: { onCom
                 >
                   <div className={`relative flex items-center justify-center w-9 h-9 rounded-full transition-all duration-300 ${
                     isSelected
-                      ? 'bg-cyan-950/95 border-cyan-400 border-2 scale-115 hover:shadow-[0_0_16px_rgba(34,211,238,0.35)]'
-                      : 'bg-slate-900/95 border border-slate-700 hover:border-slate-400 hover:shadow-[0_0_12px_rgba(148,163,184,0.25)]'
+                      ? 'bg-cyan-950/90 border-cyan-300/80 border scale-110 shadow-[0_0_18px_rgba(34,211,238,0.28)]'
+                      : 'bg-slate-900/90 border border-white/15 hover:border-white/35'
                   }`}>
                     <Icon className={`w-4 h-4 ${isSelected ? 'text-cyan-300' : 'text-slate-400 group-hover:text-slate-200'}`} />
                   </div>
                   <span
-                    className={`absolute left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-950/95 border shadow-sm ${
+                    className={`absolute left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-slate-950/90 border shadow-sm ${
                       isLabelTop ? 'bottom-full mb-1' : 'top-full mt-1'
                     } ${
-                      isSelected ? 'border-cyan-400 text-cyan-300' : 'border-slate-800 text-slate-300'
+                      isSelected ? 'border-cyan-400/50 text-cyan-200' : 'border-white/10 text-slate-300'
                     }`}
                   >
                     {loc.name} ({loc.avgTemp} °C)
@@ -302,43 +330,43 @@ export default function Level4({ onComplete, onScoreUpdate, onMistake }: { onCom
                   type="button"
                   disabled={isSuccess}
                   onClick={() => selectSite(loc.id)}
-                  className={`p-3 rounded-xl border-2 text-left transition-all flex flex-col justify-between active:scale-[0.985] ${
+                  className={`p-3.5 rounded-xl border text-left transition-all flex flex-col justify-between active:scale-[0.985] ${
                     isSelected
-                      ? 'bg-cyan-950/30 border-cyan-400'
-                      : 'bg-slate-950 border-slate-800 hover:border-slate-600'
+                      ? 'bg-cyan-400/[0.08] border-cyan-400/60 ring-1 ring-cyan-400/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]'
+                      : 'bg-white/[0.025] border-white/[0.08] hover:bg-white/[0.045] hover:border-white/[0.16]'
                   }`}
                 >
-                  <div className="flex items-center justify-between gap-2 mb-2">
+                  <div className="flex items-center justify-between gap-2 mb-2.5">
                     <div className="flex items-center gap-2 min-w-0">
-                      <Icon className={`w-4 h-4 shrink-0 ${isSelected ? 'text-cyan-400' : 'text-slate-400'}`} />
+                      <Icon className={`w-4 h-4 shrink-0 ${isSelected ? 'text-cyan-300' : 'text-slate-400'}`} />
                       <div className="min-w-0">
-                        <div className="font-bold text-sm text-white truncate">{loc.name}</div>
-                        <div className="text-[11px] text-slate-400 truncate">{loc.region} • {loc.energyMix}</div>
+                        <div className="font-semibold text-sm text-white truncate">{loc.name}</div>
+                        <div className="text-[11px] text-slate-400 truncate">{loc.region} · {loc.energyMix}</div>
                       </div>
                     </div>
-                    <span className="text-xs font-bold text-slate-200 bg-slate-900 px-2 py-0.5 rounded border border-slate-800 shrink-0">
+                    <span className="text-xs font-mono font-semibold text-slate-300 shrink-0 tabular-nums">
                       {loc.avgTemp} °C
                     </span>
                   </div>
 
                   {isInoperable ? (
-                    <div className="grid grid-cols-3 gap-1.5 text-center pt-2 border-t border-slate-800/80 text-[11px]">
-                      <div className="col-span-2 bg-red-950/40 border border-red-500/30 rounded p-1.5 flex items-center justify-center gap-1 text-red-300 font-bold text-[11px]">
-                        <AlertTriangle className="w-3 h-3 shrink-0 text-red-400" />
+                    <div className="grid grid-cols-3 gap-2 text-center pt-2.5 border-t border-white/[0.06] text-[11px] items-center">
+                      <div className="col-span-2 bg-rose-500/10 border border-rose-400/25 rounded-lg py-1.5 px-2 flex items-center justify-center gap-1 text-rose-200 font-medium text-[11px]">
+                        <AlertTriangle className="w-3 h-3 shrink-0 text-rose-400" />
                         <span>{metrics?.inoperableReason}</span>
                       </div>
-                      <div className="bg-slate-900/70 rounded p-1.5">
-                        <div className="text-[11px] text-slate-400 uppercase">Latence</div>
-                        <div className="font-bold text-slate-100">{loc.latency} ms</div>
+                      <div className="py-0.5">
+                        <div className="text-[10px] text-slate-400 uppercase tracking-wider">Latence</div>
+                        <div className="font-semibold font-mono tabular-nums text-slate-100">{loc.latency} ms</div>
                       </div>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-3 gap-1.5 text-center pt-2 border-t border-slate-800/80 text-[11px]">
-                      <div className="bg-slate-900/70 rounded p-1.5">
-                        <div className="text-[11px] text-slate-400 uppercase flex items-center justify-center gap-0.5">
-                          <Droplets className="w-2.5 h-2.5 text-cyan-400" /> Eau
+                    <div className="grid grid-cols-3 divide-x divide-white/[0.06] text-center pt-2.5 border-t border-white/[0.06] text-[11px]">
+                      <div className="px-1">
+                        <div className="text-[10px] text-slate-400 uppercase tracking-wider flex items-center justify-center gap-1 mb-0.5">
+                          <Droplets className="w-2.5 h-2.5 text-cyan-400/80" /> Eau
                         </div>
-                        <div className={`font-bold font-mono tabular-nums whitespace-nowrap ${metrics ? 'text-slate-100' : 'text-slate-500'}`}>
+                        <div className={`font-semibold font-mono tabular-nums whitespace-nowrap ${metrics ? 'text-slate-100' : 'text-slate-500'}`}>
                           {metrics?.waterPerMWh !== null && metrics ? (
                             <>
                               {metrics.waterPerMWh} <span className="text-[10px] font-normal text-slate-400">L/MWh</span>
@@ -348,61 +376,20 @@ export default function Level4({ onComplete, onScoreUpdate, onMistake }: { onCom
                           )}
                         </div>
                       </div>
-                      <div className="bg-slate-900/70 rounded p-1.5">
-                        <div className="text-[11px] text-slate-400 uppercase flex items-center justify-center gap-0.5">
-                          <Gauge className="w-2.5 h-2.5 text-cyan-400" /> PUE
+                      <div className="px-1">
+                        <div className="text-[10px] text-slate-400 uppercase tracking-wider flex items-center justify-center gap-1 mb-0.5">
+                          <Gauge className="w-2.5 h-2.5 text-cyan-400/80" /> PUE
                         </div>
-                        <div className={`font-bold font-mono tabular-nums ${metrics ? 'text-slate-100' : 'text-slate-500'}`}>
+                        <div className={`font-semibold font-mono tabular-nums ${metrics ? 'text-slate-100' : 'text-slate-500'}`}>
                           {metrics?.pue !== null && metrics ? metrics.pue.toFixed(2).replace('.', ',') : '—'}
                         </div>
                       </div>
-                      <div className="bg-slate-900/70 rounded p-1.5">
-                        <div className="text-[11px] text-slate-400 uppercase">Latence</div>
-                        <div className="font-bold font-mono tabular-nums text-slate-100">{loc.latency} ms</div>
+                      <div className="px-1">
+                        <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-0.5">Latence</div>
+                        <div className="font-semibold font-mono tabular-nums text-slate-100">{loc.latency} ms</div>
                       </div>
                     </div>
                   )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Cooling System Selection */}
-        <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-3">
-          <div className="flex items-center justify-between gap-2 text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">
-            <div className="flex items-center gap-2">
-              <Fan className="w-4 h-4 text-cyan-400" />
-              <span>Système de refroidissement à déployer sur le site :</span>
-            </div>
-            <span className="text-[11px] font-normal text-slate-400 normal-case hidden sm:inline">
-              Cliquez pour simuler l'impact sur l'Eau et le PUE
-            </span>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
-            {COOLING_MODES.map((mode) => {
-              const isSelected = selectedCooling === mode.id;
-              return (
-                <button
-                  key={mode.id}
-                  type="button"
-                  disabled={isSuccess}
-                  onClick={() => selectCooling(mode.id)}
-                  className={`p-2.5 rounded-lg border text-left transition-all active:scale-[0.985] ${
-                    isSelected
-                      ? 'bg-emerald-950/30 border-emerald-400 text-white'
-                      : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-600'
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-2 mb-0.5">
-                    <span className="font-bold text-xs">{mode.label}</span>
-                    {mode.id === 'evaporative' && (
-                      <span className="text-[11px] font-mono uppercase px-1.5 py-0.5 rounded bg-amber-950/60 border border-amber-500/35 text-amber-300 shrink-0">
-                        Actuel HYDRA
-                      </span>
-                    )}
-                  </div>
-                  <div className="text-[11px] text-slate-400 leading-snug">{mode.detail}</div>
                 </button>
               );
             })}
@@ -433,8 +420,6 @@ export default function Level4({ onComplete, onScoreUpdate, onMistake }: { onCom
               }
               buttonLabel="CONTINUER LE DÉPLOIEMENT"
               onContinue={onComplete}
-              compact
-              className="mt-4"
             />
           )}
         </AnimatePresence>

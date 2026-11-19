@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Database, Filter, Trash2, Scale, ShieldAlert } from 'lucide-react';
 import NaiaDialogue from '../components/NaiaDialogue';
-import HydraLog from '../components/HydraLog';
 import TechTerm from '../components/TechTerm';
 import LevelHeader from '../components/LevelHeader';
 import LevelShell from '../components/LevelShell';
@@ -10,6 +9,7 @@ import ActionButton from '../components/ActionButton';
 import LevelSuccessCard from '../components/LevelSuccessCard';
 import { soundManager } from '../utils/soundManager';
 import { useErrorFeedback } from '../utils/useErrorFeedback';
+import { STEP_PANEL_MOTION } from '../utils/motion';
 
 type BiasOptionId = 'more_gpu' | 'rebalance_data' | 'copy_average';
 
@@ -132,16 +132,15 @@ export default function Level9({ onComplete, onScoreUpdate, onMistake }: { onCom
         }
       />
 
-      <div className="mb-3 space-y-2">
-        <HydraLog
-          status="warning"
-          message={
-            phase === 1
-              ? "Indexation automatique de 230 To d'archives brutes en cours pour l'entraînement..."
-              : "Pré-test sécheresse : baisse automatique de pression programmée sur le secteur Quartier Nord."
-          }
-        />
+      <div className="mb-3">
         <NaiaDialogue
+          hydra={{
+            status: 'warning',
+            message:
+              phase === 1
+                ? "Indexation automatique de 230 To d'archives brutes en cours pour l'entraînement..."
+                : "Pré-test sécheresse : baisse automatique de pression programmée sur le secteur Quartier Nord.",
+          }}
           message={
             phase === 1 ? (
               <>
@@ -169,8 +168,9 @@ export default function Level9({ onComplete, onScoreUpdate, onMistake }: { onCom
       </div>
 
       <div className="space-y-4 text-slate-300">
+        <AnimatePresence mode="wait" initial={false}>
         {phase === 1 && (
-          <>
+          <motion.div key="l9-phase-1" {...STEP_PANEL_MOTION} className="space-y-4">
             <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-3.5 space-y-2">
               <div className="flex flex-wrap justify-between items-center gap-2">
                 <p className="text-xs sm:text-sm">
@@ -243,13 +243,13 @@ export default function Level9({ onComplete, onScoreUpdate, onMistake }: { onCom
                 VÉRIFIER LE JEU DE DONNÉES
               </ActionButton>
             </div>
-          </>
+          </motion.div>
         )}
 
         {phase === 2 && (
           <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
+            key="l9-phase-2"
+            {...STEP_PANEL_MOTION}
             className="space-y-4"
           >
             <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-3">
@@ -322,6 +322,7 @@ export default function Level9({ onComplete, onScoreUpdate, onMistake }: { onCom
             )}
           </motion.div>
         )}
+        </AnimatePresence>
 
         <AnimatePresence>
           {isSuccess && (

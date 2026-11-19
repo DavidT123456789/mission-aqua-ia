@@ -26,16 +26,16 @@ export default function ActionButton({
       : 'px-8 py-3.5 text-base sm:text-lg font-bold tracking-wide';
 
   const stateClasses = isError
-    ? 'bg-red-600 text-white border border-red-400/40 animate-shake'
+    ? 'bg-rose-600 text-white border border-rose-400/40 animate-shake'
     : disabled
-    ? 'bg-slate-800/80 text-slate-500 border border-white/5 cursor-not-allowed'
+    ? 'bg-white/[0.04] text-slate-500 border border-white/[0.06] cursor-not-allowed'
     : variant === 'danger'
-    ? 'bg-gradient-to-b from-red-500 to-red-600 hover:from-red-400 hover:to-red-500 text-white border border-red-400/30 shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_4px_14px_rgba(239,68,68,0.22)] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.25),0_0_20px_rgba(239,68,68,0.38)] active:scale-[0.985]'
+    ? 'bg-gradient-to-b from-rose-500 to-rose-600 hover:from-rose-400 hover:to-rose-500 text-white border border-rose-400/30 shadow-[inset_0_1px_0_rgba(255,255,255,0.18),0_6px_18px_rgba(244,63,94,0.2)] active:scale-[0.985]'
     : variant === 'secondary'
-    ? 'bg-slate-800/85 hover:bg-slate-700/90 text-slate-200 hover:text-white border border-white/10 hover:border-white/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] active:scale-[0.985]'
+    ? 'bg-white/[0.06] hover:bg-white/[0.11] text-slate-200 hover:text-white border border-white/10 hover:border-white/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] active:scale-[0.985]'
     : variant === 'ghost'
-    ? 'bg-slate-950/50 hover:bg-slate-800/80 text-slate-300 hover:text-white border border-white/[0.08] hover:border-white/15 active:scale-[0.985]'
-    : 'bg-gradient-to-b from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white border border-emerald-400/30 shadow-[inset_0_1px_0_rgba(255,255,255,0.22),0_4px_14px_rgba(16,185,129,0.22)] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.28),0_0_20px_rgba(16,185,129,0.38)] active:scale-[0.985]';
+    ? 'bg-slate-950/40 hover:bg-white/[0.07] text-slate-300 hover:text-white border border-white/[0.08] hover:border-white/15 active:scale-[0.985]'
+    : 'bg-gradient-to-r from-emerald-400/85 via-teal-400/85 to-cyan-400/85 hover:from-emerald-400/95 hover:via-teal-400/95 hover:to-cyan-400/95 text-slate-950 font-extrabold border border-cyan-200/35 hover:border-cyan-200/45 shadow-[inset_0_1px_0_rgba(255,255,255,0.32),0_6px_20px_rgba(6,182,212,0.12)] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.42),0_8px_22px_rgba(20,184,166,0.24)] active:scale-[0.985]';
 
   return (
     <button

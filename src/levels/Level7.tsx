@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Wrench, Trash2, Archive, Cpu, MemoryStick, HardDrive, Recycle, RefreshCw, Microchip, Tag, Droplets } from 'lucide-react';
 import NaiaDialogue from '../components/NaiaDialogue';
-import HydraLog from '../components/HydraLog';
 import TechTerm from '../components/TechTerm';
 import LevelHeader from '../components/LevelHeader';
 import LevelShell from '../components/LevelShell';
@@ -10,6 +9,7 @@ import ActionButton from '../components/ActionButton';
 import LevelSuccessCard from '../components/LevelSuccessCard';
 import { soundManager } from '../utils/soundManager';
 import { useErrorFeedback } from '../utils/useErrorFeedback';
+import { STEP_PANEL_MOTION, EASE_OUT_EXPO } from '../utils/motion';
 
 type ComponentId = 'cpu' | 'ram' | 'nvme' | 'gpu';
 type ActionId = 'replace_all' | 'repair_ram' | 'refurbished';
@@ -126,11 +126,16 @@ export default function Level7({ onComplete, onScoreUpdate, onMistake }: { onCom
     <LevelShell compact>
       <LevelHeader level={7} icon={Wrench} compact />
 
-      <div className="mb-3 space-y-2">
-        {step === 1 && (
-          <HydraLog status="warning" message="Erreur matérielle sur nœud local. Commande automatique d'un serveur neuf initiée..." />
-        )}
+      <div className="mb-3">
         <NaiaDialogue
+          hydra={
+            step === 1
+              ? {
+                  status: 'warning',
+                  message: "Erreur matérielle sur nœud local. Commande automatique d'un serveur neuf initiée...",
+                }
+              : null
+          }
           message={
             step === 1 ? (
               <>
@@ -188,8 +193,9 @@ export default function Level7({ onComplete, onScoreUpdate, onMistake }: { onCom
       </div>
 
       <div className="space-y-4 text-slate-300">
+        <AnimatePresence mode="wait" initial={false}>
         {step === 1 && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
+          <motion.div key="l7-step-1" {...STEP_PANEL_MOTION} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {HARDWARE_LOGS.map((comp) => {
                 const Icon = comp.icon;
@@ -250,7 +256,7 @@ export default function Level7({ onComplete, onScoreUpdate, onMistake }: { onCom
         )}
 
         {step === 2 && (
-          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
+          <motion.div key="l7-step-2" {...STEP_PANEL_MOTION} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {[
                 {
@@ -309,7 +315,7 @@ export default function Level7({ onComplete, onScoreUpdate, onMistake }: { onCom
         )}
 
         {step === 3 && (
-          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
+          <motion.div key="l7-step-3" {...STEP_PANEL_MOTION} className="space-y-4">
             {/* Comparatif visuel d'eau virtuelle économisée */}
             <div className="bg-slate-950/85 border border-emerald-500/30 rounded-xl p-3.5 space-y-2.5">
               <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
@@ -325,14 +331,24 @@ export default function Level7({ onComplete, onScoreUpdate, onMistake }: { onCom
                 <div className="flex items-center gap-2.5">
                   <span className="w-28 text-slate-400 shrink-0">Serveur neuf</span>
                   <div className="flex-1 h-2.5 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
-                    <div className="h-full w-full bg-red-500/75 rounded-full" />
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: '100%' }}
+                      transition={{ duration: 0.55, delay: 0.08, ease: EASE_OUT_EXPO }}
+                      className="h-full bg-red-500/75 rounded-full"
+                    />
                   </div>
                   <span className="w-16 text-right text-red-300 font-bold shrink-0">1 200 L</span>
                 </div>
                 <div className="flex items-center gap-2.5">
                   <span className="w-28 text-emerald-300 shrink-0">Barrette RAM</span>
                   <div className="flex-1 h-2.5 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
-                    <div className="h-full w-[2%] min-w-[6px] bg-emerald-400 rounded-full" />
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: '2%' }}
+                      transition={{ duration: 0.45, delay: 0.16, ease: EASE_OUT_EXPO }}
+                      className="h-full min-w-[6px] bg-emerald-400 rounded-full"
+                    />
                   </div>
                   <span className="w-16 text-right text-emerald-300 font-bold shrink-0">15 L</span>
                 </div>
@@ -396,18 +412,18 @@ export default function Level7({ onComplete, onScoreUpdate, onMistake }: { onCom
           </motion.div>
         )}
 
-        <AnimatePresence>
-          {step === 4 && (
-            <LevelSuccessCard
-              title="MAINTENANCE CIRCULAIRE VALIDÉE"
-              description={
-                <>
-                  Plus de 70 % de l'empreinte écologique d'un matériel informatique provient de sa fabrication (dont l'eau ultra-pure nécessaire à la gravure des puces et <TechTerm term="GPU">GPU</TechTerm>). En ciblant la panne réelle et en recyclant la pièce via les <TechTerm term="DEEE">DEEE</TechTerm>, vous avez économisé 1 185 litres d'<TechTerm term="Eau virtuelle">eau virtuelle</TechTerm> !
-                </>
-              }
-              onContinue={onComplete}
-            />
-          )}
+        {step === 4 && (
+          <LevelSuccessCard
+            key="l7-step-4"
+            title="MAINTENANCE CIRCULAIRE VALIDÉE"
+            description={
+              <>
+                Plus de 70 % de l'empreinte écologique d'un matériel informatique provient de sa fabrication (dont l'eau ultra-pure nécessaire à la gravure des puces et <TechTerm term="GPU">GPU</TechTerm>). En ciblant la panne réelle et en recyclant la pièce via les <TechTerm term="DEEE">DEEE</TechTerm>, vous avez économisé 1 185 litres d'<TechTerm term="Eau virtuelle">eau virtuelle</TechTerm> !
+              </>
+            }
+            onContinue={onComplete}
+          />
+        )}
         </AnimatePresence>
       </div>
     </LevelShell>

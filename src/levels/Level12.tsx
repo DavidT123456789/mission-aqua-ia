@@ -2,7 +2,6 @@ import { useState, type CSSProperties } from 'react';
 import { AnimatePresence } from 'motion/react';
 import { Globe, Droplets, CloudSun, Landmark, Megaphone, Zap, AlertTriangle, Minus, Plus } from 'lucide-react';
 import NaiaDialogue from '../components/NaiaDialogue';
-import HydraLog from '../components/HydraLog';
 import LevelHeader from '../components/LevelHeader';
 import LevelShell from '../components/LevelShell';
 import ActionButton from '../components/ActionButton';
@@ -107,20 +106,36 @@ export default function Level12({ onComplete, onScoreUpdate, onMistake }: { onCo
   const isSuccess = hasScored;
 
   return (
-    <LevelShell>
-      <LevelHeader level={12} icon={Globe} />
+    <LevelShell compact>
+      <LevelHeader level={12} icon={Globe} compact />
 
-      <div className="mb-4 space-y-2">
-        <HydraLog status="synced" label="HYDRA // RÉPARTITEUR" message="Module AQUA-FARM intégré. Répartiteur maître ouvert pour l'arbitrage Eau / Énergie / Utilité." />
+      <div className="mb-3">
         <NaiaDialogue
+          hydra={{
+            status: 'synced',
+            label: 'HYDRA // RÉPARTITEUR',
+            message: "Module AQUA-FARM intégré. Répartiteur maître ouvert pour l'arbitrage Eau / Énergie / Utilité.",
+          }}
           message={
             <>
               Tout est prêt pour calibrer le répartiteur maître d'HYDRA ! Mais attention : chaque unité allouée consomme aussi de l'électricité (en <strong className="text-white">MW</strong>) et vous ne pouvez pas couper les services publics des habitants.
             </>
           }
-          objective={
+          objective="Équilibrez le répartiteur maître en respectant les 4 seuils :"
+          objectiveChips={
             <>
-              Respectez le double plafond (<strong className="font-mono text-white">≤ {WATER_BUDGET_MAX} U</strong> et <strong className="font-mono text-white">≤ {POWER_BUDGET_MAX_MW} MW</strong>), maintenez les services citoyens (<strong className="font-mono text-white">10–15 U</strong>) et consacrez <strong className="font-mono text-white">≥ 85 U</strong> à Climat + Réseaux.
+              <span className="px-2 py-0.5 rounded-md bg-slate-950/80 border border-slate-700/90 text-[11px] text-slate-100 font-bold font-mono tabular-nums">
+                ≤ {WATER_BUDGET_MAX} U
+              </span>
+              <span className="px-2 py-0.5 rounded-md bg-slate-950/80 border border-slate-700/90 text-[11px] text-slate-100 font-bold font-mono tabular-nums">
+                ≤ {POWER_BUDGET_MAX_MW} MW
+              </span>
+              <span className="px-2 py-0.5 rounded-md bg-slate-950/80 border border-slate-700/90 text-[11px] text-slate-100 font-bold font-mono tabular-nums">
+                Citoyens 10–15 U
+              </span>
+              <span className="px-2 py-0.5 rounded-md bg-slate-950/80 border border-slate-700/90 text-[11px] text-slate-100 font-bold font-mono tabular-nums">
+                Climat + Réseaux ≥ 85 U
+              </span>
             </>
           }
           reaction={feedbackError ? { message: feedbackError, emotion: 'alert' } : null}
@@ -129,10 +144,10 @@ export default function Level12({ onComplete, onScoreUpdate, onMistake }: { onCo
         />
       </div>
 
-      <div className="space-y-5 text-slate-300">
+      <div className="space-y-3.5 text-slate-300">
         {/* Double jauge Eau + Puissance Électrique */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-slate-950 p-4 rounded-2xl border border-white/10 space-y-2.5">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="bg-slate-950 p-3.5 rounded-2xl border border-white/10 space-y-2">
             <div className="flex justify-between text-xs sm:text-sm font-bold">
               <span className="text-cyan-400 uppercase tracking-wider flex items-center gap-1.5">
                 <Droplets className="w-4 h-4 shrink-0" /> Budget Eau (Refroidissement)
@@ -169,7 +184,7 @@ export default function Level12({ onComplete, onScoreUpdate, onMistake }: { onCo
             </div>
           </div>
 
-          <div className="bg-slate-950 p-4 rounded-2xl border border-white/10 space-y-2.5">
+          <div className="bg-slate-950 p-3.5 rounded-2xl border border-white/10 space-y-2">
             <div className="flex justify-between text-xs sm:text-sm font-bold">
               <span className="text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
                 <Zap className="w-4 h-4 shrink-0" /> Charge Électrique Réseau
@@ -201,7 +216,7 @@ export default function Level12({ onComplete, onScoreUpdate, onMistake }: { onCo
         </div>
 
         {/* Secteurs à allouer */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {([
             {
               key: 'climate' as const,
@@ -263,8 +278,8 @@ export default function Level12({ onComplete, onScoreUpdate, onMistake }: { onCo
             const Icon = sector.icon;
             const val = allocations[sector.key];
             return (
-              <div key={sector.key} className={`bg-slate-950 p-4 rounded-xl border ${sector.borderClass}`}>
-                <div className="flex items-center justify-between gap-2 mb-2.5">
+              <div key={sector.key} className={`bg-slate-950 p-3.5 rounded-xl border ${sector.borderClass}`}>
+                <div className="flex items-center justify-between gap-2 mb-2">
                   <div className={`flex items-center gap-2 ${sector.titleClass}`}>
                     <Icon className="w-5 h-5 shrink-0" />
                     <span className="font-bold text-sm">{sector.label}</span>
@@ -328,11 +343,12 @@ export default function Level12({ onComplete, onScoreUpdate, onMistake }: { onCo
         </div>
 
         {!isSuccess && (
-          <div className="flex justify-center mt-5">
+          <div className="flex justify-center pt-1">
             <ActionButton
               onClick={checkAnswer}
               disabled={totalWaterUsed === 0}
               isError={showErrorAnim}
+              size="md"
             >
               VERROUILLER LA NOUVELLE MATRICE
             </ActionButton>

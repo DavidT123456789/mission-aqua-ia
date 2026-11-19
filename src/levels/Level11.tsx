@@ -1,13 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Code2, BrainCircuit, BookOpen, CheckCircle2, RotateCcw, CloudRain, Sun, Play, Loader2, XCircle, Droplets } from 'lucide-react';
+import { Code2, BrainCircuit, BookOpen, CheckCircle2, RotateCcw, CloudRain, Sun, Play, Loader2, XCircle, Droplets, ChevronDown } from 'lucide-react';
 import NaiaDialogue from '../components/NaiaDialogue';
-import HydraLog from '../components/HydraLog';
 import TechTerm from '../components/TechTerm';
 import LevelHeader from '../components/LevelHeader';
 import LevelShell from '../components/LevelShell';
 import ActionButton from '../components/ActionButton';
 import LevelSuccessCard from '../components/LevelSuccessCard';
+import Collapsible from '../components/Collapsible';
 import { soundManager } from '../utils/soundManager';
 import { useErrorFeedback } from '../utils/useErrorFeedback';
 
@@ -63,7 +63,7 @@ export default function Level11({ onComplete, onScoreUpdate, onMistake }: { onCo
   const { errorMsg, isErrorFlash: showError, triggerError, clearError } = useErrorFeedback(2200);
   const [success, setSuccess] = useState(false);
   const [showFrenchHelp, setShowFrenchHelp] = useState(false);
-  const [helpAutoOpened, setHelpAutoOpened] = useState(false);
+  const [showAlgoGuide, setShowAlgoGuide] = useState(false);
   const [moisture, setMoisture] = useState(20);
   const [isTesting, setIsTesting] = useState(false);
   const [testBench, setTestBench] = useState<TestBenchState>({
@@ -251,10 +251,7 @@ export default function Level11({ onComplete, onScoreUpdate, onMistake }: { onCo
       if (!isCase1Correct) {
         const msg = `Échec Cas 1 (${case1Matches}/5 trous justes dans la lecture et le bloc if) : avec de la pluie annoncée, la pompe doit rester coupée (vérifiez la condition if et arrosage = False).`;
         setIsTesting(false);
-        setShowFrenchHelp(prev => {
-          if (!prev) setHelpAutoOpened(true);
-          return true;
-        });
+        setShowFrenchHelp(true);
         triggerError(msg);
         setTestBench({
           case1: 'fail',
@@ -282,10 +279,7 @@ export default function Level11({ onComplete, onScoreUpdate, onMistake }: { onCo
         if (!isCase2Correct) {
           const msg = `Échec Cas 2 (${case2Matches}/3 trous justes dans le bloc else) : sur sol sec sans pluie, il faut calculer le besoin en eau, activer arrosage = True et arroser à l'aube.`;
           setMoisture(10);
-          setShowFrenchHelp(prev => {
-            if (!prev) setHelpAutoOpened(true);
-            return true;
-          });
+          setShowFrenchHelp(true);
           triggerError(msg);
           setTestBench({
             case1: 'pass',
@@ -312,10 +306,10 @@ export default function Level11({ onComplete, onScoreUpdate, onMistake }: { onCo
           setHasScored(true);
           onScoreUpdate(250, 88);
         }
-      }, 1050);
+      }, 800);
 
       testTimersRef.current.push(t2);
-    }, 950);
+    }, 700);
 
     testTimersRef.current.push(t1);
   };
@@ -384,13 +378,17 @@ export default function Level11({ onComplete, onScoreUpdate, onMistake }: { onCo
       
       <LevelHeader level={11} icon={Code2} />
 
-      <div className="mb-3 space-y-2">
-        <HydraLog status="warning" label="HYDRA // CONTRÔLE CHARTE" message="Module externe AQUA-FARM détecté. Conformément à la Charte (Art. 1), validation manuelle du code requise avant déploiement." />
+      <div className="mb-3">
         <NaiaDialogue
+          hydra={{
+            status: 'warning',
+            label: 'HYDRA // CONTRÔLE CHARTE',
+            message: "Module externe AQUA-FARM détecté. Conformément à la Charte municipale, vérification manuelle du code requise avant déploiement.",
+          }}
           message={
             success ? (
               <>
-                Bravo Agent ! Le script <code className="font-mono text-emerald-300 bg-slate-900 px-1.5 py-0.5 rounded">aqua_farm.py</code> est audité, validé par les tests météo et actif en mode Symbiose.
+                Audit validé ! Le script <code className="font-mono text-emerald-300 bg-slate-900 px-1.5 py-0.5 rounded">aqua_farm.py</code> passe les tests météo et est désormais actif en mode Symbiose.
               </>
             ) : (
               <>
@@ -405,29 +403,101 @@ export default function Level11({ onComplete, onScoreUpdate, onMistake }: { onCo
         />
       </div>
 
-      <div className="space-y-4 text-slate-300">
+      <div className="space-y-3.5 text-slate-300">
 
-        <div className="bg-slate-950/50 border border-cyan-500/20 p-5 rounded-xl shadow-[0_0_15px_rgba(6,182,212,0.1)]">
-          <h3 className="text-cyan-400 font-bold uppercase mb-3 flex items-center gap-2">
-            <span className="bg-cyan-900/50 p-1.5 rounded inline-flex items-center justify-center">
-              <BrainCircuit className="w-4 h-4 text-cyan-400" />
-            </span>
-            <span>Comment fonctionne l'<TechTerm term="Algorithme">algorithme</TechTerm> ?</span>
-          </h3>
-          <ul className="space-y-2.5 text-sm">
-            <li className="flex gap-3">
-              <span className="w-6 h-6 rounded-full bg-cyan-900/50 flex items-center justify-center text-cyan-400 shrink-0">1</span>
-              <span>L'<TechTerm term="IA" /> récupère deux informations sur la parcelle : l'humidité actuelle du sol et le bulletin météorologique à venir.</span>
-            </li>
-            <li className="flex gap-3">
-              <span className="w-6 h-6 rounded-full bg-cyan-900/50 flex items-center justify-center text-cyan-400 shrink-0">2</span>
-              <span>Elle vérifie deux conditions : si la terre dépasse déjà la limite tolérée par la plante, ou si la pluie est annoncée, l'irrigation reste coupée.</span>
-            </li>
-            <li className="flex gap-3">
-              <span className="w-6 h-6 rounded-full bg-cyan-900/50 flex items-center justify-center text-cyan-400 shrink-0">3</span>
-              <span>Uniquement si nécessaire, le système évalue la quantité à apporter et déclenche l'arrosage tôt le matin pour éviter l'évaporation et les maladies.</span>
-            </li>
-          </ul>
+        {/* Collapsible Algorithm Guide (collapsed by default to keep editor + word bank above the fold) */}
+        <div className="bg-slate-950/50 border border-cyan-500/20 rounded-xl overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setShowAlgoGuide((v) => !v)}
+            aria-expanded={showAlgoGuide}
+            className="w-full px-4 py-3 flex items-center justify-between gap-2 text-left hover:bg-slate-900/50 transition-colors cursor-pointer"
+          >
+            <div className="text-cyan-400 font-bold text-xs sm:text-sm uppercase tracking-wider flex items-center gap-2">
+              <BrainCircuit className="w-4 h-4 text-cyan-400 shrink-0" />
+              <span>Fonctionnement de l'<TechTerm term="Algorithme">algorithme</TechTerm> (3 étapes)</span>
+            </div>
+            <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-250 ease-out ${showAlgoGuide ? 'rotate-180' : ''}`} />
+          </button>
+          <Collapsible isOpen={showAlgoGuide}>
+            <ul className="px-4 pb-4 space-y-2 text-xs sm:text-sm border-t border-white/[0.06] pt-3">
+              <li className="flex gap-2.5">
+                <span className="w-5 h-5 rounded-full bg-cyan-900/50 flex items-center justify-center text-cyan-400 text-xs font-bold shrink-0">1</span>
+                <span>L'<TechTerm term="IA" /> récupère deux informations sur la parcelle : l'humidité actuelle du sol et le bulletin météorologique à venir.</span>
+              </li>
+              <li className="flex gap-2.5">
+                <span className="w-5 h-5 rounded-full bg-cyan-900/50 flex items-center justify-center text-cyan-400 text-xs font-bold shrink-0">2</span>
+                <span>Elle vérifie deux conditions : si la terre dépasse déjà la limite tolérée par la plante, ou si la pluie est annoncée, l'irrigation reste coupée.</span>
+              </li>
+              <li className="flex gap-2.5">
+                <span className="w-5 h-5 rounded-full bg-cyan-900/50 flex items-center justify-center text-cyan-400 text-xs font-bold shrink-0">3</span>
+                <span>Uniquement si nécessaire, le système évalue la quantité à apporter et déclenche l'arrosage tôt le matin pour éviter l'évaporation et les maladies.</span>
+              </li>
+            </ul>
+          </Collapsible>
+        </div>
+
+        {/* Word Bank (placed directly above the editor so tokens & slots stay visible together) */}
+        <div className="p-3.5 bg-slate-950/60 border border-slate-800 rounded-xl space-y-2.5">
+          <div className="flex flex-wrap justify-center gap-2 sm:gap-2.5">
+            <AnimatePresence>
+              {words.map((w, i) => (
+                <motion.div 
+                  layout
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  key={`${w.word}-${i}`} 
+                  className="group/word relative flex items-center justify-center"
+                >
+                  <div
+                    draggable={!w.used && !success && !isTesting}
+                    onDragStart={(e) => handleDragStart(e, w)}
+                    onDragEnd={handleDragEnd}
+                    className={!w.used && !success && !isTesting ? 'cursor-grab active:cursor-grabbing' : ''}
+                  >
+                    <motion.button
+                      type="button"
+                      animate={{ 
+                        scale: w.used ? 0.9 : activeWord?.id === w.id ? 1.05 : 1, 
+                        opacity: w.used ? 0.35 : 1 
+                      }}
+                      transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                      onClick={() => handleWordClick(w)}
+                      disabled={w.used || success || isTesting}
+                      className={`px-3.5 py-1.5 rounded-full font-mono text-xs sm:text-sm transition-all focus:outline-none ${
+                        w.used 
+                          ? 'bg-slate-900 text-slate-700 border border-slate-800 cursor-not-allowed' 
+                          : activeWord?.id === w.id
+                          ? 'bg-emerald-900/50 text-emerald-400 border border-emerald-400 z-10'
+                          : activeBlank
+                          ? 'bg-emerald-900/20 text-emerald-400 border border-emerald-500/50 hover:shadow-[0_0_12px_rgba(16,185,129,0.25)] cursor-pointer'
+                          : 'bg-cyan-900/30 text-cyan-400 border border-cyan-500/50 hover:shadow-[0_0_12px_rgba(6,182,212,0.25)] cursor-grab active:cursor-grabbing'
+                      }`}
+                    >
+                      {w.word}
+                    </motion.button>
+                  </div>
+                  {!w.used && (
+                    <div className="hidden md:block absolute bottom-full mb-2 w-48 px-3 py-2 bg-slate-900 text-slate-200 text-xs leading-relaxed rounded-lg border border-slate-700 opacity-0 group-hover/word:opacity-100 transition-opacity pointer-events-none z-50 text-center font-sans shadow-xl not-italic font-normal tracking-normal">
+                      {wordDescriptions[w.word]}
+                      <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-slate-700"></div>
+                      <div className="absolute top-[calc(100%-1px)] left-1/2 -translate-x-1/2 border-8 border-transparent border-t-slate-900"></div>
+                    </div>
+                  )}
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
+
+          <div className="text-center text-xs text-slate-400 font-sans pt-2 border-t border-slate-800/80 min-h-[24px] flex items-center justify-center">
+            {activeWord ? (
+              <span>
+                <strong className="text-emerald-400 font-mono">{activeWord.word}</strong> : {wordDescriptions[activeWord.word]}
+              </span>
+            ) : (
+              <span>Glissez ou touchez une étiquette puis cliquez sur un emplacement du code.</span>
+            )}
+          </div>
         </div>
 
         {/* Code Editor */}
@@ -449,7 +519,6 @@ export default function Level11({ onComplete, onScoreUpdate, onMistake }: { onCo
                 type="button"
                 onClick={() => {
                   soundManager.playClick();
-                  setHelpAutoOpened(false);
                   setShowFrenchHelp((v) => !v);
                 }}
                 aria-pressed={showFrenchHelp}
@@ -464,12 +533,6 @@ export default function Level11({ onComplete, onScoreUpdate, onMistake }: { onCo
               </button>
             </div>
           </div>
-          {helpAutoOpened && showFrenchHelp && (
-            <div className="px-4 py-1.5 bg-cyan-950/40 border-b border-cyan-500/25 text-[11px] font-sans text-cyan-200 flex items-center gap-2">
-              <BookOpen className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-              <span>Aide Français (Scratch → Python) activée automatiquement dans le code ci-dessous pour vous guider.</span>
-            </div>
-          )}
           
           <div className="p-3 sm:p-6 overflow-x-auto pt-6 sm:pt-10">
             <div className="text-xs sm:text-sm md:text-base">
@@ -527,70 +590,6 @@ export default function Level11({ onComplete, onScoreUpdate, onMistake }: { onCo
                 {showFrenchHelp && <span className="ml-2 text-[11px] font-sans text-cyan-300/80 italic">← renvoyer la décision finale</span>}
               </div>
             </div>
-          </div>
-        </div>
-
-        {/* Word Bank */}
-        <div className="p-4 bg-slate-950/50 border border-slate-800 rounded-xl space-y-3">
-          <div className="flex flex-wrap justify-center gap-3">
-            <AnimatePresence>
-              {words.map((w, i) => (
-                <motion.div 
-                  layout
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  key={`${w.word}-${i}`} 
-                  className="group/word relative flex items-center justify-center"
-                >
-                  <div
-                    draggable={!w.used && !success && !isTesting}
-                    onDragStart={(e) => handleDragStart(e, w)}
-                    onDragEnd={handleDragEnd}
-                    className={!w.used && !success && !isTesting ? 'cursor-grab active:cursor-grabbing' : ''}
-                  >
-                    <motion.button
-                      type="button"
-                      animate={{ 
-                        scale: w.used ? 0.9 : activeWord?.id === w.id ? 1.05 : 1, 
-                        opacity: w.used ? 0.35 : 1 
-                      }}
-                      transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                      onClick={() => handleWordClick(w)}
-                      disabled={w.used || success || isTesting}
-                      className={`px-4 py-2 rounded-full font-mono text-sm transition-all focus:outline-none ${
-                        w.used 
-                          ? 'bg-slate-900 text-slate-700 border border-slate-800 cursor-not-allowed' 
-                          : activeWord?.id === w.id
-                          ? 'bg-emerald-900/50 text-emerald-400 border border-emerald-400 z-10'
-                          : activeBlank
-                          ? 'bg-emerald-900/20 text-emerald-400 border border-emerald-500/50 hover:shadow-[0_0_12px_rgba(16,185,129,0.25)] cursor-pointer'
-                          : 'bg-cyan-900/30 text-cyan-400 border border-cyan-500/50 hover:shadow-[0_0_12px_rgba(6,182,212,0.25)] cursor-grab active:cursor-grabbing'
-                      }`}
-                    >
-                      {w.word}
-                    </motion.button>
-                  </div>
-                  {!w.used && (
-                    <div className="hidden md:block absolute bottom-full mb-2 w-48 px-3 py-2 bg-slate-900 text-slate-200 text-xs leading-relaxed rounded-lg border border-slate-700 opacity-0 group-hover/word:opacity-100 transition-opacity pointer-events-none z-50 text-center font-sans shadow-xl not-italic font-normal tracking-normal">
-                      {wordDescriptions[w.word]}
-                      <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-slate-700"></div>
-                      <div className="absolute top-[calc(100%-1px)] left-1/2 -translate-x-1/2 border-8 border-transparent border-t-slate-900"></div>
-                    </div>
-                  )}
-                </motion.div>
-              ))}
-            </AnimatePresence>
-          </div>
-
-          {/* Mobile-friendly hint bar for the selected word */}
-          <div className="text-center text-xs text-slate-400 font-sans pt-2 border-t border-slate-800/80 min-h-[28px] flex items-center justify-center">
-            {activeWord ? (
-              <span>
-                <strong className="text-emerald-400 font-mono">{activeWord.word}</strong> : {wordDescriptions[activeWord.word]}
-              </span>
-            ) : (
-              <span className="text-slate-400">Glissez ou touchez une étiquette pour voir son rôle et la placer dans le code.</span>
-            )}
           </div>
         </div>
 
@@ -659,11 +658,9 @@ export default function Level11({ onComplete, onScoreUpdate, onMistake }: { onCo
             })}
           </div>
 
-          {testBench.message && (
+          {testBench.message && testBench.case1 !== 'fail' && testBench.case2 !== 'fail' && (
             <div className={`text-xs font-sans font-semibold px-3 py-2 rounded-lg border ${
-              testBench.case1 === 'fail' || testBench.case2 === 'fail'
-                ? 'bg-red-950/40 border-red-500/40 text-red-300'
-                : testBench.case1 === 'pass' && testBench.case2 === 'pass'
+              testBench.case1 === 'pass' && testBench.case2 === 'pass'
                 ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-300'
                 : 'bg-slate-900 border-slate-800 text-slate-300'
             }`}>
