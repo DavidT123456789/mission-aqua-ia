@@ -141,7 +141,7 @@ export default function Level8({ onComplete, onScoreUpdate, onMistake }: { onCom
           status="warning"
           message={
             phase === 1
-              ? "Dissipation thermique urbaine à 65°C : rejet direct par évaporation actif en attente de raccordement."
+              ? "Dissipation thermique urbaine à 65 °C : rejet direct par évaporation actif en attente de raccordement."
               : "Raccordement au réseau de chaleur urbain détecté. Validation de l'ordre du circuit fermé requise."
           }
         />
@@ -346,7 +346,7 @@ export default function Level8({ onComplete, onScoreUpdate, onMistake }: { onCom
               title="SYMBIOSE URBAINE ÉTABLIE"
               description={
                 <>
-                  Parfait ! En raccordant le <TechTerm term="Datacenter">data center</TechTerm> au réseau de chaleur urbain en boucle fermée, l'eau chaude chauffe les habitations puis revient refroidie sans aucune évaporation. Zéro gaspillage d'eau et 85 % de chaleur valorisée !
+                  Parfait ! En raccordant le <TechTerm term="Datacenter">datacenter</TechTerm> au réseau de chaleur urbain en boucle fermée, l'eau chaude chauffe les habitations puis revient refroidie sans aucune évaporation. Zéro gaspillage d'eau et 85 % de chaleur valorisée !
                 </>
               }
               onContinue={onComplete}

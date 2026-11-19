@@ -27,7 +27,7 @@ const HARDWARE_LOGS: {
     name: 'Processeur (CPU)',
     icon: Cpu,
     metrics: [
-      { id: 'temp', label: 'Temp.', value: '64°C (max 95°C)' },
+      { id: 'temp', label: 'Temp.', value: '64 °C (max 95 °C)' },
       { id: 'load', label: 'Charge', value: '42 %' }
     ],
     logLine: '[KERNEL] Régulation thermique nominale, 0 erreur matérielle détectée.'
@@ -37,7 +37,7 @@ const HARDWARE_LOGS: {
     name: 'Mémoire Vive (RAM ECC)',
     icon: MemoryStick,
     metrics: [
-      { id: 'temp', label: 'Temp.', value: '49°C (max 85°C)' },
+      { id: 'temp', label: 'Temp.', value: '49 °C (max 85 °C)' },
       { id: 'parity', label: 'Parité', value: '4 820 corr./min' }
     ],
     logLine: '[EDAC] Échec critique de lecture mémoire impossible à corriger sur la barrette DIMM_B2.'
@@ -57,7 +57,7 @@ const HARDWARE_LOGS: {
     name: 'Carte Calcul IA (GPU)',
     icon: Microchip,
     metrics: [
-      { id: 'temp', label: 'Temp.', value: '84°C (max 90°C)' },
+      { id: 'temp', label: 'Temp.', value: '84 °C (max 90 °C)' },
       { id: 'vram', label: 'VRAM ECC', value: '0 erreur' }
     ],
     logLine: '[GPU-MON] Calcul IA actif (94 % de charge), chauffe normale, 0 erreur VRAM.'
@@ -84,11 +84,11 @@ export default function Level7({ onComplete, onScoreUpdate, onMistake }: { onCom
       clearError();
       setStep(2);
     } else if (selectedComponent === 'cpu') {
-      triggerError("Le processeur est à 64°C (largement sous la limite de 95°C) et n'a aucune erreur.");
+      triggerError("Le processeur est à 64 °C (largement sous la limite de 95 °C) et n'a aucune erreur.");
     } else if (selectedComponent === 'gpu') {
-      triggerError("Faux positif ! Le GPU chauffe (84°C, sous la limite de 90°C) à cause d'un entraînement IA en cours, mais affiche 0 erreur VRAM : il fonctionne.");
+      triggerError("Faux positif ! Le GPU chauffe (84 °C, sous la limite de 90 °C) à cause d'un entraînement IA en cours, mais affiche 0 erreur VRAM : il fonctionne.");
     } else {
-      triggerError("Le disque NVMe affiche 96% de santé disque et 0 secteur réalloué : il est sain.");
+      triggerError("Le disque NVMe affiche 96 % de santé disque et 0 secteur réalloué : il est sain.");
     }
   };
 
@@ -134,7 +134,7 @@ export default function Level7({ onComplete, onScoreUpdate, onMistake }: { onCom
           message={
             step === 1 ? (
               <>
-                Un des <TechTerm term="Serveur">serveurs</TechTerm> locaux d'HYDRA plante. Par défaut, elle veut commander une machine neuve — soit <strong className="text-white">1 200 L</strong> d'<TechTerm term="Eau virtuelle">eau virtuelle</TechTerm> pour graver les puces (<TechTerm term="CPU">CPU</TechTerm> et <TechTerm term="GPU">GPU</TechTerm>) !
+                Un des <TechTerm term="Serveur">serveurs</TechTerm> locaux d'HYDRA plante. Par défaut, elle veut commander une machine neuve, soit <strong className="text-white">1 200 L</strong> d'<TechTerm term="Eau virtuelle">eau virtuelle</TechTerm> pour graver les puces (<TechTerm term="CPU">CPU</TechTerm> et <TechTerm term="GPU">GPU</TechTerm>) !
               </>
             ) : step === 2 ? (
               <>

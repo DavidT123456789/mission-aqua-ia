@@ -25,6 +25,7 @@ function formatSpeechText(raw: string): string {
   return raw
     .replace(/NAÏA/g, 'Naïa')
     .replace(/gCO₂\/kWh/gi, 'grammes de CO2 par kilowattheure')
+    .replace(/CO₂/g, 'CO2')
     .replace(/L\/MWh/g, 'litres par mégawattheure')
     .replace(/L\/min/g, 'litres par minute')
     .replace(/L\/s/g, 'litres par seconde')

@@ -429,7 +429,7 @@ export default function Level5({ onComplete, onScoreUpdate, onMistake }: { onCom
               title={`PLANIFICATION OPTIMALE (${formatHour(startHour)} – ${formatHour(endHour)})`}
               description={
                 <>
-                  En décalant ces {TRAINING_ENERGY_KWH} kWh vers les heures creuses où l'éolien domine ({avgIntensity} gCO₂/kWh), cet entraînement n'émet que <strong>{totalCo2Kg} kg de CO₂</strong> contre <strong>{peakCo2Kg} kg</strong> au pic du soir — une empreinte divisée par {reductionFactor} sans changer le matériel : c'est le <strong>Carbon-Aware Computing</strong>.
+                  En décalant ces {TRAINING_ENERGY_KWH} kWh vers les heures creuses où l'éolien domine ({avgIntensity} gCO₂/kWh), cet entraînement n'émet que <strong>{totalCo2Kg} kg de CO₂</strong> contre <strong>{peakCo2Kg} kg</strong> au pic du soir, soit une empreinte divisée par {reductionFactor} sans changer le matériel : c'est le <strong>Carbon-Aware Computing</strong>.
                 </>
               }
               onContinue={onComplete}

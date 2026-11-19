@@ -111,7 +111,7 @@ export default function Intro({ onStart, hasSavedGame, savedGameInfo, onLoadGame
                     <div className="text-sm font-semibold text-white truncate">
                       {isFinished
                         ? `${savedGameInfo.nickname ? `${savedGameInfo.nickname} · ` : ''}${savedGameInfo.score} pts`
-                        : `Niveau ${savedGameInfo.level}/13 — ${LEVEL_NAMES[savedGameInfo.level] || `Mission ${savedGameInfo.level}`}`}
+                        : `Niveau ${savedGameInfo.level}/13 : ${LEVEL_NAMES[savedGameInfo.level] || `Mission ${savedGameInfo.level}`}`}
                     </div>
                   )}
                   {savedGameInfo && (
@@ -156,7 +156,7 @@ export default function Intro({ onStart, hasSavedGame, savedGameInfo, onLoadGame
                   >
                     <div className="flex items-center justify-between px-0.5">
                       <label htmlFor="agent-name" className="text-slate-400 font-mono text-[10px] uppercase tracking-[0.2em]">
-                        Nouvelle mission — Identification
+                        Nouvelle mission · Identification
                       </label>
                       <button
                         type="button"

@@ -266,9 +266,9 @@ export default function App() {
     if (level === 0) {
       document.title = "Mission Aqua-IA";
     } else if (level === 14) {
-      document.title = "Mission Aqua-IA — Mission Réussie !";
+      document.title = "Mission Aqua-IA : Mission Réussie !";
     } else {
-      document.title = `Mission Aqua-IA — Niveau ${level}/13 : ${LEVEL_NAMES[level] || `Mission ${level}`}`;
+      document.title = `Mission Aqua-IA · Niveau ${level}/13 : ${LEVEL_NAMES[level] || `Mission ${level}`}`;
     }
   }, [level]);
 
@@ -1365,7 +1365,7 @@ export default function App() {
                   Mission en Pause
                 </h2>
                 <p className="text-xs sm:text-sm font-bold text-cyan-400 uppercase tracking-wider">
-                  Niveau {level}/13 — {LEVEL_NAMES[level]}
+                  Niveau {level}/13 : {LEVEL_NAMES[level]}
                 </p>
               </div>
               <p className="text-slate-300 text-sm leading-relaxed">

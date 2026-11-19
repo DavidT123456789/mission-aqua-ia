@@ -83,7 +83,7 @@ const TASKS: TaskFlow[] = [
   },
   {
     id: 'blacklist',
-    title: '4. Filtrage d\'URLs malveillantes connues',
+    title: '4. Filtrage d\'URL malveillantes connues',
     volumeLabel: '10 000 000 req/jour',
     volumePerDay: 10_000_000,
     requirement: 'Vérification exacte par mots-clés et liste noire fixe.',

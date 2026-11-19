@@ -11,8 +11,8 @@ Un escape game éducatif sur l'intelligence artificielle et la consommation d'ea
 ## ⏱️ Organisation en classe & Kit Enseignant
 
 - **Chronomètre de mission (40 min)** : couvre les **Niveaux 1 à 12** hors écrans de transition (le chrono se met automatiquement en pause pendant chaque transition et pendant tout le Niveau 13).
-- **Durée réelle du parcours complet** : compter **55 à 75 minutes** en incluant les lectures, les 12 écrans de transition, l'Innovation Lab (Niveau 13), les 2 défis bonus de fin et l'export du dossier A4 — soit idéalement **2 séances de 55 min** (progression sauvegardée automatiquement sur le poste + bouton **Pause** classe dans le HUD).
-- **Kit Enseignant intégré (sans corrigés)** : déroulé 1 h / 2 h, ancrage programmes (Maths, Techno, SVT, EMI, SNT, Pix) et pistes de débat oral sur les biais et le greenwashing — consultable dans [KIT_ENSEIGNANT.md](./KIT_ENSEIGNANT.md) ou directement dans l'application via `Alt+Shift+P` (ou double-clic sur le pied de page) et le **Menu Enseignant** (avec export **Imprimer / PDF A4**).
+- **Durée réelle du parcours complet** : compter **55 à 75 minutes** en incluant les lectures, les 12 écrans de transition, l'Innovation Lab (Niveau 13), les 2 défis bonus de fin et l'export du dossier A4, soit idéalement **2 séances de 55 min** (progression sauvegardée automatiquement sur le poste + bouton **Pause** classe dans le HUD).
+- **Kit Enseignant intégré (sans corrigés)** : déroulé 1 h / 2 h, ancrage programmes (Maths, Techno, SVT, EMI, SNT, Pix) et pistes de débat oral sur les biais et le greenwashing, consultable dans [KIT_ENSEIGNANT.md](./KIT_ENSEIGNANT.md) ou directement dans l'application via `Alt+Shift+P` (ou double-clic sur le pied de page) et le **Menu Enseignant** (avec export **Imprimer / PDF A4**).
 
 ## 🚀 Lancer en local
 

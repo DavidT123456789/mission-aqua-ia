@@ -27,7 +27,7 @@ interface PromptQuizOption {
 
 const PROMPT_CALIBRATION_STEPS: { title: string; prompt: string; options: PromptQuizOption[] }[] = [
   {
-    title: 'Réflexe 1/2 — Savoir quand se passer d\'IA générative',
+    title: 'Réflexe 1/2 : Savoir quand se passer d\'IA générative',
     prompt: 'Votre équipe a besoin d\'un chiffre officiel : « Quelle est la consommation moyenne d\'eau par habitant en France ? » Quelle méthode choisissez-vous ?',
     options: [
       {
@@ -54,7 +54,7 @@ const PROMPT_CALIBRATION_STEPS: { title: string; prompt: string; options: Prompt
     ]
   },
   {
-    title: 'Réflexe 2/2 — Rédiger un prompt structuré en 1 coup',
+    title: 'Réflexe 2/2 : Rédiger un prompt structuré en 1 coup',
     prompt: 'Pour concevoir une synthèse ou un prototype sans multiplier les essais, quel usage de l\'IA générative est le plus sobre ?',
     options: [
       {
@@ -647,7 +647,7 @@ export default function Level13({ onComplete, onScoreUpdate, nickname, onFinaliz
           className="space-y-5"
         >
           <NaiaDialogue 
-            message={`Analyse préliminaire terminée. Votre concept "${evaluation.title}" a un potentiel de ${evaluation.score}%. ${evaluation.score >= 80 ? "C'est une innovation de classe mondiale !" : evaluation.score >= 50 ? "C'est un excellent début, le prototype est débloqué." : "Il manque encore un peu de précision pour matérialiser ce projet."}`}
+            message={`Analyse préliminaire terminée. Votre concept « ${evaluation.title} » a un potentiel de ${evaluation.score} %. ${evaluation.score >= 80 ? "C'est une innovation de classe mondiale !" : evaluation.score >= 50 ? "C'est un excellent début, le prototype est débloqué." : "Il manque encore un peu de précision pour matérialiser ce projet."}`}
             emotion={evaluation.score >= 80 ? 'happy' : evaluation.score >= 50 ? 'happy' : 'neutral'}
           />
 
@@ -706,11 +706,11 @@ export default function Level13({ onComplete, onScoreUpdate, nickname, onFinaliz
                   <div className="space-y-1">
                     <div className={`flex items-center gap-2 text-[11px] ${evaluation.score >= 50 ? 'text-emerald-400' : 'text-slate-400'}`}>
                       <div className={`w-1.5 h-1.5 rounded-full ${evaluation.score >= 50 ? 'bg-emerald-400' : 'bg-slate-700'}`} />
-                      DÉBLOQUER LE PROTOTYPE (50%)
+                      DÉBLOQUER LE PROTOTYPE (50 %)
                     </div>
                     <div className={`flex items-center gap-2 text-[11px] ${evaluation.score >= 80 ? 'text-yellow-400' : 'text-slate-400'}`}>
                       <div className={`w-1.5 h-1.5 rounded-full ${evaluation.score >= 80 ? 'bg-yellow-400' : 'bg-slate-700'}`} />
-                      ATTEINDRE LE RANG LÉGENDAIRE (80%)
+                      ATTEINDRE LE RANG LÉGENDAIRE (80 %)
                     </div>
                   </div>
                 </div>
@@ -937,7 +937,7 @@ export default function Level13({ onComplete, onScoreUpdate, nickname, onFinaliz
                     </div>
                     <p className="text-xs font-bold uppercase tracking-widest mb-2">Prototype Verrouillé</p>
                     <p className="text-[11px] leading-relaxed">
-                      Atteignez un score d'innovation de 50% pour débloquer la visualisation IA de votre projet.
+                      Atteignez un score d'innovation de 50 % pour débloquer la visualisation IA de votre projet.
                     </p>
                   </div>
                 )}

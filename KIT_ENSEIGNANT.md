@@ -1,4 +1,4 @@
-# 🎓 Kit Enseignant — Mission Aqua-IA
+# 🎓 Kit Enseignant : Mission Aqua-IA
 
 Fiche synthétique **sans corrigés** pour préparer, animer et débriefer **Mission Aqua-IA** au collège (Cycle 4) ou en lycée (Seconde SNT).
 
@@ -10,7 +10,7 @@ Fiche synthétique **sans corrigés** pour préparer, animer et débriefer **Mis
 
 ### 1 séance (55 min · Express)
 - **5 min :** Lancement (binômes, objectif et règles du jeu).
-- **40 min :** Mission en autonomie — **Niveaux 1 à 10** (ou jusqu'au Niveau 12 pour les plus rapides).
+- **40 min :** Mission en autonomie (**Niveaux 1 à 10**, ou jusqu'au Niveau 12 pour les plus rapides).
 - **10 min :** Débrief oral collectif (choisir 2 questions ci-dessous).
 - *Prolongement optionnel :* le **Niveau 13 (Innovation Lab)** peut se faire lors d'un atelier court.
 
@@ -44,16 +44,16 @@ Fiche synthétique **sans corrigés** pour préparer, animer et débriefer **Mis
 
 Choisir **2 amorces** en format 1 h, ou les **4** en fin de séance 2 :
 
-1. **Biais des données *(Niveau 9 — Quartier Nord)***
+1. **Biais des données *(Niveau 9 : Quartier Nord)***
    > *« Une IA qui calcule très vite est-elle forcément juste ? Pourquoi HYDRA a-t-elle "oublié" le Quartier Nord ? »*
    - L'IA reproduit les angles morts de ses données (**biais de représentativité**) : ajouter des GPU n'efface jamais un biais.
    - Copier la moyenne du Centre-Ville masque aussi les besoins réels : il faut collecter des données terrain équilibrées.
 
-2. **Greenwashing vs vraies règles *(Niveau 10 — Charte éthique)***
+2. **Greenwashing vs vraies règles *(Niveau 10 : Charte éthique)***
    > *« Planter des arbres ou promettre la "neutralité" suffit-il à rendre un datacenter écologique ? »*
    - Distinguer promesse vague / compensation symbolique et obligation vérifiable (transparence sur l'eau, récupération de chaleur fatale, évaluation avant déploiement).
 
-3. **Effet volume & choix d'outil *(Niveaux 1, 6 & 13 — Prompt sobre)***
+3. **Effet volume & choix d'outil *(Niveaux 1, 6 & 13 : Prompt sobre)***
    > *« Si une requête IA ne coûte que quelques gouttes, pourquoi est-ce un sujet ? Quand vaut-il mieux ne PAS utiliser l'IA ? »*
    - L'impact vient de l'**effet volume** (milliards de requêtes) et de l'**eau ultra-pure** nécessaire à la fabrication des puces *(Bonus 1)*.
    - Réflexe sobre : moteur de recherche classique ou règle simple quand l'IA n'apporte rien ; sinon, **1 prompt clair et structuré**.

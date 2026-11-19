@@ -82,8 +82,8 @@ const DEBATE_PROMPTS: DebatePrompt[] = [
   {
     id: 'biais',
     tag: 'Biais des données',
-    levels: 'Niveau 9 — Quartier Nord',
-    question: '« Une IA qui calcule très vite est-elle forcément juste ? Pourquoi HYDRA a-t-elle “oublié” le Quartier Nord ? »',
+    levels: 'Niveau 9 (Quartier Nord)',
+    question: '« Une IA qui calcule très vite est-elle forcément juste ? Pourquoi HYDRA a-t-elle "oublié" le Quartier Nord ? »',
     keyPoints: [
       'L’IA reproduit les angles morts de ses données (biais de représentativité) : ajouter des GPU n’efface jamais un biais.',
       'Copier la moyenne du Centre-Ville masque les besoins réels d’un autre territoire : il faut collecter des données terrain équilibrées.',
@@ -92,8 +92,8 @@ const DEBATE_PROMPTS: DebatePrompt[] = [
   {
     id: 'greenwashing',
     tag: 'Greenwashing vs règles',
-    levels: 'Niveau 10 — Charte éthique',
-    question: '« Planter des arbres ou promettre la “neutralité” suffit-il à rendre un datacenter écologique ? »',
+    levels: 'Niveau 10 (Charte éthique)',
+    question: '« Planter des arbres ou promettre la "neutralité" suffit-il à rendre un datacenter écologique ? »',
     keyPoints: [
       'Distinction clé : promesse vague ou compensation symbolique ≠ obligation vérifiable (transparence eau, récupération chaleur fatale).',
       'Interroger les critères d’une vraie règle : chiffrée, contrôlable et appliquée avant le déploiement.',
@@ -102,7 +102,7 @@ const DEBATE_PROMPTS: DebatePrompt[] = [
   {
     id: 'sobriete',
     tag: 'Effet volume & usage',
-    levels: 'Niveaux 1, 6 & 13 — Prompt sobre',
+    levels: 'Niveaux 1, 6 & 13 (Prompt sobre)',
     question: '« Si une requête IA ne coûte que quelques gouttes, pourquoi est-ce un sujet ? Quand vaut-il mieux ne PAS utiliser l’IA ? »',
     keyPoints: [
       'L’impact vient de l’effet volume (milliards de requêtes) et de l’eau ultra-pure mobilisée pour fabriquer les puces (Bonus 1).',
@@ -152,7 +152,7 @@ function buildPrintableHtml(): string {
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <title>Mission Aqua-IA — Kit Enseignant</title>
+  <title>Mission Aqua-IA · Kit Enseignant</title>
   <style>
     @page { size: A4; margin: 12mm 14mm; }
     * { box-sizing: border-box; }
@@ -266,7 +266,7 @@ function buildPrintableHtml(): string {
 </head>
 <body>
   <header>
-    <h1>Mission Aqua-IA — Kit Enseignant</h1>
+    <h1>Mission Aqua-IA · Kit Enseignant</h1>
     <span>Collège (Cycle 4) &amp; Seconde SNT · Fiche sans corrigés</span>
   </header>
 
@@ -276,7 +276,7 @@ function buildPrintableHtml(): string {
       <h3>1 séance (55 min · Express)</h3>
       <ul>
         <li><strong>5 min :</strong> Lancement (binômes, objectif et règles du jeu).</li>
-        <li><strong>40 min :</strong> Mission en autonomie — <strong>Niveaux 1 à 10</strong> (ou N12 pour les plus rapides).</li>
+        <li><strong>40 min :</strong> Mission en autonomie (<strong>Niveaux 1 à 10</strong>, ou N12 pour les plus rapides).</li>
         <li><strong>10 min :</strong> Débrief oral collectif (2 questions ci-dessous).</li>
         <li><em>Option :</em> Niveau 13 (Innovation Lab) en atelier court ou prolongement.</li>
       </ul>
@@ -311,8 +311,8 @@ function buildPrintableHtml(): string {
   <div class="debate-grid">${debateHtml}</div>
 
   <footer>
-    <span>Mission Aqua-IA — Escape game éducatif IA &amp; Eau</span>
-    <span>Fiche sans corrigés — réponses protégées dans le Mode Enseignant (Alt+Shift+P ou double-clic en pied de page).</span>
+    <span>Mission Aqua-IA · Escape game éducatif IA &amp; Eau</span>
+    <span>Fiche sans corrigés : réponses protégées dans le Mode Enseignant (Alt+Shift+P ou double-clic en pied de page).</span>
   </footer>
 </body>
 </html>`;
@@ -506,13 +506,13 @@ export default function TeacherKitModal({ onClose }: TeacherKitModalProps) {
                   </div>
                   <div className="space-y-2.5 text-xs text-slate-300 leading-relaxed">
                     <div className="bg-slate-900/70 border border-white/5 rounded-lg p-2.5 space-y-1">
-                      <div className="font-bold text-emerald-200">Séance 1 — Actes I &amp; II</div>
+                      <div className="font-bold text-emerald-200">Séance 1 · Actes I &amp; II</div>
                       <p>
                         Lancement <span className="font-mono text-slate-400">(5 min)</span> · <strong className="text-white">Niveaux 1 à 10</strong> <span className="font-mono text-slate-400">(40 min)</span> · mini-bilan biais &amp; greenwashing <span className="font-mono text-slate-400">(10 min)</span>.
                       </p>
                     </div>
                     <div className="bg-slate-900/70 border border-white/5 rounded-lg p-2.5 space-y-1">
-                      <div className="font-bold text-emerald-200">Séance 2 — Acte III &amp; Débat</div>
+                      <div className="font-bold text-emerald-200">Séance 2 · Acte III &amp; Débat</div>
                       <p>
                         Reprise <span className="font-mono text-slate-400">(5 min)</span> · <strong className="text-white">Niveaux 11 à 13</strong> + bonus + dossier A4 <span className="font-mono text-slate-400">(35 min)</span> · débat oral <span className="font-mono text-slate-400">(15 min)</span>.
                       </p>
@@ -618,7 +618,7 @@ export default function TeacherKitModal({ onClose }: TeacherKitModalProps) {
         <div className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 border-t border-white/10 bg-slate-900/95 shrink-0">
           <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-            <span>Fiche sans corrigés — les réponses restent protégées dans le Mode Enseignant.</span>
+            <span>Fiche sans corrigés : les réponses restent protégées dans le Mode Enseignant.</span>
           </div>
           <button
             type="button"

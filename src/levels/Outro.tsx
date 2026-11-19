@@ -501,7 +501,7 @@ export default function Outro({ timeLeft, extraTimeBought = 0, score, waterSaved
                     <div className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Temps</div>
                   </div>
                   <div className="text-center bg-slate-950/50 p-3 rounded-xl border border-slate-800">
-                    <div className="text-lg font-black text-cyan-400 mb-0.5">{waterSaved}%</div>
+                    <div className="text-lg font-black text-cyan-400 mb-0.5">{waterSaved} %</div>
                     <div className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Eau Sauvée</div>
                   </div>
                 </div>

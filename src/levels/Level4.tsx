@@ -58,7 +58,7 @@ const SITES: SiteOption[] = [
     byCooling: {
       evaporative: { waterPerMWh: 1850, pue: 1.62 },
       chiller: { waterPerMWh: 260, pue: 1.78 },
-      free_cooling: { waterPerMWh: null, pue: null, inoperableReason: 'Inopérant (32°C)' }
+      free_cooling: { waterPerMWh: null, pue: null, inoperableReason: 'Inopérant (32 °C)' }
     },
     latency: 34,
     energyMix: 'Solaire',
@@ -102,7 +102,7 @@ const SITES: SiteOption[] = [
 const COOLING_MODES: { id: CoolingMode; label: string; detail: string }[] = [
   { id: 'evaporative', label: 'Tours évaporatives', detail: 'Pulvérisation d\'eau douce pour dissiper la chaleur (très gourmand en eau)' },
   { id: 'chiller', label: 'Climatisation mécanique', detail: 'Compresseurs frigorifiques en boucle fermée (dégrade le PUE électrique)' },
-  { id: 'free_cooling', label: 'Free Cooling (Air extérieur)', detail: 'Ventilation directe sans évaporation (efficace uniquement en climat froid < 5°C)' }
+  { id: 'free_cooling', label: 'Free Cooling (Air extérieur)', detail: 'Ventilation directe sans évaporation (efficace uniquement en climat froid < 5 °C)' }
 ];
 
 export default function Level4({ onComplete, onScoreUpdate, onMistake }: { onComplete: () => void; onScoreUpdate: (points: number, water: number) => void; onMistake?: () => void; key?: string }) {
@@ -138,17 +138,17 @@ export default function Level4({ onComplete, onScoreUpdate, onMistake }: { onCom
       return;
     }
 
-    let feedback = "Ce couple site + refroidissement ne respecte pas nos 3 seuils stricts (Eau < 100 L/MWh, PUE < 1.15, Latence ≤ 40 ms). Testez les 3 systèmes pour comparer !";
+    let feedback = "Ce couple site + refroidissement ne respecte pas nos 3 seuils stricts (Eau < 100 L/MWh, PUE < 1,15, Latence ≤ 40 ms). Testez les 3 systèmes pour comparer !";
     if (selectedSite === 'ushuai') {
-      feedback = "Ushuaïa est très sobre (1°C), mais sa latence réseau (195 ms) dépasse largement la limite de 40 ms du cahier des charges !";
+      feedback = "Ushuaïa est très sobre (1 °C), mais sa latence réseau (195 ms) dépasse largement la limite de 40 ms du cahier des charges !";
     } else if (selectedSite === 'lulea' && selectedCooling === 'evaporative') {
       feedback = "À Luleå, les tours évaporatives consomment encore 420 L/MWh (> 100 L/MWh). Testez les autres systèmes pour comparer l'Eau et le PUE !";
     } else if (selectedSite === 'lulea' && selectedCooling === 'chiller') {
-      feedback = "À Luleå, la climatisation mécanique économise l'eau (55 L/MWh), mais fait grimper le PUE à 1.32 (> 1.15). Profitez plutôt des 2°C extérieurs !";
+      feedback = "À Luleå, la climatisation mécanique économise l'eau (55 L/MWh), mais fait grimper le PUE à 1,32 (> 1,15). Profitez plutôt des 2 °C extérieurs !";
     } else if (selectedSite === 'ouarzazate' && selectedCooling === 'free_cooling') {
-      feedback = "Le Free Cooling est inopérant à Ouarzazate (32°C en moyenne) : l'air extérieur est trop chaud pour refroidir les serveurs sans système actif.";
+      feedback = "Le Free Cooling est inopérant à Ouarzazate (32 °C en moyenne) : l'air extérieur est trop chaud pour refroidir les serveurs sans système actif.";
     } else if (selectedSite === 'paris' && selectedCooling === 'free_cooling') {
-      feedback = "À Paris-Nord (13°C), le Free Cooling nécessite un appoint une grande partie de l'année : l'Eau (180 L/MWh) et le PUE (1.28) restent hors seuils.";
+      feedback = "À Paris-Nord (13 °C), le Free Cooling nécessite un appoint une grande partie de l'année : l'Eau (180 L/MWh) et le PUE (1,28) restent hors seuils.";
     }
 
     triggerError(feedback);
@@ -167,7 +167,7 @@ export default function Level4({ onComplete, onScoreUpdate, onMistake }: { onCom
         <NaiaDialogue
           message={
             <>
-              HYDRA construit un nouveau <TechTerm term="Datacenter">data center</TechTerm> d'entraînement (<TechTerm term="Latence">latence</TechTerm> depuis l'Europe tolérée jusqu'à 40 ms). Testez les systèmes de <TechTerm term="Refroidissement" /> pour simuler l'eau et le <TechTerm term="PUE" /> des 4 sites.
+              HYDRA construit un nouveau <TechTerm term="Datacenter">datacenter</TechTerm> d'entraînement (<TechTerm term="Latence">latence</TechTerm> depuis l'Europe tolérée jusqu'à 40 ms). Testez les systèmes de <TechTerm term="Refroidissement" /> pour simuler l'eau et le <TechTerm term="PUE" /> des 4 sites.
             </>
           }
           objective="Sélectionnez le site et le refroidissement qui respectent les 3 seuils du cahier des charges."
@@ -212,7 +212,7 @@ export default function Level4({ onComplete, onScoreUpdate, onMistake }: { onCom
                 className="absolute inset-x-0 top-0 bg-gradient-to-b from-cyan-500/15 to-transparent border-b border-dashed border-cyan-500/20 flex items-start justify-start px-2 pt-1"
                 style={{ height: '24%' }}
               >
-                <span className="text-[10px] uppercase tracking-wider text-cyan-300/80 font-bold">Zone Subarctique (&lt; 5°C)</span>
+                <span className="text-[10px] uppercase tracking-wider text-cyan-300/80 font-bold">Zone Subarctique (&lt; 5 °C)</span>
               </div>
               <div
                 className="absolute inset-x-0 bg-gradient-to-r from-amber-500/5 via-amber-500/12 to-amber-500/5 border-y border-dashed border-amber-500/20 flex items-center justify-end px-2"
@@ -224,7 +224,7 @@ export default function Level4({ onComplete, onScoreUpdate, onMistake }: { onCom
                 className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-cyan-500/15 to-transparent border-t border-dashed border-cyan-500/20 flex items-end justify-end px-2 pb-1"
                 style={{ height: '24%' }}
               >
-                <span className="text-[10px] uppercase tracking-wider text-cyan-300/80 font-bold">Zone Subantarctique (&lt; 5°C)</span>
+                <span className="text-[10px] uppercase tracking-wider text-cyan-300/80 font-bold">Zone Subantarctique (&lt; 5 °C)</span>
               </div>
             </div>
 
@@ -281,7 +281,7 @@ export default function Level4({ onComplete, onScoreUpdate, onMistake }: { onCom
                       isSelected ? 'border-cyan-400 text-cyan-300' : 'border-slate-800 text-slate-300'
                     }`}
                   >
-                    {loc.name} ({loc.avgTemp}°C)
+                    {loc.name} ({loc.avgTemp} °C)
                   </span>
                 </button>
               );
@@ -317,7 +317,7 @@ export default function Level4({ onComplete, onScoreUpdate, onMistake }: { onCom
                       </div>
                     </div>
                     <span className="text-xs font-bold text-slate-200 bg-slate-900 px-2 py-0.5 rounded border border-slate-800 shrink-0">
-                      {loc.avgTemp}°C
+                      {loc.avgTemp} °C
                     </span>
                   </div>
 
@@ -428,7 +428,7 @@ export default function Level4({ onComplete, onScoreUpdate, onMistake }: { onCom
               title="IMPLANTATION OPTIMALE VALIDÉE"
               description={
                 <>
-                  À Luleå (climat froid à 2°C et latence de 28 ms ≤ 40 ms), le Free Cooling utilise directement l'air extérieur pour refroidir les <TechTerm term="Serveur">serveurs</TechTerm> presque toute l'année. Combiné à l'hydroélectricité, le PUE tombe à 1,08 avec 97 % d'eau en moins par rapport au désert !
+                  À Luleå (climat froid à 2 °C et latence de 28 ms ≤ 40 ms), le Free Cooling utilise directement l'air extérieur pour refroidir les <TechTerm term="Serveur">serveurs</TechTerm> presque toute l'année. Combiné à l'hydroélectricité, le PUE tombe à 1,08 avec 97 % d'eau en moins par rapport au désert !
                 </>
               }
               buttonLabel="CONTINUER LE DÉPLOIEMENT"

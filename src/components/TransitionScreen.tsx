@@ -179,7 +179,7 @@ export default function TransitionScreen({ level, fact, onTransitionComplete, sc
               className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-rose-950/60 border border-rose-400/45 text-rose-200 text-xs font-mono font-bold shadow-[0_0_16px_rgba(244,63,94,0.2)]"
             >
               <Heart className="w-3.5 h-3.5 text-rose-400 fill-rose-400 shrink-0" />
-              <span>+1 vie restaurée — Palier niveau {level}</span>
+              <span>+1 vie restaurée · Palier niveau {level}</span>
             </motion.div>
           )}
           <motion.div 

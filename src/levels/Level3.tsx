@@ -333,9 +333,9 @@ export default function Level3({ onComplete, onScoreUpdate, onMistake }: { onCom
                       aria-pressed={isSelected}
                       aria-label={
                         isFailed
-                          ? `Capteur ${sensor.id} (${sensor.location}) — déjà écarté`
+                          ? `Capteur ${sensor.id} (${sensor.location}), déjà écarté`
                           : isScanned
-                            ? `Sélectionner le capteur ${sensor.id} (${sensor.location}) — déjà scanné`
+                            ? `Sélectionner le capteur ${sensor.id} (${sensor.location}), déjà scanné`
                             : `Scanner le capteur ${sensor.id} (${sensor.location})`
                       }
                       className="relative group"
@@ -624,7 +624,7 @@ export default function Level3({ onComplete, onScoreUpdate, onMistake }: { onCom
             >
               <Wrench className="w-5 h-5" />
               {isErrorFlash
-                ? 'FAUSSE PISTE — RÉANALYSEZ'
+                ? 'FAUSSE PISTE : RÉANALYSEZ'
                 : selectedSensor
                 ? `ISOLER LA FUITE (CAPTEUR ${selectedSensor})`
                 : 'SÉLECTIONNEZ UN CAPTEUR'}

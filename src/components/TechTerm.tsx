@@ -81,7 +81,7 @@ export const TERMS_DICTIONARY: Record<string, { title: string; definition: strin
   },
   'Eau virtuelle': {
     title: 'Eau virtuelle (Empreinte eau)',
-    definition: 'Toute l\'eau cachée consommée durant la fabrication d\'un objet (ex : gravure ultra-pure des puces électroniques) et la production de son énergie.'
+    definition: 'Toute l\'eau cachée consommée durant la fabrication d\'un objet (ex. : gravure ultra-pure des puces électroniques) et la production de son énergie.'
   },
   'Latence': {
     title: 'Latence (Temps de réponse)',

@@ -46,7 +46,7 @@ const BONUS_MISSIONS: BonusMissionDef[] = [
     accentClass: 'text-emerald-400',
     steps: [
       {
-        title: 'Cas 1/2 — Arbitrage matériel & Eau ultra-pure',
+        title: 'Cas 1/2 : Arbitrage matériel & Eau ultra-pure',
         prompt: 'La ville veut surveiller 50 capteurs de débit d\'eau pour détecter les fuites. Quel déploiement matériel validez-vous ?',
         contextBox: (
           <div className="bg-slate-900/80 border border-slate-800 rounded-lg p-3 text-xs text-slate-300">
@@ -79,7 +79,7 @@ const BONUS_MISSIONS: BonusMissionDef[] = [
         ]
       },
       {
-        title: 'Cas 2/2 — Mutualisation & Taux d\'utilisation',
+        title: 'Cas 2/2 : Mutualisation & Taux d\'utilisation',
         prompt: 'Le lycée et la mairie veulent chacun un modèle d\'IA pour optimiser le chauffage de leurs bâtiments 2 heures par jour. Comment déployer ?',
         options: [
           {
@@ -120,7 +120,7 @@ const BONUS_MISSIONS: BonusMissionDef[] = [
     accentClass: 'text-cyan-400',
     steps: [
       {
-        title: 'Cas 1/2 — Diagnostic de l\'effet rebond',
+        title: 'Cas 1/2 : Diagnostic de l\'effet rebond',
         prompt: 'Grâce à une nouvelle puce, générer une image IA consomme 5 fois moins d\'eau qu\'avant (2,4 mL au lieu de 12 mL). Pourtant, la facture d\'eau du datacenter double en 6 mois ! Pourquoi ?',
         contextBox: (
           <div className="bg-slate-900/80 border border-slate-800 rounded-lg p-3 text-xs text-slate-300">
@@ -153,7 +153,7 @@ const BONUS_MISSIONS: BonusMissionDef[] = [
         ]
       },
       {
-        title: 'Cas 2/2 — Bloquer l\'effet rebond sur HYDRA',
+        title: 'Cas 2/2 : Bloquer l\'effet rebond sur HYDRA',
         prompt: 'Quelle règle technique empêche l\'effet rebond sur les nouveaux services municipaux d\'HYDRA ?',
         options: [
           {
