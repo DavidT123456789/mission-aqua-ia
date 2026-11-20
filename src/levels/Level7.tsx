@@ -167,6 +167,7 @@ export default function Level7({ onComplete, onScoreUpdate, onMistake }: { onCom
           reaction={feedback ? { message: feedback, emotion: 'alert' } : null}
           onDismissReaction={clearError}
           emotion={step === 4 ? 'happy' : 'neutral'}
+          hintStep={step}
         />
       </div>
 

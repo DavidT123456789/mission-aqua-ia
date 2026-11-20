@@ -164,6 +164,7 @@ export default function Level9({ onComplete, onScoreUpdate, onMistake }: { onCom
           reaction={errorMsg ? { message: errorMsg, emotion: 'alert' } : null}
           onDismissReaction={clearError}
           emotion={isSuccess ? 'happy' : phase === 2 ? 'alert' : 'neutral'}
+          hintStep={phase}
         />
       </div>
 

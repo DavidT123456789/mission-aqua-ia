@@ -65,7 +65,7 @@ export default function LevelHeader({
               <>
                 <span className="text-slate-600" aria-hidden="true">·</span>
                 <span className="text-slate-400 font-normal normal-case tracking-normal">
-                  {isFinalLab ? `${act.label} — Final` : `${act.label} — ${act.title}`}
+                  {isFinalLab ? `${act.label} : Final` : `${act.label} : ${act.title}`}
                 </span>
               </>
             )}

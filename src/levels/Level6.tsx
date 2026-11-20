@@ -175,10 +175,10 @@ export default function Level6({ onComplete, onScoreUpdate, onMistake }: { onCom
           objective="Associez chacun des 4 flux à l'architecture adaptée (réutilisation possible) :"
           objectiveChips={
             <>
-              <span className="px-2 py-0.5 rounded-md bg-slate-950/80 border border-slate-700/90 text-[11px] text-slate-100 font-bold font-mono tabular-nums">
+              <span className="px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.09] text-[11px] text-slate-200 font-semibold font-mono tabular-nums">
                 ≤ 50 kWh/jour
               </span>
-              <span className="px-2 py-0.5 rounded-md bg-slate-950/80 border border-slate-700/90 text-[11px] text-slate-100 font-bold font-mono tabular-nums">
+              <span className="px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.09] text-[11px] text-slate-200 font-semibold font-mono tabular-nums">
                 Qualité ≥ {TARGET_MIN_QUALITY} %
               </span>
             </>

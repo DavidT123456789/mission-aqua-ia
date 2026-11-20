@@ -1,17 +1,17 @@
 @echo off
-chcp 65001 >nul
+cd /d "%~dp0"
 echo ==================================================
 echo    Lancement de Mission Aqua IA en local...
 echo ==================================================
 echo.
 
-:: Vérifier si les modules Node sont installés, sinon les installer
+:: Verifier si les modules Node sont installes, sinon les installer
 IF NOT EXIST "node_modules\" (
     echo [Installation] Les dependances ne sont pas installees. Execution de npm install...
     call npm install
 )
 
-:: Vérifier que le fichier .env.local existe avec la clé API
+:: Verifier que le fichier .env.local existe avec la cle API
 IF NOT EXIST ".env.local" (
     echo.
     echo [ATTENTION] Le fichier .env.local n'existe pas !
@@ -27,8 +27,9 @@ IF NOT EXIST ".env.local" (
 echo [Demarrage] Lancement du serveur de developpement...
 echo Le navigateur va s'ouvrir automatiquement dans quelques secondes...
 
-:: Ouvrir le navigateur après un court délai (3 secondes)
+:: Ouvrir le navigateur apres un court delai (3 secondes)
 start /b cmd /c "timeout /t 3 /nobreak >nul && start http://localhost:3000"
 
 :: Lancer le serveur Express + Vite
 call npm run dev
+

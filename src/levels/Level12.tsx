@@ -124,16 +124,16 @@ export default function Level12({ onComplete, onScoreUpdate, onMistake }: { onCo
           objective="Équilibrez le répartiteur maître en respectant les 4 seuils :"
           objectiveChips={
             <>
-              <span className="px-2 py-0.5 rounded-md bg-slate-950/80 border border-slate-700/90 text-[11px] text-slate-100 font-bold font-mono tabular-nums">
+              <span className="px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.09] text-[11px] text-slate-200 font-semibold font-mono tabular-nums">
                 ≤ {WATER_BUDGET_MAX} U
               </span>
-              <span className="px-2 py-0.5 rounded-md bg-slate-950/80 border border-slate-700/90 text-[11px] text-slate-100 font-bold font-mono tabular-nums">
+              <span className="px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.09] text-[11px] text-slate-200 font-semibold font-mono tabular-nums">
                 ≤ {POWER_BUDGET_MAX_MW} MW
               </span>
-              <span className="px-2 py-0.5 rounded-md bg-slate-950/80 border border-slate-700/90 text-[11px] text-slate-100 font-bold font-mono tabular-nums">
+              <span className="px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.09] text-[11px] text-slate-200 font-semibold font-mono tabular-nums">
                 Citoyens 10–15 U
               </span>
-              <span className="px-2 py-0.5 rounded-md bg-slate-950/80 border border-slate-700/90 text-[11px] text-slate-100 font-bold font-mono tabular-nums">
+              <span className="px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.09] text-[11px] text-slate-200 font-semibold font-mono tabular-nums">
                 Climat + Réseaux ≥ 85 U
               </span>
             </>

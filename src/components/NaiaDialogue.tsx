@@ -1,15 +1,14 @@
 import React, { useState, useEffect, useMemo, useId, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { FastForward, Lightbulb, Target, ChevronDown, AlertCircle, X, AudioLines, Square, Star } from 'lucide-react';
+import { FastForward, Lightbulb, Target, X, AudioLines, Square, Star } from 'lucide-react';
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import { soundManager } from '../utils/soundManager';
 import {
-  HINTS,
+  getLevelHint,
   FREE_HINT_COST_POINTS,
 } from '../constants';
 import { useNaiaHints } from './NaiaContext';
 import HydraLog, { type HydraLogData } from './HydraLog';
-import Collapsible from './Collapsible';
 import { EASE_OUT_EXPO, EASE_IN_OUT } from '../utils/motion';
 
 export type NaiaEmotion = 'neutral' | 'alert' | 'happy' | 'thinking';
@@ -72,7 +71,6 @@ function TypewriterNode({
   onTypingStateChange?: (isTyping: boolean) => void;
 }) {
   const prefersReducedMotion = useReducedMotion();
-  const [visibleCount, setVisibleCount] = useState(0);
 
   const getLen = (node: React.ReactNode): number => {
     if (typeof node === 'string' || typeof node === 'number') return String(node).length;
@@ -86,6 +84,7 @@ function TypewriterNode({
 
   const totalLength = useMemo(() => getLen(content), [contentKey]);
   const shouldSkip = skipRequested || Boolean(prefersReducedMotion);
+  const [visibleCount, setVisibleCount] = useState(() => (shouldSkip ? totalLength : 0));
 
   useEffect(() => {
     if (shouldSkip) {
@@ -681,6 +680,7 @@ interface NaiaDialogueProps {
   reaction?: { message: React.ReactNode; emotion?: NaiaEmotion } | null;
   onDismissReaction?: () => void;
   hideHintButton?: boolean;
+  hintStep?: number;
 }
 
 export default function NaiaDialogue({
@@ -691,7 +691,8 @@ export default function NaiaDialogue({
   hydra,
   reaction,
   onDismissReaction,
-  hideHintButton = false
+  hideHintButton = false,
+  hintStep
 }: NaiaDialogueProps) {
   const hintCtx = useNaiaHints();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -701,10 +702,43 @@ export default function NaiaDialogue({
   const objectiveText = useMemo(() => (objective ? extractNodeText(objective) : ''), [objective]);
   const reactionKey = useMemo(() => (reaction ? extractNodeText(reaction.message) : ''), [reaction]);
 
+  const tabPillId = useId();
   const [speechAvailable, setSpeechAvailable] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const canCollapse = Boolean(objective);
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [preferBriefing, setPreferBriefing] = useState(false);
+  const [hasSeenReaction, setHasSeenReaction] = useState(false);
+
+  const [skipRequested, setSkipRequested] = useState(() => Boolean(prefersReducedMotion));
+  const [isTyping, setIsTyping] = useState(() => !prefersReducedMotion);
+
+  const setIsHintOpen = hintCtx?.setIsHintOpen;
+
+  const levelHint = hintCtx ? getLevelHint(hintCtx.level, hintStep) : null;
+  const canShowHintControl = Boolean(hintCtx && levelHint && !hideHintButton && emotion !== 'happy');
+  const isHintOpen = Boolean(hintCtx?.isHintOpen && canShowHintControl);
+  const hasFreeHint = Boolean(hintCtx && hintCtx.unlockedFreeHints.includes(hintCtx.level));
+  // Progressive help cue: stay calm before the 1st mistake (even on Level 1 where it's free on demand),
+  // and softly highlight "Offert" only after a mistake (or once unlocked on Levels 2–12).
+  const showHintAvailableCue = hasFreeHint && (hintCtx?.level !== 1 || hasSeenReaction);
+
+  const activeChannel: 'hint' | 'reaction' | 'briefing' = isHintOpen
+    ? 'hint'
+    : reaction && !preferBriefing
+    ? 'reaction'
+    : 'briefing';
+
+  const effectiveEmotion: NaiaEmotion =
+    emotion === 'happy'
+      ? 'happy'
+      : activeChannel === 'hint'
+      ? 'thinking'
+      : activeChannel === 'reaction'
+      ? reaction?.emotion ?? 'alert'
+      : emotion;
+
+  useEffect(() => {
+    setHasSeenReaction(false);
+  }, [hintCtx?.level]);
 
   useEffect(() => {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
@@ -728,7 +762,7 @@ export default function NaiaDialogue({
   useEffect(() => {
     stopSpeech();
     return () => stopSpeech();
-  }, [contentKey, stopSpeech]);
+  }, [activeChannel, contentKey, reactionKey, levelHint, stopSpeech]);
 
   useEffect(() => {
     const handleExternalStop = () => stopSpeech();
@@ -745,9 +779,19 @@ export default function NaiaDialogue({
       return;
     }
 
-    const fullRaw = [contentKey, objectiveText ? `Objectif : ${objectiveText}` : '']
-      .filter(Boolean)
-      .join('. ');
+    let fullRaw = '';
+    if (activeChannel === 'reaction' && reactionKey) {
+      fullRaw = reactionKey;
+    } else if (activeChannel === 'hint' && levelHint) {
+      fullRaw = hasFreeHint
+        ? `Indice : ${levelHint}`
+        : "Besoin d'un coup de pouce ? Essayez d'abord une réponse pour le débloquer gratuitement, ou débloquez-le tout de suite.";
+    } else {
+      fullRaw = [contentKey, objectiveText ? `Objectif : ${objectiveText}` : '']
+        .filter(Boolean)
+        .join('. ');
+    }
+
     const spoken = formatSpeechText(fullRaw);
     if (!spoken) return;
 
@@ -770,8 +814,18 @@ export default function NaiaDialogue({
     window.speechSynthesis.speak(utterance);
   };
 
+  // When a new reaction arrives, NAÏA immediately interrupts in her dialogue bubble and scrolls into view if needed
   useEffect(() => {
-    if (!reactionKey) return;
+    if (!reactionKey) {
+      setPreferBriefing(false);
+      return;
+    }
+    setHasSeenReaction(true);
+    setPreferBriefing(false);
+    setIsHintOpen?.(false);
+    setSkipRequested(true);
+    setIsTyping(false);
+
     const rafId = requestAnimationFrame(() => {
       const el = rootRef.current;
       if (!el) return;
@@ -783,24 +837,35 @@ export default function NaiaDialogue({
       }
     });
     return () => cancelAnimationFrame(rafId);
-  }, [reactionKey]);
+  }, [reactionKey, setIsHintOpen]);
 
-  const [skipRequested, setSkipRequested] = useState(() => Boolean(prefersReducedMotion));
-  const [isTyping, setIsTyping] = useState(() => !prefersReducedMotion);
-
-  // Re-expand automatically when a new phase/step dialogue arrives so students never miss new instructions
+  // Stop typewriter when switching to Hint channel
   useEffect(() => {
-    setIsCollapsed(false);
+    if (isHintOpen) {
+      setSkipRequested(true);
+      setIsTyping(false);
+    }
+  }, [isHintOpen]);
+
+  // Reset typewriter when a new phase/step dialogue arrives
+  useEffect(() => {
+    setPreferBriefing(false);
     setSkipRequested(Boolean(prefersReducedMotion));
     setIsTyping(!prefersReducedMotion);
   }, [contentKey, prefersReducedMotion]);
 
-  // If objective disappears (e.g. level completed), ensure full dialogue is shown
   useEffect(() => {
-    if (!canCollapse && isCollapsed) {
-      setIsCollapsed(false);
+    if (emotion === 'happy') {
+      setIsHintOpen?.(false);
+      setPreferBriefing(false);
     }
-  }, [canCollapse, isCollapsed]);
+  }, [emotion, setIsHintOpen]);
+
+  useEffect(() => {
+    if (hintStep !== undefined) {
+      setIsHintOpen?.(false);
+    }
+  }, [hintStep, setIsHintOpen]);
 
   const handleTypingStateChange = useCallback((typing: boolean) => {
     setIsTyping(typing);
@@ -815,111 +880,89 @@ export default function NaiaDialogue({
     setIsTyping(false);
   };
 
-  const handleToggleCollapse = (e: React.MouseEvent) => {
+  const handleSelectBriefing = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setSkipRequested(true);
-    setIsTyping(false);
-    setIsCollapsed((prev) => !prev);
+    setIsHintOpen?.(false);
+    setPreferBriefing(true);
   };
 
-  const levelHint = hintCtx ? HINTS[hintCtx.level] ?? null : null;
-  const canShowHintControl = Boolean(hintCtx && levelHint && !hideHintButton);
-  const isHintOpen = Boolean(hintCtx?.isHintOpen && canShowHintControl);
-  const hasFreeHint = Boolean(hintCtx && hintCtx.unlockedFreeHints.includes(hintCtx.level));
+  const handleSelectReaction = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsHintOpen?.(false);
+    setPreferBriefing(false);
+  };
 
-  const effectiveEmotion: NaiaEmotion = isHintOpen
-    ? 'thinking'
-    : reaction?.emotion ?? emotion;
-
-  const handleToggleHint = (e: React.MouseEvent) => {
+  const handleSelectHint = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!hintCtx) return;
-    hintCtx.setIsHintOpen(!isHintOpen);
+    setSkipRequested(true);
+    setIsTyping(false);
+    hintCtx.setIsHintOpen(true);
   };
 
-  const bubbleBorderClass =
-    effectiveEmotion === 'alert'
-      ? 'border-amber-400/30'
-      : effectiveEmotion === 'happy'
-      ? 'border-emerald-400/25'
-      : effectiveEmotion === 'thinking'
-      ? 'border-indigo-400/30'
-      : 'border-white/[0.09]';
+  const moodStyles: Record<
+    NaiaEmotion,
+    {
+      cardBorder: string;
+      rowWash: string;
+      dot: string;
+      tag: string;
+      text: string;
+    }
+  > = {
+    neutral: {
+      cardBorder: 'border-white/[0.1]',
+      rowWash: 'bg-transparent',
+      dot: 'bg-cyan-400',
+      tag: 'text-cyan-300/90',
+      text: 'text-slate-100/95',
+    },
+    alert: {
+      cardBorder: 'border-amber-400/35',
+      rowWash: 'bg-amber-950/25',
+      dot: 'bg-amber-400',
+      tag: 'text-amber-300',
+      text: 'text-amber-50',
+    },
+    thinking: {
+      cardBorder: 'border-indigo-400/35',
+      rowWash: 'bg-indigo-950/20',
+      dot: 'bg-indigo-400',
+      tag: 'text-indigo-300',
+      text: 'text-indigo-50/95',
+    },
+    happy: {
+      cardBorder: 'border-emerald-400/30',
+      rowWash: 'bg-emerald-950/20',
+      dot: 'bg-emerald-400',
+      tag: 'text-emerald-300',
+      text: 'text-slate-100',
+    },
+  };
 
-  const renderControls = (compactMode: boolean) => (
-    <div className="flex items-center gap-1.5 shrink-0">
-      <AnimatePresence initial={false}>
-        {!compactMode && isTyping && (
-          <motion.button
-            key="skip-btn"
-            type="button"
-            initial={{ opacity: 0, scale: 0.92 }}
-            animate={{ opacity: 1, scale: 1, transition: { duration: 0.16, ease: EASE_OUT_EXPO } }}
-            exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.12 } }}
-            onClick={handleSkip}
-            className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white/[0.04] hover:bg-white/[0.1] border border-white/10 text-[11px] font-medium text-slate-300 hover:text-white transition-colors cursor-pointer"
-            aria-label="Passer l'animation du texte"
-          >
-            <span>Passer</span>
-            <FastForward className="w-2.5 h-2.5" />
-          </motion.button>
-        )}
-      </AnimatePresence>
+  const currentMood = moodStyles[effectiveEmotion];
+  const hasSegmentedControl = Boolean(canShowHintControl || reaction);
 
-      {canShowHintControl && hintCtx && (
-        <button
-          type="button"
-          onClick={handleToggleHint}
-          className={`flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-[11px] font-medium transition-colors cursor-pointer ${
-            isHintOpen
-              ? 'bg-emerald-400/15 border-emerald-400/40 text-emerald-200'
-              : hasFreeHint
-              ? 'bg-emerald-400/10 border-emerald-400/30 text-emerald-200 hover:bg-emerald-400/15'
-              : 'bg-white/[0.04] border-white/[0.1] text-slate-300 hover:text-white hover:bg-white/[0.09] hover:border-white/20'
-          }`}
-          aria-expanded={isHintOpen}
-          aria-label={isHintOpen ? "Masquer l'indice de NAÏA" : "Afficher l'indice de NAÏA"}
-        >
-          <Lightbulb className={`w-3 h-3 ${isHintOpen || hasFreeHint ? 'text-emerald-300' : 'text-amber-300/80'}`} />
-          <span>Indice</span>
-          <ChevronDown
-            className={`w-3 h-3 transition-transform duration-200 ease-out ${
-              isHintOpen ? 'rotate-180' : ''
-            }`}
-          />
-        </button>
-      )}
+  const speakerLabel = hasSegmentedControl
+    ? 'NAÏA'
+    : emotion === 'happy'
+    ? objective
+      ? 'NAÏA · Validé'
+      : 'NAÏA'
+    : emotion === 'alert'
+    ? 'NAÏA · Alerte'
+    : 'NAÏA';
 
-      {canCollapse && (
-        <button
-          type="button"
-          onClick={handleToggleCollapse}
-          aria-expanded={!isCollapsed}
-          aria-label={isCollapsed ? 'Afficher le briefing complet de NAÏA' : 'Réduire le briefing (garder uniquement l’objectif)'}
-          title={isCollapsed ? 'Déplier le briefing complet' : 'Mode focus : réduire le contexte'}
-          className={`flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-[11px] font-medium transition-colors cursor-pointer ${
-            compactMode
-              ? 'bg-white/[0.08] border-white/15 text-slate-200 hover:text-white hover:bg-white/[0.12]'
-              : 'bg-white/[0.04] border-white/[0.1] text-slate-400 hover:text-white hover:bg-white/[0.09] hover:border-white/20'
-          }`}
-        >
-          <ChevronDown
-            className={`w-3 h-3 transition-transform duration-200 ease-out ${
-              compactMode ? '' : 'rotate-180'
-            }`}
-          />
-          {compactMode ? (
-            <span>Briefing</span>
-          ) : (
-            <span className="hidden sm:inline">Réduire</span>
-          )}
-        </button>
-      )}
-    </div>
-  );
+  const speechMotionKey =
+    activeChannel === 'reaction'
+      ? `reaction-${reactionKey}`
+      : activeChannel === 'hint'
+      ? `hint-${hasFreeHint ? 'unlocked' : 'locked'}-${hintStep ?? 0}`
+      : `briefing-${contentKey}`;
 
-  const isExpanded = !isCollapsed || !objective;
-  const hasInlineControls = Boolean(!objective && (isTyping || canShowHintControl));
+  const pillSpring = prefersReducedMotion
+    ? { duration: 0 }
+    : { type: 'spring' as const, stiffness: 460, damping: 34 };
 
   return (
     <motion.div
@@ -930,207 +973,265 @@ export default function NaiaDialogue({
       className="w-full font-sans scroll-mt-20"
     >
       <div
-        className={`relative rounded-2xl bg-slate-950/60 backdrop-blur-xl border ${bubbleBorderClass} shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] overflow-hidden transition-colors duration-300`}
+        className={`relative rounded-2xl bg-slate-950/65 backdrop-blur-xl border ${currentMood.cardBorder} shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] overflow-hidden transition-colors duration-300`}
       >
-        {/* Smoothly Collapsible Full Briefing Body (HYDRA + NAÏA message) */}
-        <Collapsible isOpen={isExpanded}>
-          {hydra && (
-            <HydraLog
-              integrated
-              status={hydra.status}
-              label={hydra.label}
-              message={hydra.message}
-            />
-          )}
-
-          <div
-            onClick={() => {
-              if (isTyping) {
-                setSkipRequested(true);
-                setIsTyping(false);
-              }
-            }}
-            className={`px-3.5 py-2.5 sm:px-4 sm:py-3 flex items-center gap-3 sm:gap-3.5 ${
-              isTyping ? 'cursor-pointer' : ''
-            }`}
-          >
-            <div className="shrink-0">
-              <NaiaAvatar
-                emotion={effectiveEmotion}
-                size="md"
-                isSpeaking={isSpeaking}
-                onToggleSpeech={speechAvailable ? handleToggleSpeech : undefined}
-              />
-            </div>
-
-            <div className="flex-1 min-w-0 flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3">
-              {/* Main Dialogue Copy — aligned directly opposite Naïa's avatar */}
-              <div className="text-[13px] sm:text-sm leading-relaxed text-slate-100/95 font-normal min-w-0 flex-1">
-                <div key={contentKey}>
-                  <TypewriterNode
-                    content={message}
-                    contentKey={contentKey}
-                    skipRequested={skipRequested}
-                    onTypingStateChange={handleTypingStateChange}
-                  />
-                </div>
-              </div>
-
-              {hasInlineControls && (
-                <div className="self-end sm:self-center shrink-0">
-                  {renderControls(false)}
-                </div>
-              )}
-            </div>
-          </div>
-        </Collapsible>
-
-        {/* Persistent Objective Strip (permanently hosts action controls on the right + mini-avatar in Focus mode) */}
-        {objective && (
-          <div
-            className={`px-3.5 py-2 sm:px-4 flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 transition-colors duration-200 ${
-              isExpanded
-                ? 'bg-white/[0.025] border-t border-white/[0.06]'
-                : 'bg-white/[0.02]'
-            }`}
-          >
-            <div className="flex items-center gap-2.5 min-w-0 flex-1">
-              <AnimatePresence initial={false}>
-                {!isExpanded && (
-                  <motion.div
-                    key="compact-avatar"
-                    initial={{ opacity: 0, scale: 0.75, x: -4 }}
-                    animate={{
-                      opacity: 1,
-                      scale: 1,
-                      x: 0,
-                      transition: { duration: 0.22, ease: EASE_OUT_EXPO },
-                    }}
-                    exit={{ opacity: 0, scale: 0.75, x: -4, transition: { duration: 0.14 } }}
-                    className="shrink-0"
-                  >
-                    <NaiaAvatar
-                      emotion={effectiveEmotion}
-                      size="xs"
-                      isSpeaking={isSpeaking}
-                      onToggleSpeech={speechAvailable ? handleToggleSpeech : undefined}
-                    />
-                  </motion.div>
-                )}
-              </AnimatePresence>
-              <div className="min-w-0 flex-1 flex flex-wrap items-center gap-x-2.5 gap-y-1">
-                <div className="flex items-start gap-2 min-w-0 text-xs sm:text-[13px] text-slate-100 font-medium leading-snug">
-                  <Target className="w-3.5 h-3.5 text-cyan-400/90 shrink-0 mt-0.5" />
-                  <span>{objective}</span>
-                </div>
-                {objectiveChips && (
-                  <div className="flex flex-wrap items-center gap-1.5 shrink-0">
-                    {objectiveChips}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="ml-auto shrink-0">
-              {renderControls(!isExpanded)}
-            </div>
-          </div>
+        {hydra && (
+          <HydraLog
+            integrated
+            status={hydra.status}
+            label={hydra.label}
+            message={hydra.message}
+          />
         )}
 
-        {/* Live Reaction Banner (always visible, even in Focus mode) */}
-        <Collapsible
-          isOpen={Boolean(reaction)}
-          role="status"
-          aria-live="polite"
+        {/* Living RPG Single-Channel Dialogue Body */}
+        <div
+          onClick={() => {
+            if (activeChannel === 'briefing' && isTyping) {
+              setSkipRequested(true);
+              setIsTyping(false);
+            }
+          }}
+          className={`px-3.5 py-2.5 sm:px-4 sm:py-3 flex items-start sm:items-center gap-3 sm:gap-3.5 transition-colors duration-300 ${currentMood.rowWash} ${
+            activeChannel === 'briefing' && isTyping ? 'cursor-pointer' : ''
+          }`}
         >
-          {reaction && (
-            <div className="border-t border-amber-500/30 bg-amber-950/50 px-3.5 py-2 sm:px-4 flex items-start gap-2 text-xs sm:text-[13px] text-amber-100 font-medium">
-              <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-              <span className="flex-1 leading-relaxed">{reaction.message}</span>
-              {onDismissReaction && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDismissReaction();
-                  }}
-                  aria-label="Fermer le message d'erreur"
-                  className="shrink-0 p-0.5 rounded-md text-amber-300/75 hover:text-amber-100 hover:bg-amber-500/20 transition-colors cursor-pointer"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
-            </div>
-          )}
-        </Collapsible>
+          <motion.div
+            key={activeChannel}
+            initial={prefersReducedMotion ? false : { scale: 0.94 }}
+            animate={{ scale: 1 }}
+            transition={{ duration: 0.22, ease: EASE_OUT_EXPO }}
+            className="shrink-0 mt-0.5 sm:mt-0"
+          >
+            <NaiaAvatar
+              emotion={effectiveEmotion}
+              size="md"
+              isSpeaking={isSpeaking}
+              onToggleSpeech={speechAvailable ? handleToggleSpeech : undefined}
+            />
+          </motion.div>
 
-        {/* Inline Non-Blocking Single Hint Strip (always accessible, even in Focus mode) */}
-        <Collapsible
-          isOpen={Boolean(isHintOpen && levelHint && hintCtx)}
-          onClick={(e) => e.stopPropagation()}
-        >
-          {levelHint && hintCtx && (
-            <div className="border-t border-emerald-500/25 bg-emerald-950/35 px-3.5 py-2.5 sm:px-4 text-xs sm:text-[13px]">
-              <AnimatePresence mode="wait" initial={false}>
-                {hasFreeHint ? (
-                  <motion.div
-                    key="hint-unlocked"
-                    initial={{ opacity: 0, y: 3 }}
-                    animate={{ opacity: 1, y: 0, transition: { duration: 0.18, ease: EASE_OUT_EXPO } }}
-                    exit={{ opacity: 0, y: -3, transition: { duration: 0.12 } }}
-                    className="flex items-start gap-2 text-slate-100"
-                  >
-                    <Lightbulb className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                    <div className="flex-1 leading-relaxed">
-                      <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-emerald-400 mr-2">
-                        Indice :
-                      </span>
-                      <span>{levelHint}</span>
-                    </div>
-                    <button
+          <div className="flex-1 min-w-0 flex flex-col gap-1.5">
+            {/* Speaker Identity + Unified Segmented Channel Control */}
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5 font-mono">
+                <span className={`w-1.5 h-1.5 rounded-full shrink-0 transition-colors duration-300 ${currentMood.dot}`} aria-hidden="true" />
+                <span className={`text-[10px] font-semibold uppercase tracking-[0.14em] transition-colors duration-300 ${currentMood.tag}`}>
+                  {speakerLabel}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                <AnimatePresence initial={false}>
+                  {activeChannel === 'briefing' && isTyping && (
+                    <motion.button
+                      key="skip-btn"
                       type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        hintCtx.setIsHintOpen(false);
-                      }}
-                      aria-label="Masquer l'indice"
-                      className="shrink-0 p-0.5 rounded-md text-emerald-300/75 hover:text-emerald-100 hover:bg-emerald-500/20 transition-colors cursor-pointer"
+                      initial={{ opacity: 0, scale: 0.92 }}
+                      animate={{ opacity: 1, scale: 1, transition: { duration: 0.16, ease: EASE_OUT_EXPO } }}
+                      exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.12 } }}
+                      onClick={handleSkip}
+                      className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white/[0.04] hover:bg-white/[0.1] border border-white/10 text-[11px] font-medium text-slate-300 hover:text-white transition-colors cursor-pointer"
+                      aria-label="Passer l'animation du texte"
                     >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </motion.div>
-                ) : (
-                  <motion.div
-                    key="hint-locked"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1, transition: { duration: 0.16 } }}
-                    exit={{ opacity: 0, transition: { duration: 0.12 } }}
-                    className="flex flex-wrap items-center justify-between gap-2"
+                      <span>Passer</span>
+                      <FastForward className="w-2.5 h-2.5" />
+                    </motion.button>
+                  )}
+                </AnimatePresence>
+
+                {hasSegmentedControl && (
+                  <div
+                    role="tablist"
+                    aria-label="Canaux de dialogue de NAÏA"
+                    onClick={(e) => e.stopPropagation()}
+                    className="inline-flex items-center p-0.5 rounded-full bg-slate-900/90 border border-white/[0.08] gap-0.5"
                   >
-                    <span className="text-slate-200 flex items-center gap-2">
-                      <Lightbulb className="w-3.5 h-3.5 text-amber-300 shrink-0" />
-                      <span>Indice de NAÏA (offert automatiquement après une erreur)</span>
-                    </span>
                     <button
                       type="button"
-                      disabled={hintCtx.score < FREE_HINT_COST_POINTS}
-                      onClick={() => hintCtx.useHint()}
-                      className={`inline-flex items-center gap-1 px-3 py-1 rounded-lg font-mono text-xs font-bold transition-colors ${
-                        hintCtx.score >= FREE_HINT_COST_POINTS
-                          ? 'bg-emerald-600 hover:bg-emerald-500 text-white cursor-pointer'
-                          : 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                      role="tab"
+                      aria-selected={activeChannel === 'briefing'}
+                      onClick={handleSelectBriefing}
+                      className={`relative px-2.5 py-0.5 rounded-full text-[11px] font-medium transition-colors cursor-pointer ${
+                        activeChannel === 'briefing'
+                          ? emotion === 'alert'
+                            ? 'text-amber-100'
+                            : 'text-cyan-100'
+                          : 'text-slate-400 hover:text-slate-200'
                       }`}
                     >
-                      <span>Débloquer (-{FREE_HINT_COST_POINTS}</span>
-                      <Star className="w-3 h-3 fill-current shrink-0" />
-                      <span>)</span>
+                      {activeChannel === 'briefing' && (
+                        <motion.span
+                          layoutId={tabPillId}
+                          transition={pillSpring}
+                          className={`absolute inset-0 rounded-full border ${
+                            emotion === 'alert'
+                              ? 'bg-amber-400/15 border-amber-400/35'
+                              : 'bg-cyan-400/15 border-cyan-400/35'
+                          }`}
+                        />
+                      )}
+                      <span className="relative z-10">Briefing</span>
                     </button>
-                  </motion.div>
+
+                    {reaction && (
+                      <button
+                        type="button"
+                        role="tab"
+                        aria-selected={activeChannel === 'reaction'}
+                        onClick={handleSelectReaction}
+                        className={`relative inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium transition-colors cursor-pointer ${
+                          activeChannel === 'reaction'
+                            ? 'text-amber-100'
+                            : 'text-amber-300/80 hover:text-amber-200'
+                        }`}
+                      >
+                        {activeChannel === 'reaction' && (
+                          <motion.span
+                            layoutId={tabPillId}
+                            transition={pillSpring}
+                            className="absolute inset-0 rounded-full bg-amber-400/20 border border-amber-400/45"
+                          />
+                        )}
+                        <span className="relative z-10 w-1.5 h-1.5 rounded-full bg-amber-400" aria-hidden="true" />
+                        <span className="relative z-10">Correction</span>
+                      </button>
+                    )}
+
+                    {canShowHintControl && hintCtx && (
+                      <button
+                        type="button"
+                        role="tab"
+                        aria-selected={activeChannel === 'hint'}
+                        title={
+                          showHintAvailableCue
+                            ? 'Indice de NAÏA offert suite à votre tentative'
+                            : "Demander l'indice de NAÏA"
+                        }
+                        onClick={handleSelectHint}
+                        className={`relative inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium transition-colors cursor-pointer ${
+                          activeChannel === 'hint'
+                            ? 'text-indigo-100'
+                            : showHintAvailableCue
+                            ? 'text-emerald-300 hover:text-emerald-200'
+                            : 'text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        {activeChannel === 'hint' && (
+                          <motion.span
+                            layoutId={tabPillId}
+                            transition={pillSpring}
+                            className="absolute inset-0 rounded-full bg-indigo-400/20 border border-indigo-400/45"
+                          />
+                        )}
+                        <Lightbulb
+                          className={`relative z-10 w-3 h-3 ${
+                            activeChannel === 'hint'
+                              ? 'text-indigo-300'
+                              : showHintAvailableCue
+                              ? 'text-emerald-400'
+                              : 'text-slate-400'
+                          }`}
+                        />
+                        <span className="relative z-10">Indice</span>
+                        {showHintAvailableCue && activeChannel !== 'hint' && (
+                          <span className="relative z-10 font-mono text-[9px] uppercase tracking-wider text-emerald-400/90">
+                            · Offert
+                          </span>
+                        )}
+                      </button>
+                    )}
+                  </div>
                 )}
+
+                {activeChannel === 'reaction' && onDismissReaction && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDismissReaction();
+                    }}
+                    aria-label="Fermer la correction"
+                    className="p-0.5 rounded-full text-amber-300/75 hover:text-amber-100 hover:bg-amber-500/20 transition-colors cursor-pointer"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Single Living Speech Slot (Briefing / Correction / Hint) */}
+            <div
+              className={`text-[13px] sm:text-sm leading-relaxed font-normal min-w-0 ${
+                hasSegmentedControl ? 'sm:min-h-[2.75rem]' : ''
+              } ${currentMood.text}`}
+              role={activeChannel === 'reaction' ? 'status' : undefined}
+              aria-live={activeChannel === 'reaction' ? 'polite' : undefined}
+            >
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.div
+                  key={speechMotionKey}
+                  initial={prefersReducedMotion ? false : { opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0, transition: { duration: 0.16, ease: EASE_OUT_EXPO } }}
+                  exit={prefersReducedMotion ? undefined : { opacity: 0, y: -3, transition: { duration: 0.1 } }}
+                >
+                  {activeChannel === 'reaction' && reaction ? (
+                    <span>{reaction.message}</span>
+                  ) : activeChannel === 'hint' && levelHint && hintCtx ? (
+                    hasFreeHint ? (
+                      <span>{levelHint}</span>
+                    ) : (
+                      <div className="flex flex-wrap items-center justify-between gap-2.5">
+                        <span className="text-slate-200">
+                          Besoin d'un coup de pouce ? Essayez d'abord une réponse (l'indice sera offert), ou débloquez-le tout de suite.
+                        </span>
+                        <button
+                          type="button"
+                          disabled={hintCtx.score < FREE_HINT_COST_POINTS}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            hintCtx.useHint();
+                          }}
+                          className={`inline-flex items-center gap-1 px-3 py-1 rounded-lg font-mono text-xs font-bold shrink-0 transition-colors ${
+                            hintCtx.score >= FREE_HINT_COST_POINTS
+                              ? 'bg-indigo-500 hover:bg-indigo-400 text-white cursor-pointer shadow-[0_0_12px_rgba(99,102,241,0.3)]'
+                              : 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                          }`}
+                        >
+                          <span>Débloquer (-{FREE_HINT_COST_POINTS}</span>
+                          <Star className="w-3 h-3 fill-current shrink-0" />
+                          <span>)</span>
+                        </button>
+                      </div>
+                    )
+                  ) : (
+                    <TypewriterNode
+                      content={message}
+                      contentKey={contentKey}
+                      skipRequested={skipRequested}
+                      onTypingStateChange={handleTypingStateChange}
+                    />
+                  )}
+                </motion.div>
               </AnimatePresence>
             </div>
-          )}
-        </Collapsible>
+          </div>
+        </div>
+
+        {/* Pure Persistent Objective Strip (zero competing controls) */}
+        {objective && (
+          <div className="px-3.5 py-2 sm:px-4 bg-white/[0.025] border-t border-white/[0.06] flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
+            <div className="flex items-start gap-2 min-w-0 text-xs sm:text-[13px] text-slate-100 font-medium leading-snug">
+              <Target className="w-3.5 h-3.5 text-cyan-400/90 shrink-0 mt-0.5" />
+              <span>{objective}</span>
+            </div>
+            {objectiveChips && (
+              <div className="flex flex-wrap items-center gap-1.5 shrink-0">
+                {objectiveChips}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </motion.div>
   );

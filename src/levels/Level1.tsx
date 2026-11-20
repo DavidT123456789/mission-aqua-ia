@@ -233,7 +233,10 @@ export default function Level1({ onComplete, onScoreUpdate, onMistake }: { onCom
                 <div className={`p-3 rounded-2xl transition-all ${isErrorFlash ? 'bg-red-500/10 border-2 border-red-500 animate-shake' : ''}`}>
                   <NumberInput
                     value={waterAmount}
-                    onChange={setWaterAmount}
+                    onChange={(val) => {
+                      setWaterAmount(val);
+                      clearError();
+                    }}
                     unit="mL"
                     min={0}
                     max={999}
