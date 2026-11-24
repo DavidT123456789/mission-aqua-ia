@@ -1014,8 +1014,7 @@ export default function NaiaDialogue({
           <div className="flex-1 min-w-0 flex flex-col gap-1.5">
             {/* Speaker Identity + Unified Segmented Channel Control */}
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="flex items-center gap-1.5 font-mono">
-                <span className={`w-1.5 h-1.5 rounded-full shrink-0 transition-colors duration-300 ${currentMood.dot}`} aria-hidden="true" />
+              <div className="flex items-center font-mono">
                 <span className={`text-[10px] font-semibold uppercase tracking-[0.14em] transition-colors duration-300 ${currentMood.tag}`}>
                   {speakerLabel}
                 </span>
