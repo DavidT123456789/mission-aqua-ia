@@ -1,11 +1,13 @@
 import { useState, useEffect, type FormEvent } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import { Play, RotateCcw, Trash2, Trophy } from 'lucide-react';
 import NaiaDialogue from '../components/NaiaDialogue';
 import Collapsible from '../components/Collapsible';
 import Briefing from './Briefing';
 import { LEVEL_NAMES, MISSION_DURATION_MINUTES } from '../constants';
 import { EASE_OUT_EXPO, EASE_IN_OUT } from '../utils/motion';
+
+let hasPlayedAppIntro = false;
 
 export default function Intro({ onStart, hasSavedGame, savedGameInfo, onLoadGame, onClearSave, isMuted, onToggleMute, onBriefingOpenChange }: { 
   onStart: (name: string) => void; 
@@ -28,10 +30,16 @@ export default function Intro({ onStart, hasSavedGame, savedGameInfo, onLoadGame
   onBriefingOpenChange?: (open: boolean) => void;
   key?: string 
 }) {
+  const prefersReducedMotion = useReducedMotion();
+  const [isInitialLaunch] = useState(() => !hasPlayedAppIntro);
   const [name, setName] = useState('');
   const [confirmClear, setConfirmClear] = useState(false);
   const [showNewGameForm, setShowNewGameForm] = useState(false);
   const [briefingAgentName, setBriefingAgentName] = useState<string | null>(null);
+
+  useEffect(() => {
+    hasPlayedAppIntro = true;
+  }, []);
 
   useEffect(() => {
     onBriefingOpenChange?.(briefingAgentName !== null);
@@ -78,21 +86,104 @@ export default function Intro({ onStart, hasSavedGame, savedGameInfo, onLoadGame
       ) : (
         <motion.div
           key="welcome"
-          initial={{ opacity: 0, scale: 0.97, y: 10 }}
-          animate={{ opacity: 1, scale: 1, y: 0, transition: { duration: 0.3, ease: EASE_OUT_EXPO } }}
+          initial={
+            prefersReducedMotion
+              ? { opacity: 0 }
+              : isInitialLaunch
+              ? { opacity: 0, scale: 0.97, y: 20 }
+              : { opacity: 0, scale: 0.985, y: 10 }
+          }
+          animate={{
+            opacity: 1,
+            scale: 1,
+            y: 0,
+            transition: {
+              duration: prefersReducedMotion ? 0.2 : isInitialLaunch ? 0.56 : 0.3,
+              ease: EASE_OUT_EXPO,
+            },
+          }}
           exit={{ opacity: 0, y: -12, transition: { duration: 0.16, ease: EASE_IN_OUT } }}
-          className="sm:bg-slate-900/90 border-transparent sm:border-white/10 sm:border p-4 sm:p-8 sm:rounded-2xl max-w-2xl mx-auto backdrop-blur-xl font-sans sm:shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_24px_48px_rgba(0,0,0,0.55)]"
+          className="relative sm:overflow-hidden sm:bg-slate-900/90 border-transparent sm:border-white/10 sm:border p-4 sm:p-8 sm:rounded-2xl max-w-2xl mx-auto backdrop-blur-xl font-sans sm:shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_24px_48px_rgba(0,0,0,0.55)]"
         >
-          <div className="flex flex-col items-center space-y-6">
-            {/* Centered Header */}
+          {/* Subtle top luminous hairline & atmospheric sheen */}
+          <motion.div
+            aria-hidden="true"
+            initial={prefersReducedMotion ? false : { scaleX: 0, opacity: 0 }}
+            animate={{ scaleX: 1, opacity: 1 }}
+            transition={{
+              duration: isInitialLaunch ? 0.72 : 0.36,
+              delay: isInitialLaunch ? 0.1 : 0.04,
+              ease: EASE_OUT_EXPO,
+            }}
+            className="hidden sm:block absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-cyan-400/55 to-transparent origin-center pointer-events-none"
+          />
+          <motion.div
+            aria-hidden="true"
+            initial={prefersReducedMotion ? false : { opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{
+              duration: isInitialLaunch ? 0.85 : 0.35,
+              delay: isInitialLaunch ? 0.08 : 0.02,
+              ease: 'easeOut',
+            }}
+            className="hidden sm:block absolute inset-x-0 top-0 h-40 bg-[radial-gradient(ellipse_at_top,rgba(34,211,238,0.09),transparent_70%)] pointer-events-none"
+          />
+
+          <div className="relative z-10 flex flex-col items-center space-y-6">
+            {/* Centered Header with Staggered Editorial Reveal */}
             <div className="text-center space-y-1.5">
               <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white">
-                <span className="block font-mono text-[11px] sm:text-xs font-bold uppercase tracking-[0.28em] text-cyan-400 mb-1">
+                <motion.span
+                  initial={
+                    prefersReducedMotion
+                      ? false
+                      : {
+                          opacity: 0,
+                          y: isInitialLaunch ? 8 : 4,
+                          filter: isInitialLaunch ? 'blur(4px)' : 'blur(0px)',
+                        }
+                  }
+                  animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                  transition={{
+                    duration: isInitialLaunch ? 0.48 : 0.24,
+                    delay: isInitialLaunch ? 0.14 : 0.04,
+                    ease: EASE_OUT_EXPO,
+                  }}
+                  className="block font-mono text-[11px] sm:text-xs font-bold uppercase tracking-[0.28em] text-cyan-400 mb-1"
+                >
                   MISSION
-                </span>
-                AQUA <span className="text-emerald-400">IA</span>
+                </motion.span>
+                <motion.span
+                  initial={
+                    prefersReducedMotion
+                      ? false
+                      : {
+                          opacity: 0,
+                          y: isInitialLaunch ? 12 : 6,
+                          filter: isInitialLaunch ? 'blur(6px)' : 'blur(0px)',
+                        }
+                  }
+                  animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                  transition={{
+                    duration: isInitialLaunch ? 0.54 : 0.26,
+                    delay: isInitialLaunch ? 0.22 : 0.07,
+                    ease: EASE_OUT_EXPO,
+                  }}
+                  className="inline-block"
+                >
+                  AQUA <span className="text-emerald-400">IA</span>
+                </motion.span>
               </h1>
-              <p className="text-xs sm:text-sm text-slate-400">
+              <motion.p
+                initial={prefersReducedMotion ? false : { opacity: 0, y: isInitialLaunch ? 8 : 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{
+                  duration: isInitialLaunch ? 0.46 : 0.24,
+                  delay: isInitialLaunch ? 0.31 : 0.1,
+                  ease: EASE_OUT_EXPO,
+                }}
+                className="text-xs sm:text-sm text-slate-400"
+              >
                 Escape game · <span className="font-mono text-slate-300">13 niveaux</span> ·{' '}
                 <span
                   className="font-mono text-slate-300"
@@ -100,23 +191,44 @@ export default function Intro({ onStart, hasSavedGame, savedGameInfo, onLoadGame
                 >
                   Objectif {MISSION_DURATION_MINUTES} min
                 </span>
-              </p>
+              </motion.p>
             </div>
 
             {/* NAÏA Character Intro Bubble */}
-            <NaiaDialogue
-              hideHintButton
-              emotion="neutral"
-              message={
-                <>
-                  Agent, situation critique. Le réseau central{' '}
-                  <strong className="text-rose-300 font-mono">HYDRA</strong> assèche les réserves d'eau de la ville pour refroidir ses serveurs : infiltrez ses systèmes et coupez la surchauffe avant la pénurie. On compte sur vous !
-                </>
-              }
-            />
+            <motion.div
+              initial={prefersReducedMotion ? false : { opacity: 0, y: isInitialLaunch ? 12 : 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{
+                duration: isInitialLaunch ? 0.5 : 0.26,
+                delay: isInitialLaunch ? 0.37 : 0.12,
+                ease: EASE_OUT_EXPO,
+              }}
+              className="w-full"
+            >
+              <NaiaDialogue
+                hideHintButton
+                emotion="neutral"
+                typingDelayMs={isInitialLaunch && !prefersReducedMotion ? 420 : 0}
+                message={
+                  <>
+                    Agent, situation critique. Le réseau central{' '}
+                    <strong className="text-rose-300 font-mono">HYDRA</strong> assèche les réserves d'eau de la ville pour refroidir ses serveurs : infiltrez ses systèmes et coupez la surchauffe avant la pénurie. On compte sur vous !
+                  </>
+                }
+              />
+            </motion.div>
 
         {/* Action Section */}
-        <div className="w-full space-y-3.5">
+        <motion.div
+          initial={prefersReducedMotion ? false : { opacity: 0, y: isInitialLaunch ? 12 : 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{
+            duration: isInitialLaunch ? 0.5 : 0.26,
+            delay: isInitialLaunch ? 0.48 : 0.16,
+            ease: EASE_OUT_EXPO,
+          }}
+          className="w-full space-y-3.5"
+        >
           {hasSavedGame ? (
             <>
               {/* Priority Resume Card */}
@@ -292,7 +404,7 @@ export default function Intro({ onStart, hasSavedGame, savedGameInfo, onLoadGame
               </div>
             </form>
           )}
-        </div>
+        </motion.div>
       </div>
         </motion.div>
       )}

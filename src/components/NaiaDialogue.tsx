@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useId, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { FastForward, Lightbulb, Target, X, AudioLines, Square } from 'lucide-react';
+import { Lightbulb, Target, X, AudioLines, Square } from 'lucide-react';
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import { soundManager } from '../utils/soundManager';
 import { naiaSpeech, pickNaiaVoice } from '../utils/naiaSpeech';
@@ -25,11 +25,13 @@ function TypewriterNode({
   content,
   contentKey,
   skipRequested,
+  typingDelayMs = 0,
   onTypingStateChange
 }: {
   content: React.ReactNode;
   contentKey: string;
   skipRequested: boolean;
+  typingDelayMs?: number;
   onTypingStateChange?: (isTyping: boolean) => void;
 }) {
   const prefersReducedMotion = useReducedMotion();
@@ -96,9 +98,19 @@ function TypewriterNode({
       }
     };
 
-    rafId = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(rafId);
-  }, [contentKey, totalLength, shouldSkip, onTypingStateChange]);
+    let delayTimer: ReturnType<typeof setTimeout> | null = null;
+    if (typingDelayMs > 0) {
+      delayTimer = setTimeout(() => {
+        rafId = requestAnimationFrame(tick);
+      }, typingDelayMs);
+    } else {
+      rafId = requestAnimationFrame(tick);
+    }
+    return () => {
+      if (delayTimer !== null) clearTimeout(delayTimer);
+      cancelAnimationFrame(rafId);
+    };
+  }, [contentKey, totalLength, shouldSkip, typingDelayMs, onTypingStateChange]);
 
   const renderProgressive = (node: React.ReactNode, counter: { val: number }): React.ReactNode => {
     if (counter.val >= visibleCount) {
@@ -637,6 +649,7 @@ interface NaiaDialogueProps {
   onDismissReaction?: () => void;
   hideHintButton?: boolean;
   hintStep?: number;
+  typingDelayMs?: number;
 }
 
 export default function NaiaDialogue({
@@ -648,7 +661,8 @@ export default function NaiaDialogue({
   reaction,
   onDismissReaction,
   hideHintButton = false,
-  hintStep
+  hintStep,
+  typingDelayMs = 0
 }: NaiaDialogueProps) {
   const hintCtx = useNaiaHints();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -817,12 +831,6 @@ export default function NaiaDialogue({
     }
   }, []);
 
-  const handleSkip = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setSkipRequested(true);
-    setIsTyping(false);
-  };
-
   const handleSelectBriefing = (e: React.MouseEvent) => {
     e.stopPropagation();
     setIsHintOpen?.(false);
@@ -959,25 +967,8 @@ export default function NaiaDialogue({
                 </span>
               </div>
 
+              {(hasSegmentedControl || (activeChannel === 'reaction' && onDismissReaction)) && (
               <div className="flex items-center gap-1.5">
-                <AnimatePresence initial={false}>
-                  {activeChannel === 'briefing' && isTyping && (
-                    <motion.button
-                      key="skip-btn"
-                      type="button"
-                      initial={{ opacity: 0, scale: 0.92 }}
-                      animate={{ opacity: 1, scale: 1, transition: { duration: 0.16, ease: EASE_OUT_EXPO } }}
-                      exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.12 } }}
-                      onClick={handleSkip}
-                      className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white/[0.05] hover:bg-white/[0.12] border border-white/10 text-[11px] font-medium text-slate-300 hover:text-white transition-colors cursor-pointer whitespace-nowrap shrink-0"
-                      aria-label="Passer l'animation du texte"
-                    >
-                      <span>Passer</span>
-                      <FastForward className="w-2.5 h-2.5" />
-                    </motion.button>
-                  )}
-                </AnimatePresence>
-
                 {hasSegmentedControl && (
                   <div
                     role="tablist"
@@ -1090,6 +1081,7 @@ export default function NaiaDialogue({
                   </button>
                 )}
               </div>
+              )}
             </div>
 
             {/* Single Living Speech Slot (Briefing / Correction / Hint) */}
@@ -1116,6 +1108,7 @@ export default function NaiaDialogue({
                       content={message}
                       contentKey={contentKey}
                       skipRequested={skipRequested}
+                      typingDelayMs={typingDelayMs}
                       onTypingStateChange={handleTypingStateChange}
                     />
                   )}

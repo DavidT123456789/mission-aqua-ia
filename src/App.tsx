@@ -6,7 +6,7 @@ import HUD from './components/HUD';
 import TransitionScreen from './components/TransitionScreen';
 import { NaiaHintContext } from './components/NaiaContext';
 import { soundManager } from './utils/soundManager';
-import { MODAL_BACKDROP_MOTION, MODAL_PANEL_MOTION } from './utils/motion';
+import { EASE_OUT_EXPO, MODAL_BACKDROP_MOTION, MODAL_PANEL_MOTION } from './utils/motion';
 import {
   FACTS,
   LEVEL_NAMES,
@@ -1756,14 +1756,20 @@ export default function App() {
 
       {/* Background moved to the top for z-index layering */}
 
-      <footer inert={isPauseOverlayVisible} className="w-full max-w-4xl mx-auto flex justify-center relative z-20 pt-2">
+      <motion.footer
+        inert={isPauseOverlayVisible}
+        initial={prefersReducedMotion ? false : { opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.52, ease: EASE_OUT_EXPO }}
+        className="w-full max-w-4xl mx-auto flex justify-center relative z-20 pt-2"
+      >
         <span
           onClick={handleFooterCreditClick}
           className="text-[11px] font-sans text-slate-500/75 px-3 py-1.5 rounded-md cursor-default select-none"
         >
           Réalisé par la constellation Echo
         </span>
-      </footer>
+      </motion.footer>
     </div>
     </NaiaHintContext.Provider>
     </MotionConfig>
@@ -1786,10 +1792,17 @@ const BACKGROUND_PARTICLES = Array.from({ length: 15 }, (_, i) => {
 
 // Optimized Atmospheric Background Component
 const Background = React.memo(() => {
+  const prefersReducedMotion = useReducedMotion();
+
   return (
     <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden bg-slate-950">
-      {/* Subtle atmospheric top glow + depth vignette */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(6,182,212,0.06),transparent_60%)]" />
+      {/* Subtle atmospheric top glow + depth vignette with soft launch bloom */}
+      <motion.div
+        initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.92 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.95, ease: EASE_OUT_EXPO }}
+        className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(6,182,212,0.08),transparent_62%)] origin-top"
+      />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_20%,rgba(2,6,23,0.8)_100%)]" />
 
       {/* Subtle floating ambient particles */}

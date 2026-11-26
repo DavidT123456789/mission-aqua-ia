@@ -604,7 +604,12 @@ export default function HUD({
           )}
 
           {/* Mute Toggle (Always visible on desktop, and visible on mobile when outside active levels) */}
-          <div className={`relative group/mute ${(level > 0 && level < 14 && lives > 0) ? 'hidden md:block' : 'block'}`}>
+          <motion.div
+            initial={level === 0 ? { opacity: 0, y: -8 } : false}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45, delay: level === 0 ? 0.36 : 0, ease: EASE_OUT_EXPO }}
+            className={`relative group/mute ${(level > 0 && level < 14 && lives > 0) ? 'hidden md:block' : 'block'}`}
+          >
             <button
               type="button"
               onClick={onToggleMute}
@@ -627,7 +632,7 @@ export default function HUD({
               <div className="absolute bottom-full right-3 border-4 border-transparent border-b-slate-700"></div>
               <div className="absolute bottom-[calc(100%-1px)] right-3 border-4 border-transparent border-b-slate-900"></div>
             </div>
-          </div>
+          </motion.div>
         </div>
       </div>
 

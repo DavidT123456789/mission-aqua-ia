@@ -3,6 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#020617" />
+    <meta name="color-scheme" content="dark" />
     <meta name="author" content="David Trafial" />
     <link
       rel="icon"
@@ -15,9 +17,104 @@
     <meta property="og:description" content="Un escape game éducatif sur l'intelligence artificielle et la consommation d'eau pour les collégiens." />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        min-height: 100%;
+        background-color: #020617;
+        color: #e2e8f0;
+        color-scheme: dark;
+      }
+
+      .aqua-boot {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 18px;
+        opacity: 0;
+        pointer-events: none;
+        animation: aqua-boot-reveal 0.35s cubic-bezier(0.22, 1, 0.36, 1) 0.18s forwards;
+      }
+
+      .aqua-boot-emblem {
+        position: relative;
+        width: 52px;
+        height: 62px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .aqua-boot-ring {
+        position: absolute;
+        inset: -10px;
+        border-radius: 9999px;
+        border: 1px solid rgba(34, 211, 238, 0.25);
+        animation: aqua-boot-pulse 2s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+      }
+
+      .aqua-boot-bar {
+        width: 84px;
+        height: 2px;
+        border-radius: 9999px;
+        background: rgba(148, 163, 184, 0.14);
+        overflow: hidden;
+        position: relative;
+      }
+
+      .aqua-boot-bar::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        width: 45%;
+        border-radius: 9999px;
+        background: linear-gradient(90deg, transparent, #22d3ee, #34d399, transparent);
+        animation: aqua-boot-slide 1.2s ease-in-out infinite;
+      }
+
+      @keyframes aqua-boot-reveal {
+        from { opacity: 0; transform: translateY(6px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+
+      @keyframes aqua-boot-pulse {
+        0% { transform: scale(0.85); opacity: 0.55; }
+        100% { transform: scale(1.35); opacity: 0; }
+      }
+
+      @keyframes aqua-boot-slide {
+        0% { transform: translateX(-120%); }
+        100% { transform: translateX(260%); }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .aqua-boot { animation: none; opacity: 1; }
+        .aqua-boot-ring, .aqua-boot-bar::after { animation: none; }
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div class="aqua-boot" aria-hidden="true">
+        <div class="aqua-boot-emblem">
+          <span class="aqua-boot-ring"></span>
+          <svg viewBox="10 0 44 59" width="44" height="58" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <line x1="32" y1="10" x2="32" y2="4" stroke="#22d3ee" stroke-width="2" stroke-linecap="round" />
+            <circle cx="32" cy="4" r="2.6" fill="#34d399" />
+            <path d="M32 9 C32 9 50 25 50 38.5 C50 48.7 41.9 56 32 56 C22.1 56 14 48.7 14 38.5 C14 25 32 9 32 9 Z" fill="#0f172a" stroke="#22d3ee" stroke-width="2.2" />
+            <rect x="19" y="29" width="26" height="16" rx="7.5" fill="#020617" stroke="rgba(103,232,249,0.3)" stroke-width="1" />
+            <circle cx="26.5" cy="37" r="2.3" fill="#67e8f9" />
+            <circle cx="37.5" cy="37" r="2.3" fill="#67e8f9" />
+          </svg>
+        </div>
+        <div class="aqua-boot-bar"></div>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
