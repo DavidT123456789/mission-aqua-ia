@@ -5,6 +5,7 @@ import NaiaDialogue from '../components/NaiaDialogue';
 import TechTerm from '../components/TechTerm';
 import LevelHeader from '../components/LevelHeader';
 import LevelShell from '../components/LevelShell';
+import MissionWorkspace from '../components/MissionWorkspace';
 import ActionButton from '../components/ActionButton';
 import LevelSuccessCard from '../components/LevelSuccessCard';
 import Collapsible from '../components/Collapsible';
@@ -118,24 +119,26 @@ export default function Level3({ onComplete, onScoreUpdate, onMistake }: { onCom
       
       <LevelHeader level={3} icon={Radar} />
 
-      <div className="mb-3.5">
+      <div className="mb-3.5 sm:mb-4">
         <NaiaDialogue
-          hydra={{
-            status: 'hostile',
-            message: "Chute de pression détectée sur le réseau municipal. Pompage compensatoire maintenu pour sécuriser les serveurs.",
-          }}
           message={
             <>
               Le refroidissement d'HYDRA est stabilisé, mais les réserves continuent de baisser : une fuite souterraine aggrave la pénurie ! Heureusement, l'<TechTerm term="IA" /> croise la pression et le débit la nuit (03h00) pour éviter les faux positifs.
             </>
           }
-          objective="Scannez les capteurs sur la carte radar pour révéler leur télémétrie, puis isolez celui qui cumule une baisse de pression ET un débit nocturne anormalement élevé."
           reaction={errorMsg ? { message: errorMsg, emotion: 'alert' } : null}
           onDismissReaction={clearError}
           emotion={isSuccess ? 'happy' : 'neutral'}
         />
       </div>
 
+      <MissionWorkspace
+        hydra={{
+          status: 'hostile',
+          message: "Chute de pression détectée sur le réseau municipal. Pompage compensatoire maintenu pour sécuriser les serveurs.",
+        }}
+        objective="Scannez les capteurs sur la carte radar pour révéler leur télémétrie, puis isolez celui qui cumule une baisse de pression ET un débit nocturne anormalement élevé."
+      >
       <div className="space-y-4 text-slate-300">
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Interactive Radar Map */}
@@ -625,6 +628,7 @@ export default function Level3({ onComplete, onScoreUpdate, onMistake }: { onCom
           )}
         </AnimatePresence>
       </div>
+      </MissionWorkspace>
     </LevelShell>
   );
 }

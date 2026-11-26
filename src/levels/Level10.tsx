@@ -5,6 +5,7 @@ import NaiaDialogue from '../components/NaiaDialogue';
 import TechTerm from '../components/TechTerm';
 import LevelHeader from '../components/LevelHeader';
 import LevelShell from '../components/LevelShell';
+import MissionWorkspace from '../components/MissionWorkspace';
 import ActionButton from '../components/ActionButton';
 import LevelSuccessCard from '../components/LevelSuccessCard';
 import { soundManager } from '../utils/soundManager';
@@ -82,25 +83,27 @@ export default function Level10({ onComplete, onScoreUpdate, onMistake }: { onCo
       
       <LevelHeader level={10} icon={Scale} />
 
-      <div className="mb-3">
+      <div className="mb-3.5 sm:mb-4">
         <NaiaDialogue
-          hydra={{
-            status: 'warning',
-            label: 'HYDRA // GOUVERNANCE',
-            message: "Verrouillage éthique activé. En attente de signature de la Charte municipale pour autoriser le redémarrage.",
-          }}
           message={
             <>
               La technique ne suffit pas : pour éviter qu'une telle crise se reproduise, la ville exige un arrêté municipal portant « Charte de l'<TechTerm term="IA" /> Responsable » avant de redémarrer HYDRA.
             </>
           }
-          objective="Cochez uniquement les articles réellement contraignants pour l'environnement, puis tamponnez l'arrêté municipal."
           reaction={errorMsg ? { message: errorMsg, emotion: 'alert' } : null}
           onDismissReaction={clearError}
           emotion={isSuccess ? 'happy' : 'neutral'}
         />
       </div>
 
+      <MissionWorkspace
+        hydra={{
+          status: 'warning',
+          label: 'HYDRA · GOUVERNANCE',
+          message: "Verrouillage éthique activé. En attente de signature de la Charte municipale pour autoriser le redémarrage.",
+        }}
+        objective="Cochez uniquement les articles réellement contraignants pour l'environnement, puis tamponnez l'arrêté municipal."
+      >
       <div className="space-y-4 text-slate-300">
         {/* Arrêté municipal officiel */}
         <div className="relative bg-slate-950 rounded-xl border-2 border-slate-700/80 overflow-hidden shadow-xl">
@@ -215,6 +218,7 @@ export default function Level10({ onComplete, onScoreUpdate, onMistake }: { onCo
           )}
         </AnimatePresence>
       </div>
+      </MissionWorkspace>
     </LevelShell>
   );
 }

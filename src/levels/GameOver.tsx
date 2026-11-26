@@ -1,6 +1,5 @@
 import { motion } from 'motion/react';
 import {
-  TimerOff,
   RotateCcw,
   HeartCrack,
   Heart,
@@ -14,10 +13,7 @@ import {
 import {
   LEVEL_NAMES,
   MISSION_DURATION_SECONDS,
-  LOCKOUT_MIN_TIME_REMAINING_SECONDS,
   LOCKOUT_RESTORE_LIVES,
-  LOCKOUT_TIME_PENALTY_SECONDS,
-  ACT_CHECKPOINT_MIN_TIME_SECONDS,
   getActForLevel,
   type ActCheckpoint,
 } from '../constants';
@@ -32,25 +28,20 @@ interface GameOverProps {
   nickname: string;
   level: number;
   score: number;
-  timeLeft: number;
+  elapsedSeconds: number;
   secondChanceUsed?: boolean;
   actCheckpoint?: ActCheckpoint | null;
-  reason?: 'time' | 'lives';
   key?: string;
 }
 
-function formatPenaltyClock(seconds: number) {
-  const safe = Math.max(0, Math.floor(seconds));
-  const m = Math.floor(safe / 60);
-  const s = safe % 60;
-  return s === 0 ? `${m} min` : `${m}m${s.toString().padStart(2, '0')}s`;
-}
-
-function formatClock(seconds: number) {
-  const safe = Math.max(0, Math.floor(seconds));
-  const m = Math.floor(safe / 60);
-  const s = safe % 60;
-  return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+function formatMissionClock(elapsedSeconds: number) {
+  const remaining = MISSION_DURATION_SECONDS - Math.max(0, Math.floor(elapsedSeconds));
+  const isOvertime = remaining < 0;
+  const absSec = Math.abs(remaining);
+  const m = Math.floor(absSec / 60);
+  const s = absSec % 60;
+  const clock = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  return isOvertime ? `+${clock}` : clock;
 }
 
 export default function GameOver({
@@ -61,10 +52,9 @@ export default function GameOver({
   nickname,
   level,
   score,
-  timeLeft,
+  elapsedSeconds,
   secondChanceUsed = false,
   actCheckpoint = null,
-  reason = 'time',
 }: GameOverProps) {
   const rawName = nickname.trim();
   const isAnonymous = !rawName || rawName.toLowerCase() === 'agent anonyme';
@@ -74,26 +64,13 @@ export default function GameOver({
     ? rawName
     : `Agent ${rawName}`;
   const levelName = LEVEL_NAMES[level] || `Mission ${level}`;
-  const canUseSecondChance = reason === 'lives' && !secondChanceUsed && Boolean(onResumeLevel);
+  const canUseSecondChance = !secondChanceUsed && Boolean(onResumeLevel);
   const canResumeAct =
     !canUseSecondChance &&
     Boolean(onResumeAct) &&
     Boolean(actCheckpoint) &&
     (actCheckpoint?.actId === 2 || actCheckpoint?.actId === 3);
   const checkpointAct = canResumeAct && actCheckpoint ? getActForLevel(actCheckpoint.level) : undefined;
-  const restoredActTime =
-    canResumeAct && actCheckpoint
-      ? Math.min(
-          MISSION_DURATION_SECONDS,
-          Math.max(actCheckpoint.timeLeft, ACT_CHECKPOINT_MIN_TIME_SECONDS[actCheckpoint.actId])
-        )
-      : 0;
-
-  const nextTimeLeft =
-    timeLeft <= LOCKOUT_MIN_TIME_REMAINING_SECONDS
-      ? timeLeft
-      : Math.max(LOCKOUT_MIN_TIME_REMAINING_SECONDS, timeLeft - LOCKOUT_TIME_PENALTY_SECONDS);
-  const actualTimePenalty = Math.max(0, timeLeft - nextTimeLeft);
 
   return (
     <motion.div
@@ -126,21 +103,13 @@ export default function GameOver({
         {/* Emblem */}
         <div className="mb-4">
           <div className="w-15 h-15 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-b from-red-500/15 to-red-950/50 border border-red-500/30 flex items-center justify-center shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_24px_rgba(239,68,68,0.18)]">
-            {reason === 'lives' ? (
-              <HeartCrack className="w-8 h-8 text-red-400" strokeWidth={1.75} />
-            ) : (
-              <TimerOff className="w-8 h-8 text-red-400" strokeWidth={1.75} />
-            )}
+            <HeartCrack className="w-8 h-8 text-red-400" strokeWidth={1.75} />
           </div>
         </div>
 
         {/* Title */}
         <p className="font-mono text-[10px] sm:text-[11px] uppercase tracking-[0.24em] text-red-400/80 mb-1">
-          {canUseSecondChance
-            ? 'Alerte pare-feu HYDRA'
-            : reason === 'lives'
-            ? 'Session verrouillée'
-            : 'Temps écoulé'}
+          {canUseSecondChance ? 'Alerte pare-feu HYDRA' : 'Session verrouillée'}
         </p>
         <h1 className="font-mono text-2xl sm:text-[28px] font-bold text-white mb-3 uppercase tracking-[0.12em] leading-tight">
           {canUseSecondChance ? (
@@ -157,29 +126,18 @@ export default function GameOver({
         {/* Narrative & Conditions */}
         {canUseSecondChance ? (
           <>
-            <p className="text-slate-300 text-sm sm:text-[15px] leading-relaxed max-w-[40ch] mb-5 font-sans">
+            <p className="text-slate-300 text-sm sm:text-[15px] leading-relaxed max-w-[42ch] mb-5 font-sans">
               {isAnonymous ? (
                 <>Vous n'avez plus de vies.</>
               ) : (
                 <>
-                  <span className="text-white font-semibold">{displayAgent}</span> n'a plus de vies.
+                  <span className="text-white font-semibold">{displayAgent}</span>, vous n'avez plus de vies.
                 </>
               )}{' '}
-              NAÏA peut forcer le système pour relancer le niveau {level}.
+              NAÏA peut forcer le système <strong className="text-white">une seule fois sur toute la mission</strong> pour relancer le niveau {level}. Notez bien vos réponses dans votre cahier avant de valider !
             </p>
 
             <div className="w-full flex flex-wrap items-center justify-center gap-x-3 gap-y-2 rounded-xl bg-slate-950/60 border border-white/[0.07] px-4 py-3 mb-6 text-xs sm:text-[13px] font-mono">
-              {actualTimePenalty > 0 && (
-                <>
-                  <span className="inline-flex items-center gap-1.5 text-red-300">
-                    <Clock className="w-3.5 h-3.5 text-red-400 shrink-0" />
-                    -{formatPenaltyClock(actualTimePenalty)}
-                  </span>
-                  <span className="text-slate-700 hidden sm:inline" aria-hidden="true">
-                    ·
-                  </span>
-                </>
-              )}
               <span className="inline-flex items-center gap-1.5 text-emerald-300">
                 <Heart className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                 {LOCKOUT_RESTORE_LIVES}/3 vies
@@ -187,9 +145,16 @@ export default function GameOver({
               <span className="text-slate-700 hidden sm:inline" aria-hidden="true">
                 ·
               </span>
+              <span className="inline-flex items-center gap-1.5 text-cyan-300">
+                <Clock className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                {formatMissionClock(elapsedSeconds)}
+              </span>
+              <span className="text-slate-700 hidden sm:inline" aria-hidden="true">
+                ·
+              </span>
               <span className="inline-flex items-center gap-1.5 text-amber-300">
                 <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                Dernière tentative
+                Joker unique
               </span>
             </div>
           </>
@@ -197,27 +162,23 @@ export default function GameOver({
           <>
             <p className="text-slate-300 text-sm sm:text-[15px] mb-5 font-sans leading-relaxed max-w-[44ch]">
               {canResumeAct && checkpointAct ? (
-                reason === 'lives' ? (
-                  isAnonymous ? (
-                    `Vous avez épuisé vos vies et votre seconde chance. Le pare-feu d'HYDRA a fermé la session, mais NAÏA peut restaurer votre point de contrôle au début de ${checkpointAct.id === 2 ? "l'Acte II" : "l'Acte III"}.`
-                  ) : (
-                    `${displayAgent} a épuisé ses vies et sa seconde chance. Le pare-feu d'HYDRA a fermé la session, mais NAÏA peut restaurer votre point de contrôle au début de ${checkpointAct.id === 2 ? "l'Acte II" : "l'Acte III"}.`
-                  )
-                ) : isAnonymous ? (
-                  `Le chronomètre est arrivé à zéro. HYDRA a maintenu son pompage d'eau, mais NAÏA peut relancer la mission depuis votre point de contrôle de ${checkpointAct.id === 2 ? "l'Acte II" : "l'Acte III"}.`
-                ) : (
-                  `Le chronomètre est arrivé à zéro, ${displayAgent}. HYDRA a maintenu son pompage d'eau, mais NAÏA peut relancer la mission depuis votre point de contrôle de ${checkpointAct.id === 2 ? "l'Acte II" : "l'Acte III"}.`
-                )
-              ) : reason === 'lives' ? (
-                isAnonymous ? (
-                  "Vous avez épuisé vos vies et votre seconde chance. Le pare-feu d'HYDRA a définitivement fermé la session."
-                ) : (
-                  `${displayAgent} a épuisé ses vies et sa seconde chance. Le pare-feu d'HYDRA a définitivement fermé la session.`
-                )
-              ) : isAnonymous ? (
-                "Le chronomètre est arrivé à zéro. HYDRA a maintenu son pompage d'eau sur le réseau de la ville."
+                <>
+                  {!isAnonymous && (
+                    <>
+                      <span className="text-white font-semibold">{displayAgent}</span>,{' '}
+                    </>
+                  )}
+                  {isAnonymous ? 'Vous' : 'vous'} avez épuisé vos vies et votre seconde chance. NAÏA restaure votre point de contrôle au début de {checkpointAct.id === 2 ? "l'Acte II" : "l'Acte III"} : appuyez-vous sur les réponses notées dans votre cahier pour remonter rapidement !
+                </>
               ) : (
-                `Le chronomètre est arrivé à zéro, ${displayAgent}. HYDRA a maintenu son pompage d'eau sur le réseau de la ville.`
+                <>
+                  {!isAnonymous && (
+                    <>
+                      <span className="text-white font-semibold">{displayAgent}</span>,{' '}
+                    </>
+                  )}
+                  {isAnonymous ? 'Vous' : 'vous'} avez épuisé vos vies et votre seconde chance. Relancez la mission et notez vos réponses dans votre cahier au fil des niveaux !
+                </>
               )}
             </p>
 
@@ -252,7 +213,7 @@ export default function GameOver({
               <div className="w-full flex flex-wrap items-center justify-center gap-x-3 gap-y-2 rounded-xl bg-cyan-950/35 border border-cyan-500/25 px-4 py-3 mb-6 text-xs sm:text-[13px] font-mono">
                 <span className="inline-flex items-center gap-1.5 text-cyan-300">
                   <Clock className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                  {formatClock(restoredActTime)}
+                  {formatMissionClock(actCheckpoint.elapsedSeconds)}
                 </span>
                 <span className="text-slate-700 hidden sm:inline" aria-hidden="true">
                   ·

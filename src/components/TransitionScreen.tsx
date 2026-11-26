@@ -16,7 +16,8 @@ import {
 import NaiaDialogue, { NaiaAvatar } from './NaiaDialogue';
 import ActionButton from './ActionButton';
 import { getLevelIcon } from './levelIcons';
-import { LEVEL_NAMES, getActForLevel } from '../constants';
+import { LEVEL_NAMES, MAX_LIVES, MISSION_DURATION_MINUTES, MISSION_DURATION_SECONDS, getActForLevel } from '../constants';
+import type { LifeRestoreKind } from '../utils/checkpointRules';
 import { soundManager } from '../utils/soundManager';
 import { EASE_OUT_EXPO, EASE_IN_OUT, SPRING_SNAPPY } from '../utils/motion';
 
@@ -98,8 +99,8 @@ interface TransitionScreenProps {
   onTransitionComplete: () => void;
   score: number;
   pointsGained: number;
-  timeRemaining: number;
-  lifeRestored?: boolean;
+  elapsedSeconds: number;
+  lifeRestoreKind?: LifeRestoreKind;
   isMuted?: boolean;
   onToggleMute?: () => void;
   skipReadDelay?: boolean;
@@ -112,8 +113,8 @@ export default function TransitionScreen({
   onTransitionComplete,
   score,
   pointsGained,
-  timeRemaining,
-  lifeRestored = false,
+  elapsedSeconds,
+  lifeRestoreKind = 'none',
   isMuted = false,
   onToggleMute,
   skipReadDelay = false,
@@ -166,12 +167,12 @@ export default function TransitionScreen({
   }, []);
 
   useEffect(() => {
-    if (!lifeRestored) return;
+    if (lifeRestoreKind === 'none') return;
     const timer = setTimeout(() => {
       soundManager.playHeartRestore();
     }, 350);
     return () => clearTimeout(timer);
-  }, [lifeRestored]);
+  }, [lifeRestoreKind]);
 
   useEffect(() => {
     if (pointsGained <= 0) {
@@ -199,7 +200,10 @@ export default function TransitionScreen({
     return () => cancelAnimationFrame(rafId);
   }, [score, pointsGained]);
 
-  const formattedTime = `${Math.floor(timeRemaining / 60)}:${(timeRemaining % 60).toString().padStart(2, '0')}`;
+  const remainingSeconds = MISSION_DURATION_SECONDS - Math.max(0, Math.floor(elapsedSeconds));
+  const isOvertime = remainingSeconds < 0;
+  const absClockSeconds = Math.abs(remainingSeconds);
+  const formattedTime = `${isOvertime ? '+' : ''}${Math.floor(absClockSeconds / 60).toString().padStart(2, '0')}:${(absClockSeconds % 60).toString().padStart(2, '0')}`;
 
   // Full-Bleed 2-Stage Cinematic Chapter Interlude (Acte II before N4, Acte III before N11)
   if (isActInterlude && currentAct && actConfig && actMedia) {
@@ -258,10 +262,7 @@ export default function TransitionScreen({
           >
             <div className="space-y-0.5">
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[11px] font-bold uppercase tracking-[0.22em] text-emerald-400">
-                <span className="inline-flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.85)]" />
-                  {currentAct.label}
-                </span>
+                <span>{currentAct.label}</span>
                 <span className="text-slate-500">·</span>
                 <span className="text-slate-300/80 font-normal tracking-wider normal-case">{actConfig.rangeLabel}</span>
                 <span className="text-slate-500">·</span>
@@ -292,16 +293,16 @@ export default function TransitionScreen({
                   {pointsGained > 0 && <span className="text-emerald-400 ml-0.5">(+{pointsGained})</span>}
                 </span>
                 <span className="w-px h-3.5 bg-white/15" aria-hidden="true" />
-                <span className={`inline-flex items-center gap-1 font-bold tabular-nums ${timeRemaining < 300 ? 'text-red-400' : 'text-cyan-300'}`}>
+                <span className={`inline-flex items-center gap-1 font-bold tabular-nums ${isOvertime ? 'text-amber-300' : remainingSeconds < 300 ? 'text-rose-400' : 'text-cyan-300'}`}>
                   <Clock className="w-3.5 h-3.5" />
                   {formattedTime}
                 </span>
-                {lifeRestored && (
+                {lifeRestoreKind !== 'none' && (
                   <>
                     <span className="w-px h-3.5 bg-white/15" aria-hidden="true" />
                     <span className="inline-flex items-center gap-1 text-rose-300 font-bold">
                       <Heart className="w-3.5 h-3.5 text-rose-400 fill-rose-400" />
-                      +1 vie
+                      {lifeRestoreKind === 'full' ? `Vies rétablies · ${MAX_LIVES}/${MAX_LIVES}` : '+1 vie'}
                     </span>
                   </>
                 )}
@@ -442,7 +443,7 @@ export default function TransitionScreen({
             )}
           </div>
 
-          {lifeRestored && (
+          {lifeRestoreKind !== 'none' && (
             <motion.div
               initial={prefersReducedMotion ? false : { scale: 0.85, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
@@ -450,7 +451,11 @@ export default function TransitionScreen({
               className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-950/60 border border-rose-400/45 text-rose-200 text-xs font-mono font-bold"
             >
               <Heart className="w-3.5 h-3.5 text-rose-400 fill-rose-400 shrink-0" />
-              <span>+1 vie restaurée · Palier niveau {level}</span>
+              <span>
+                {lifeRestoreKind === 'full'
+                  ? `Vies rétablies (${MAX_LIVES}/${MAX_LIVES}) · Niveau ${level}`
+                  : `+1 vie restaurée · Palier niveau ${level}`}
+              </span>
             </motion.div>
           )}
         </motion.div>
@@ -480,9 +485,9 @@ export default function TransitionScreen({
 
           <div className="bg-slate-950/65 border border-white/10 p-3.5 rounded-2xl flex flex-col items-center justify-center">
             <span className="text-[10px] font-mono text-slate-400 uppercase tracking-widest font-bold mb-1">
-              Temps restant
+              {isOvertime ? 'Prolongation' : `Objectif ${MISSION_DURATION_MINUTES} min`}
             </span>
-            <span className={`text-2xl font-mono font-black tabular-nums ${timeRemaining < 300 ? 'text-red-400' : 'text-cyan-400'}`}>
+            <span className={`text-2xl font-mono font-black tabular-nums ${isOvertime ? 'text-amber-300' : remainingSeconds < 300 ? 'text-rose-400' : 'text-cyan-400'}`}>
               {formattedTime}
             </span>
             <span className="mt-1 text-[10px] font-mono text-slate-500 uppercase tracking-wider">
@@ -507,13 +512,7 @@ export default function TransitionScreen({
               <NaiaAvatar emotion="happy" size="sm" />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1.5">
-                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-emerald-500/20 border border-emerald-400/35 text-emerald-300 text-[10px] font-mono font-bold rounded uppercase tracking-wider">
-                    {isRevealingFact && (
-                      <span
-                        aria-hidden="true"
-                        className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"
-                      />
-                    )}
+                  <span className="inline-flex items-center px-2 py-0.5 bg-emerald-500/20 border border-emerald-400/35 text-emerald-300 text-[10px] font-mono font-bold rounded uppercase tracking-wider">
                     Le saviez-vous ?
                   </span>
                 </div>

@@ -1,12 +1,10 @@
 import React, { useState, useEffect, useMemo, useId, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { FastForward, Lightbulb, Target, X, AudioLines, Square, Star } from 'lucide-react';
+import { FastForward, Lightbulb, Target, X, AudioLines, Square } from 'lucide-react';
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import { soundManager } from '../utils/soundManager';
-import {
-  getLevelHint,
-  FREE_HINT_COST_POINTS,
-} from '../constants';
+import { naiaSpeech, pickNaiaVoice } from '../utils/naiaSpeech';
+import { getLevelHint } from '../constants';
 import { useNaiaHints } from './NaiaContext';
 import HydraLog, { type HydraLogData } from './HydraLog';
 import { EASE_OUT_EXPO, EASE_IN_OUT } from '../utils/motion';
@@ -21,42 +19,6 @@ function extractNodeText(node: React.ReactNode): string {
     if (typeof node.props?.term === 'string') return node.props.term;
   }
   return '';
-}
-
-function formatSpeechText(raw: string): string {
-  return raw
-    .replace(/NAÏA/g, 'Naïa')
-    .replace(/gCO₂\/kWh/gi, 'grammes de CO2 par kilowattheure')
-    .replace(/CO₂/g, 'CO2')
-    .replace(/L\/MWh/g, 'litres par mégawattheure')
-    .replace(/L\/min/g, 'litres par minute')
-    .replace(/L\/s/g, 'litres par seconde')
-    .replace(/\b(\d+)\s*mL\b/g, '$1 millilitres')
-    .replace(/\b(\d+)\s*ms\b/g, '$1 millisecondes')
-    .replace(/\b(\d+)\s*kWh\b/g, '$1 kilowattheures')
-    .replace(/\b(\d+)\s*MW\b/g, '$1 mégawatts')
-    .replace(/\b(\d+)\s*To\b/g, '$1 téraoctets')
-    .replace(/°C/g, ' degrés Celsius')
-    .replace(/\bPUE\b/g, 'P U E')
-    .replace(/\bDEEE\b/g, 'D 3 E')
-    .replace(/\bLLM\b/g, 'L L M')
-    .replace(/\bGPU\b/g, 'G P U')
-    .replace(/\bCPU\b/g, 'C P U')
-    .replace(/\bIoT\b/g, 'I o T')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-function pickFrenchVoice(): SpeechSynthesisVoice | null {
-  if (typeof window === 'undefined' || !('speechSynthesis' in window)) return null;
-  const voices = window.speechSynthesis.getVoices();
-  if (!voices.length) return null;
-  return (
-    voices.find((v) => v.lang.toLowerCase() === 'fr-fr' && v.localService) ||
-    voices.find((v) => v.lang.toLowerCase() === 'fr-fr') ||
-    voices.find((v) => v.lang.toLowerCase().startsWith('fr')) ||
-    null
-  );
 }
 
 function TypewriterNode({
@@ -206,7 +168,6 @@ const AVATAR_PALETTE: Record<
     eye: string;
     antenna: string;
     badge: string;
-    dotClass: string;
     tooltipBorder: string;
     statusLabel: string;
     statusNote: string;
@@ -219,7 +180,6 @@ const AVATAR_PALETTE: Record<
     eye: '#67e8f9',
     antenna: '#22d3ee',
     badge: 'text-cyan-300 bg-cyan-950/70 border-cyan-500/35',
-    dotClass: 'bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.85)]',
     tooltipBorder: 'border-cyan-500/35',
     statusLabel: 'En ligne',
     statusNote: "Votre alliée IA : elle vous guide pour empêcher HYDRA de gaspiller l'eau de la ville.",
@@ -231,7 +191,6 @@ const AVATAR_PALETTE: Record<
     eye: '#fbbf24',
     antenna: '#ef4444',
     badge: 'text-amber-300 bg-amber-950/70 border-amber-500/40',
-    dotClass: 'bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.85)]',
     tooltipBorder: 'border-amber-500/40',
     statusLabel: 'Attention',
     statusNote: 'Une erreur a été détectée : lisez son message pour corriger le tir.',
@@ -243,7 +202,6 @@ const AVATAR_PALETTE: Record<
     eye: '#34d399',
     antenna: '#34d399',
     badge: 'text-emerald-300 bg-emerald-950/70 border-emerald-500/40',
-    dotClass: 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.85)]',
     tooltipBorder: 'border-emerald-500/40',
     statusLabel: 'Bravo !',
     statusNote: "Étape réussie ! Les réserves d'eau sont protégées sur ce secteur.",
@@ -255,7 +213,6 @@ const AVATAR_PALETTE: Record<
     eye: '#a5b4fc',
     antenna: '#c084fc',
     badge: 'text-indigo-300 bg-indigo-950/70 border-indigo-500/40',
-    dotClass: 'bg-indigo-400 shadow-[0_0_8px_rgba(129,140,248,0.85)]',
     tooltipBorder: 'border-indigo-500/40',
     statusLabel: 'Indice',
     statusNote: "Elle vous partage une piste pour vous aider à résoudre l'énigme.",
@@ -613,9 +570,8 @@ export function NaiaAvatar({
                     NAÏA
                   </span>
                   <span
-                    className={`inline-flex items-center gap-1.5 text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border shrink-0 ${pal.badge}`}
+                    className={`inline-flex items-center text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border shrink-0 ${pal.badge}`}
                   >
-                    <span className={`w-1.5 h-1.5 rounded-full ${pal.dotClass}`} aria-hidden="true" />
                     {pal.statusLabel}
                   </span>
                 </div>
@@ -628,12 +584,12 @@ export function NaiaAvatar({
                     {isSpeaking ? (
                       <>
                         <Square className="w-2.5 h-2.5 fill-current text-cyan-300 shrink-0" />
-                        <span>Lecture en cours · Cliquer pour arrêter</span>
+                        <span>Lecture en cours · Cliquez pour arrêter</span>
                       </>
                     ) : (
                       <>
                         <AudioLines className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                        <span>Cliquez sur Naïa pour écouter</span>
+                        <span>Cliquez sur NAÏA pour écouter</span>
                       </>
                     )}
                   </div>
@@ -716,10 +672,9 @@ export default function NaiaDialogue({
   const levelHint = hintCtx ? getLevelHint(hintCtx.level, hintStep) : null;
   const canShowHintControl = Boolean(hintCtx && levelHint && !hideHintButton && emotion !== 'happy');
   const isHintOpen = Boolean(hintCtx?.isHintOpen && canShowHintControl);
-  const hasFreeHint = Boolean(hintCtx && hintCtx.unlockedFreeHints.includes(hintCtx.level));
-  // Progressive help cue: stay calm before the 1st mistake (even on Level 1 where it's free on demand),
-  // and softly highlight "Offert" only after a mistake (or once unlocked on Levels 2–12).
-  const showHintAvailableCue = hasFreeHint && (hintCtx?.level !== 1 || hasSeenReaction);
+  // Progressive help cue: stay calm before the 1st mistake on the current step,
+  // then highlight the Indice tab after a mistake to invite consultation.
+  const showHintAvailableCue = hasSeenReaction;
 
   const activeChannel: 'hint' | 'reaction' | 'briefing' = isHintOpen
     ? 'hint'
@@ -738,24 +693,25 @@ export default function NaiaDialogue({
 
   useEffect(() => {
     setHasSeenReaction(false);
-  }, [hintCtx?.level]);
+  }, [hintCtx?.level, hintStep]);
 
   useEffect(() => {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
     const checkVoices = () => {
-      setSpeechAvailable(Boolean(pickFrenchVoice()));
+      setSpeechAvailable(Boolean(pickNaiaVoice()));
     };
     checkVoices();
+    // Some Chromium builds populate getVoices() asynchronously right after mount
+    const retryTimer = setTimeout(checkVoices, 250);
     window.speechSynthesis.addEventListener?.('voiceschanged', checkVoices);
     return () => {
+      clearTimeout(retryTimer);
       window.speechSynthesis.removeEventListener?.('voiceschanged', checkVoices);
     };
   }, []);
 
   const stopSpeech = useCallback(() => {
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-    }
+    naiaSpeech.stop(false);
     setIsSpeaking(false);
   }, []);
 
@@ -765,10 +721,10 @@ export default function NaiaDialogue({
   }, [activeChannel, contentKey, reactionKey, levelHint, stopSpeech]);
 
   useEffect(() => {
-    const handleExternalStop = () => stopSpeech();
+    const handleExternalStop = () => setIsSpeaking(false);
     window.addEventListener('naiaStopSpeech', handleExternalStop);
     return () => window.removeEventListener('naiaStopSpeech', handleExternalStop);
-  }, [stopSpeech]);
+  }, []);
 
   const handleToggleSpeech = (e: React.MouseEvent | React.KeyboardEvent) => {
     e.stopPropagation();
@@ -779,39 +735,26 @@ export default function NaiaDialogue({
       return;
     }
 
-    let fullRaw = '';
+    let blocks: string[] = [];
     if (activeChannel === 'reaction' && reactionKey) {
-      fullRaw = reactionKey;
+      blocks = [reactionKey];
     } else if (activeChannel === 'hint' && levelHint) {
-      fullRaw = hasFreeHint
-        ? `Indice : ${levelHint}`
-        : "Besoin d'un coup de pouce ? Essayez d'abord une réponse pour le débloquer gratuitement, ou débloquez-le tout de suite.";
+      blocks = [`Indice : ${levelHint}`];
     } else {
-      fullRaw = [contentKey, objectiveText ? `Objectif : ${objectiveText}` : '']
-        .filter(Boolean)
-        .join('. ');
+      blocks = [contentKey, objectiveText ? `Objectif : ${objectiveText}` : ''].filter(Boolean);
     }
 
-    const spoken = formatSpeechText(fullRaw);
-    if (!spoken) return;
-
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(spoken);
-    const frVoice = pickFrenchVoice();
-    if (frVoice) {
-      utterance.voice = frVoice;
-      utterance.lang = frVoice.lang;
-    } else {
-      utterance.lang = 'fr-FR';
-    }
-    utterance.rate = 0.98;
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = () => setIsSpeaking(false);
+    if (!blocks.length) return;
 
     setSkipRequested(true);
     setIsTyping(false);
-    setIsSpeaking(true);
-    window.speechSynthesis.speak(utterance);
+
+    naiaSpeech.speak({
+      blocks,
+      emotion: effectiveEmotion,
+      onStart: () => setIsSpeaking(true),
+      onEnd: () => setIsSpeaking(false),
+    });
   };
 
   // When a new reaction arrives, NAÏA immediately interrupts in her dialogue bubble and scrolls into view if needed
@@ -903,38 +846,32 @@ export default function NaiaDialogue({
   const moodStyles: Record<
     NaiaEmotion,
     {
-      cardBorder: string;
-      rowWash: string;
-      dot: string;
+      bubbleSurface: string;
       tag: string;
       text: string;
     }
   > = {
     neutral: {
-      cardBorder: 'border-white/[0.1]',
-      rowWash: 'bg-transparent',
-      dot: 'bg-cyan-400',
-      tag: 'text-cyan-300/90',
+      bubbleSurface:
+        'bg-gradient-to-br from-cyan-950/60 via-slate-900/75 to-slate-950/80 border-cyan-400/25 shadow-[inset_0_1px_0_rgba(103,232,249,0.12),0_10px_28px_rgba(0,0,0,0.28)]',
+      tag: 'text-cyan-300',
       text: 'text-slate-100/95',
     },
     alert: {
-      cardBorder: 'border-amber-400/35',
-      rowWash: 'bg-amber-950/25',
-      dot: 'bg-amber-400',
+      bubbleSurface:
+        'bg-gradient-to-br from-amber-950/70 via-slate-900/80 to-slate-950/85 border-amber-400/40 shadow-[inset_0_1px_0_rgba(251,191,36,0.14),0_10px_28px_rgba(0,0,0,0.32)]',
       tag: 'text-amber-300',
       text: 'text-amber-50',
     },
     thinking: {
-      cardBorder: 'border-indigo-400/35',
-      rowWash: 'bg-indigo-950/20',
-      dot: 'bg-indigo-400',
+      bubbleSurface:
+        'bg-gradient-to-br from-indigo-950/70 via-slate-900/80 to-slate-950/85 border-indigo-400/40 shadow-[inset_0_1px_0_rgba(129,140,248,0.14),0_10px_28px_rgba(0,0,0,0.3)]',
       tag: 'text-indigo-300',
       text: 'text-indigo-50/95',
     },
     happy: {
-      cardBorder: 'border-emerald-400/30',
-      rowWash: 'bg-emerald-950/20',
-      dot: 'bg-emerald-400',
+      bubbleSurface:
+        'bg-gradient-to-br from-emerald-950/60 via-slate-900/75 to-slate-950/80 border-emerald-400/35 shadow-[inset_0_1px_0_rgba(52,211,153,0.14),0_10px_28px_rgba(0,0,0,0.28)]',
       tag: 'text-emerald-300',
       text: 'text-slate-100',
     },
@@ -957,7 +894,7 @@ export default function NaiaDialogue({
     activeChannel === 'reaction'
       ? `reaction-${reactionKey}`
       : activeChannel === 'hint'
-      ? `hint-${hasFreeHint ? 'unlocked' : 'locked'}-${hintStep ?? 0}`
+      ? `hint-${hintStep ?? 0}`
       : `briefing-${contentKey}`;
 
   const pillSpring = prefersReducedMotion
@@ -972,50 +909,52 @@ export default function NaiaDialogue({
       transition={{ duration: 0.28, ease: EASE_OUT_EXPO }}
       className="w-full font-sans scroll-mt-20"
     >
-      <div
-        className={`relative rounded-2xl bg-slate-950/65 backdrop-blur-xl border ${currentMood.cardBorder} shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] overflow-hidden transition-colors duration-300`}
-      >
-        {hydra && (
-          <HydraLog
-            integrated
-            status={hydra.status}
-            label={hydra.label}
-            message={hydra.message}
-          />
-        )}
-
-        {/* Living RPG Single-Channel Dialogue Body */}
-        <div
-          onClick={() => {
-            if (activeChannel === 'briefing' && isTyping) {
-              setSkipRequested(true);
-              setIsTyping(false);
-            }
-          }}
-          className={`px-3.5 py-2.5 sm:px-4 sm:py-3 flex items-start sm:items-center gap-3 sm:gap-3.5 transition-colors duration-300 ${currentMood.rowWash} ${
-            activeChannel === 'briefing' && isTyping ? 'cursor-pointer' : ''
-          }`}
+      <div className="flex items-start gap-2.5 sm:gap-3.5">
+        {/* Expressive NAÏA Avatar positioned cleanly outside her speech bubble */}
+        <motion.div
+          key={activeChannel}
+          initial={prefersReducedMotion ? false : { scale: 0.94 }}
+          animate={{ scale: 1 }}
+          transition={{ duration: 0.22, ease: EASE_OUT_EXPO }}
+          className="shrink-0 pt-1"
         >
-          <motion.div
-            key={activeChannel}
-            initial={prefersReducedMotion ? false : { scale: 0.94 }}
-            animate={{ scale: 1 }}
-            transition={{ duration: 0.22, ease: EASE_OUT_EXPO }}
-            className="shrink-0 mt-0.5 sm:mt-0"
-          >
-            <NaiaAvatar
-              emotion={effectiveEmotion}
-              size="md"
-              isSpeaking={isSpeaking}
-              onToggleSpeech={speechAvailable ? handleToggleSpeech : undefined}
-            />
-          </motion.div>
+          <NaiaAvatar
+            emotion={effectiveEmotion}
+            size="md"
+            isSpeaking={isSpeaking}
+            onToggleSpeech={speechAvailable ? handleToggleSpeech : undefined}
+          />
+        </motion.div>
 
-          <div className="flex-1 min-w-0 flex flex-col gap-1.5">
+        {/* Conversational Companion Speech Bubble */}
+        <div
+          className={`flex-1 min-w-0 relative rounded-2xl rounded-tl-md backdrop-blur-xl border overflow-hidden transition-colors duration-300 ${currentMood.bubbleSurface}`}
+        >
+          {hydra && (
+            <HydraLog
+              integrated
+              status={hydra.status}
+              label={hydra.label}
+              message={hydra.message}
+            />
+          )}
+
+          {/* Single-Tier Living Speech Row */}
+          <div
+            onClick={() => {
+              if (activeChannel === 'briefing' && isTyping) {
+                setSkipRequested(true);
+                setIsTyping(false);
+              }
+            }}
+            className={`px-3.5 py-2.5 sm:px-4 sm:py-3 flex flex-col gap-1.5 ${
+              activeChannel === 'briefing' && isTyping ? 'cursor-pointer' : ''
+            }`}
+          >
             {/* Speaker Identity + Unified Segmented Channel Control */}
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center font-mono">
-                <span className={`text-[10px] font-semibold uppercase tracking-[0.14em] transition-colors duration-300 ${currentMood.tag}`}>
+                <span className={`text-[10px] font-bold uppercase tracking-[0.16em] transition-colors duration-300 ${currentMood.tag}`}>
                   {speakerLabel}
                 </span>
               </div>
@@ -1030,7 +969,7 @@ export default function NaiaDialogue({
                       animate={{ opacity: 1, scale: 1, transition: { duration: 0.16, ease: EASE_OUT_EXPO } }}
                       exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.12 } }}
                       onClick={handleSkip}
-                      className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white/[0.04] hover:bg-white/[0.1] border border-white/10 text-[11px] font-medium text-slate-300 hover:text-white transition-colors cursor-pointer"
+                      className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white/[0.05] hover:bg-white/[0.12] border border-white/10 text-[11px] font-medium text-slate-300 hover:text-white transition-colors cursor-pointer whitespace-nowrap shrink-0"
                       aria-label="Passer l'animation du texte"
                     >
                       <span>Passer</span>
@@ -1044,14 +983,14 @@ export default function NaiaDialogue({
                     role="tablist"
                     aria-label="Canaux de dialogue de NAÏA"
                     onClick={(e) => e.stopPropagation()}
-                    className="inline-flex items-center p-0.5 rounded-full bg-slate-900/90 border border-white/[0.08] gap-0.5"
+                    className="inline-flex items-center p-0.5 rounded-full bg-slate-950/75 border border-white/[0.09] gap-0.5"
                   >
                     <button
                       type="button"
                       role="tab"
                       aria-selected={activeChannel === 'briefing'}
                       onClick={handleSelectBriefing}
-                      className={`relative px-2.5 py-0.5 rounded-full text-[11px] font-medium transition-colors cursor-pointer ${
+                      className={`relative px-2.5 py-0.5 rounded-full text-[11px] font-medium transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
                         activeChannel === 'briefing'
                           ? emotion === 'alert'
                             ? 'text-amber-100'
@@ -1079,7 +1018,7 @@ export default function NaiaDialogue({
                         role="tab"
                         aria-selected={activeChannel === 'reaction'}
                         onClick={handleSelectReaction}
-                        className={`relative inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium transition-colors cursor-pointer ${
+                        className={`relative inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
                           activeChannel === 'reaction'
                             ? 'text-amber-100'
                             : 'text-amber-300/80 hover:text-amber-200'
@@ -1092,7 +1031,6 @@ export default function NaiaDialogue({
                             className="absolute inset-0 rounded-full bg-amber-400/20 border border-amber-400/45"
                           />
                         )}
-                        <span className="relative z-10 w-1.5 h-1.5 rounded-full bg-amber-400" aria-hidden="true" />
                         <span className="relative z-10">Correction</span>
                       </button>
                     )}
@@ -1104,15 +1042,15 @@ export default function NaiaDialogue({
                         aria-selected={activeChannel === 'hint'}
                         title={
                           showHintAvailableCue
-                            ? 'Indice de NAÏA offert suite à votre tentative'
-                            : "Demander l'indice de NAÏA"
+                            ? 'Indice disponible pour cette étape'
+                            : "Afficher l'indice de NAÏA"
                         }
                         onClick={handleSelectHint}
-                        className={`relative inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium transition-colors cursor-pointer ${
+                        className={`relative inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
                           activeChannel === 'hint'
                             ? 'text-indigo-100'
                             : showHintAvailableCue
-                            ? 'text-emerald-300 hover:text-emerald-200'
+                            ? 'bg-emerald-500/15 ring-1 ring-inset ring-emerald-400/35 text-emerald-200 hover:bg-emerald-500/25 hover:text-emerald-100'
                             : 'text-slate-400 hover:text-slate-200'
                         }`}
                       >
@@ -1124,20 +1062,15 @@ export default function NaiaDialogue({
                           />
                         )}
                         <Lightbulb
-                          className={`relative z-10 w-3 h-3 ${
+                          className={`relative z-10 w-3 h-3 shrink-0 ${
                             activeChannel === 'hint'
                               ? 'text-indigo-300'
                               : showHintAvailableCue
-                              ? 'text-emerald-400'
+                              ? 'text-emerald-300 fill-emerald-400/25'
                               : 'text-slate-400'
                           }`}
                         />
                         <span className="relative z-10">Indice</span>
-                        {showHintAvailableCue && activeChannel !== 'hint' && (
-                          <span className="relative z-10 font-mono text-[9px] uppercase tracking-wider text-emerald-400/90">
-                            · Offert
-                          </span>
-                        )}
                       </button>
                     )}
                   </div>
@@ -1162,7 +1095,7 @@ export default function NaiaDialogue({
             {/* Single Living Speech Slot (Briefing / Correction / Hint) */}
             <div
               className={`text-[13px] sm:text-sm leading-relaxed font-normal min-w-0 ${
-                hasSegmentedControl ? 'sm:min-h-[2.75rem]' : ''
+                hasSegmentedControl ? 'sm:min-h-[2.4rem]' : ''
               } ${currentMood.text}`}
               role={activeChannel === 'reaction' ? 'status' : undefined}
               aria-live={activeChannel === 'reaction' ? 'polite' : undefined}
@@ -1177,32 +1110,7 @@ export default function NaiaDialogue({
                   {activeChannel === 'reaction' && reaction ? (
                     <span>{reaction.message}</span>
                   ) : activeChannel === 'hint' && levelHint && hintCtx ? (
-                    hasFreeHint ? (
-                      <span>{levelHint}</span>
-                    ) : (
-                      <div className="flex flex-wrap items-center justify-between gap-2.5">
-                        <span className="text-slate-200">
-                          Besoin d'un coup de pouce ? Essayez d'abord une réponse (l'indice sera offert), ou débloquez-le tout de suite.
-                        </span>
-                        <button
-                          type="button"
-                          disabled={hintCtx.score < FREE_HINT_COST_POINTS}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            hintCtx.useHint();
-                          }}
-                          className={`inline-flex items-center gap-1 px-3 py-1 rounded-lg font-mono text-xs font-bold shrink-0 transition-colors ${
-                            hintCtx.score >= FREE_HINT_COST_POINTS
-                              ? 'bg-indigo-500 hover:bg-indigo-400 text-white cursor-pointer shadow-[0_0_12px_rgba(99,102,241,0.3)]'
-                              : 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                          }`}
-                        >
-                          <span>Débloquer (-{FREE_HINT_COST_POINTS}</span>
-                          <Star className="w-3 h-3 fill-current shrink-0" />
-                          <span>)</span>
-                        </button>
-                      </div>
-                    )
+                    <span>{levelHint}</span>
                   ) : (
                     <TypewriterNode
                       content={message}
@@ -1215,22 +1123,22 @@ export default function NaiaDialogue({
               </AnimatePresence>
             </div>
           </div>
-        </div>
 
-        {/* Pure Persistent Objective Strip (zero competing controls) */}
-        {objective && (
-          <div className="px-3.5 py-2 sm:px-4 bg-white/[0.025] border-t border-white/[0.06] flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
-            <div className="flex items-start gap-2 min-w-0 text-xs sm:text-[13px] text-slate-100 font-medium leading-snug">
-              <Target className="w-3.5 h-3.5 text-cyan-400/90 shrink-0 mt-0.5" />
-              <span>{objective}</span>
-            </div>
-            {objectiveChips && (
-              <div className="flex flex-wrap items-center gap-1.5 shrink-0">
-                {objectiveChips}
+          {/* Legacy Objective Strip (only rendered if a caller still passes objective directly to NaiaDialogue) */}
+          {objective && (
+            <div className="px-3.5 py-2 sm:px-4 bg-white/[0.025] border-t border-white/[0.06] flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
+              <div className="flex items-start gap-2 min-w-0 text-xs sm:text-[13px] text-slate-100 font-medium leading-snug">
+                <Target className="w-3.5 h-3.5 text-cyan-400/90 shrink-0 mt-0.5" />
+                <span>{objective}</span>
               </div>
-            )}
-          </div>
-        )}
+              {objectiveChips && (
+                <div className="flex flex-wrap items-center gap-1.5 shrink-0">
+                  {objectiveChips}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </motion.div>
   );

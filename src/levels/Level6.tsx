@@ -5,6 +5,7 @@ import NaiaDialogue from '../components/NaiaDialogue';
 import TechTerm from '../components/TechTerm';
 import LevelHeader from '../components/LevelHeader';
 import LevelShell from '../components/LevelShell';
+import MissionWorkspace from '../components/MissionWorkspace';
 import ActionButton from '../components/ActionButton';
 import LevelSuccessCard from '../components/LevelSuccessCard';
 import { soundManager } from '../utils/soundManager';
@@ -161,26 +162,11 @@ export default function Level6({ onComplete, onScoreUpdate, onMistake }: { onCom
     <LevelShell compact wide>
       <LevelHeader level={6} icon={GitFork} compact />
 
-      <div className="mb-3">
+      <div className="mb-3 sm:mb-3.5">
         <NaiaDialogue
-          hydra={{
-            status: 'hostile',
-            message: "Routage par défaut actif : 100 % des requêtes dirigées vers le LLM 175B (36 255 kWh/jour).",
-          }}
           message={
             <>
               HYDRA envoie encore toutes ses requêtes vers un énorme <TechTerm term="LLM" />, même pour de simples filtres ! La télémétrie se met à jour lorsque vous testez le déploiement.
-            </>
-          }
-          objective="Associez chacun des 4 flux à l'architecture adaptée (réutilisation possible) :"
-          objectiveChips={
-            <>
-              <span className="px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.09] text-[11px] text-slate-200 font-semibold font-mono tabular-nums">
-                ≤ 50 kWh/jour
-              </span>
-              <span className="px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.09] text-[11px] text-slate-200 font-semibold font-mono tabular-nums">
-                Qualité ≥ {TARGET_MIN_QUALITY} %
-              </span>
             </>
           }
           reaction={errorMsg ? { message: errorMsg, emotion: 'alert' } : null}
@@ -189,6 +175,24 @@ export default function Level6({ onComplete, onScoreUpdate, onMistake }: { onCom
         />
       </div>
 
+      <MissionWorkspace
+        compact
+        hydra={{
+          status: 'hostile',
+          message: "Routage par défaut actif : 100 % des requêtes dirigées vers le LLM 175B (36 255 kWh/jour).",
+        }}
+        objective="Associez chacun des 4 flux à l'architecture adaptée (réutilisation possible) :"
+        objectiveChips={
+          <>
+            <span className="px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.09] text-[11px] text-slate-200 font-semibold font-mono tabular-nums">
+              ≤ 50 kWh/jour
+            </span>
+            <span className="px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.09] text-[11px] text-slate-200 font-semibold font-mono tabular-nums">
+              Qualité ≥ {TARGET_MIN_QUALITY} %
+            </span>
+          </>
+        }
+      >
       <div className="space-y-3 text-slate-300">
         {/* Reference Architectures */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
@@ -374,6 +378,7 @@ export default function Level6({ onComplete, onScoreUpdate, onMistake }: { onCom
           )}
         </AnimatePresence>
       </div>
+      </MissionWorkspace>
     </LevelShell>
   );
 }

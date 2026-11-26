@@ -133,7 +133,14 @@ export function validateIdeaInput(rawIdea: unknown): { ok: true; idea: string } 
 }
 
 export async function evaluateStudentIdea(apiKey: string, idea: string): Promise<SanitizedEvaluation> {
-  const ai = new GoogleGenAI({ apiKey });
+  const ai = new GoogleGenAI({
+    apiKey,
+    httpOptions: {
+      headers: {
+        'User-Agent': 'aistudio-build',
+      },
+    },
+  });
   // Neutraliser toute tentative de fermeture prématurée de la balise délimiteur
   const safeIdea = idea.replace(/<\/?idee_eleve>/gi, "");
 

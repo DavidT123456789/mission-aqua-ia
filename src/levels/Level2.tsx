@@ -5,6 +5,7 @@ import NaiaDialogue from '../components/NaiaDialogue';
 import TechTerm from '../components/TechTerm';
 import LevelHeader from '../components/LevelHeader';
 import LevelShell from '../components/LevelShell';
+import MissionWorkspace from '../components/MissionWorkspace';
 import ActionButton from '../components/ActionButton';
 import LevelSuccessCard from '../components/LevelSuccessCard';
 import { soundManager } from '../utils/soundManager';
@@ -95,20 +96,11 @@ export default function Level2({ onComplete, onScoreUpdate, onMistake }: { onCom
     <LevelShell wide>
       <LevelHeader level={2} icon={Gauge} />
 
-      <div className="mb-3.5">
+      <div className="mb-3.5 sm:mb-4">
         <NaiaDialogue
-          hydra={{
-            status: 'hostile',
-            message: "Charge maximale détectée. Ouverture forcée de toutes les vannes à 100 %.",
-          }}
           message={
             <>
               HYDRA tourne en surrégime et a ouvert toutes les vannes de ses <TechTerm term="Serveur">serveurs</TechTerm> au maximum ! Le débitmètre reste hors-ligne tant que la conduite n'est pas testée.
-            </>
-          }
-          objective={
-            <>
-              Calculez et fermez les vannes en trop pour obtenir exactement <strong className="font-mono text-white">{TARGET_FLOW} L/s</strong> avant de tester la conduite.
             </>
           }
           reaction={errorMsg ? { message: errorMsg, emotion: 'alert' } : null}
@@ -117,6 +109,17 @@ export default function Level2({ onComplete, onScoreUpdate, onMistake }: { onCom
         />
       </div>
 
+      <MissionWorkspace
+        hydra={{
+          status: 'hostile',
+          message: "Charge maximale détectée. Ouverture forcée de toutes les vannes à 100 %.",
+        }}
+        objective={
+          <>
+            Calculez et fermez les vannes en trop pour obtenir exactement <strong className="font-mono text-white">{TARGET_FLOW} L/s</strong> avant de tester la conduite.
+          </>
+        }
+      >
       <div className="space-y-4 text-slate-300">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
           {/* Valve Manifold Controls */}
@@ -509,6 +512,7 @@ export default function Level2({ onComplete, onScoreUpdate, onMistake }: { onCom
           )}
         </AnimatePresence>
       </div>
+      </MissionWorkspace>
     </LevelShell>
   );
 }

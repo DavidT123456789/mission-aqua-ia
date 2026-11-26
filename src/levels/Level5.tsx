@@ -5,6 +5,7 @@ import NaiaDialogue from '../components/NaiaDialogue';
 import TechTerm from '../components/TechTerm';
 import LevelHeader from '../components/LevelHeader';
 import LevelShell from '../components/LevelShell';
+import MissionWorkspace from '../components/MissionWorkspace';
 import ActionButton from '../components/ActionButton';
 import LevelSuccessCard from '../components/LevelSuccessCard';
 import { soundManager } from '../utils/soundManager';
@@ -156,20 +157,11 @@ export default function Level5({ onComplete, onScoreUpdate, onMistake }: { onCom
     <LevelShell>
       <LevelHeader level={5} icon={Clock} />
 
-      <div className="mb-3">
+      <div className="mb-3.5 sm:mb-4">
         <NaiaDialogue
-          hydra={{
-            status: 'hostile',
-            message: "Entraînement de 500 kWh programmé à 12h00 sans prise en compte de l'intensité carbone du réseau électrique.",
-          }}
           message={
             <>
               En attendant la bascule vers Luleå, les serveurs <TechTerm term="Cloud">cloud</TechTerm> secondaires d'HYDRA tournent encore sur le réseau électrique européen, où un entraînement de <TechTerm term="Machine Learning">machine learning</TechTerm> consomme <strong className="font-mono text-white">{TRAINING_ENERGY_KWH} kWh</strong> pendant <strong className="font-mono text-white">{DURATION_HOURS} h</strong> d'affilée. Selon l'heure, le réseau alterne entre éolien, solaire et centrales à gaz.
-            </>
-          }
-          objective={
-            <>
-              Faites glisser la fenêtre temporelle sur la courbe pour garder l'intensité carbone sous <strong className="font-mono text-white">{TARGET_MAX_INTENSITY} gCO₂/kWh</strong>.
             </>
           }
           reaction={errorMsg ? { message: errorMsg, emotion: 'alert' } : null}
@@ -178,9 +170,20 @@ export default function Level5({ onComplete, onScoreUpdate, onMistake }: { onCom
         />
       </div>
 
+      <MissionWorkspace
+        hydra={{
+          status: 'hostile',
+          message: "Entraînement de 500 kWh programmé à 12h00 sans prise en compte de l'intensité carbone du réseau électrique.",
+        }}
+        objective={
+          <>
+            Faites glisser la fenêtre temporelle sur la courbe pour garder l'intensité carbone sous <strong className="font-mono text-white">{TARGET_MAX_INTENSITY} gCO₂/kWh</strong>.
+          </>
+        }
+      >
       <div className="space-y-4 text-slate-300">
         {/* Visual Carbon Intensity Graph */}
-        <div className="mt-3 p-5 sm:p-6 bg-slate-950 rounded-2xl border border-white/10 relative">
+        <div className="p-5 sm:p-6 bg-slate-950 rounded-2xl border border-white/10 relative">
           <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
             <div className="flex items-center gap-2">
               <LineChart className="w-5 h-5 text-cyan-400" />
@@ -436,6 +439,7 @@ export default function Level5({ onComplete, onScoreUpdate, onMistake }: { onCom
           )}
         </AnimatePresence>
       </div>
+      </MissionWorkspace>
     </LevelShell>
   );
 }

@@ -5,6 +5,7 @@ import NaiaDialogue from '../components/NaiaDialogue';
 import TechTerm from '../components/TechTerm';
 import LevelHeader from '../components/LevelHeader';
 import LevelShell from '../components/LevelShell';
+import MissionWorkspace from '../components/MissionWorkspace';
 import ActionButton from '../components/ActionButton';
 import LevelSuccessCard from '../components/LevelSuccessCard';
 import Collapsible from '../components/Collapsible';
@@ -355,7 +356,7 @@ export default function Level11({ onComplete, onScoreUpdate, onMistake }: { onCo
         } ${showError && !isFilled ? 'border-red-500 bg-red-900/20' : ''}`}
       >
         <AnimatePresence mode="popLayout">
-          {isFilled ? (
+          {isFilled && blank ? (
             <motion.span
               key={blank.val}
               initial={{ scale: 0.5, opacity: 0 }}
@@ -378,13 +379,8 @@ export default function Level11({ onComplete, onScoreUpdate, onMistake }: { onCo
       
       <LevelHeader level={11} icon={Code2} />
 
-      <div className="mb-3">
+      <div className="mb-3.5 sm:mb-4">
         <NaiaDialogue
-          hydra={{
-            status: 'warning',
-            label: 'HYDRA // CONTRÔLE CHARTE',
-            message: "Module externe AQUA-FARM détecté. Conformément à la Charte municipale, vérification manuelle du code requise avant déploiement.",
-          }}
           message={
             success ? (
               <>
@@ -396,13 +392,20 @@ export default function Level11({ onComplete, onScoreUpdate, onMistake }: { onCo
               </>
             )
           }
-          objective={success ? undefined : "Complétez les 8 trous du code Python par glisser-déposer ou clic puis lancez la simulation."}
           reaction={errorMsg ? { message: errorMsg, emotion: 'alert' } : null}
           onDismissReaction={clearError}
           emotion={success ? 'happy' : 'neutral'}
         />
       </div>
 
+      <MissionWorkspace
+        hydra={{
+          status: 'warning',
+          label: 'HYDRA · CONTRÔLE CHARTE',
+          message: "Module externe AQUA-FARM détecté. Conformément à la Charte municipale, vérification manuelle du code requise avant déploiement.",
+        }}
+        objective={success ? undefined : "Complétez les 8 trous du code Python par glisser-déposer ou clic puis lancez la simulation."}
+      >
       <div className="space-y-3.5 text-slate-300">
 
         {/* Collapsible Algorithm Guide (collapsed by default to keep editor + word bank above the fold) */}
@@ -708,6 +711,7 @@ export default function Level11({ onComplete, onScoreUpdate, onMistake }: { onCo
           )}
         </AnimatePresence>
       </div>
+      </MissionWorkspace>
     </LevelShell>
   );
 

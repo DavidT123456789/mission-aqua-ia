@@ -45,9 +45,15 @@ export const HYDRA_STATUS_STYLES: Record<
   }
 };
 
+export function normalizeHydraLabel(label: string | undefined, fallback: string): string {
+  const raw = (label ?? '').trim();
+  if (!raw) return fallback;
+  return raw.replace(/\s*\/\/\s*/g, ' · ');
+}
+
 /**
  * Displays a compact intercepted machine log emitted by HYDRA.
- * When `integrated` is true, renders as a sleek top telemetry strip inside a briefing panel.
+ * When `integrated` is true, renders as a sleek top telemetry strip inside MissionWorkspace.
  */
 export default function HydraLog({
   message,
@@ -56,19 +62,21 @@ export default function HydraLog({
   integrated = false,
 }: HydraLogData & { integrated?: boolean }) {
   const style = HYDRA_STATUS_STYLES[status];
+  const StatusIcon = style.icon;
+  const displayLabel = normalizeHydraLabel(label, style.label);
 
   return (
     <div
       className={`w-full flex flex-wrap sm:flex-nowrap items-center gap-x-2.5 gap-y-0.5 text-[11px] ${
         integrated
-          ? `px-3.5 py-1.5 sm:px-4 ${style.integrated}`
+          ? `px-3.5 py-2 sm:px-6 ${style.integrated}`
           : `rounded-xl px-3.5 py-2 sm:text-xs ${style.container}`
       }`}
     >
       <div className="flex items-center gap-1.5 shrink-0 font-mono">
-        <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${style.dot}`} aria-hidden="true" />
+        <StatusIcon className={`w-3.5 h-3.5 shrink-0 ${style.tag}`} aria-hidden="true" />
         <span className={`text-[10px] font-semibold uppercase tracking-[0.14em] ${style.tag}`}>
-          {label || style.label}
+          {displayLabel}
         </span>
       </div>
       <span className="text-slate-300/85 leading-snug font-sans">{message}</span>

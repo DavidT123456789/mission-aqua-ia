@@ -8,7 +8,6 @@ import {
   Clock,
   Heart,
   FastForward,
-  ChevronRight,
   Volume2,
   VolumeX,
   Save,
@@ -65,7 +64,7 @@ export default function Briefing({
 
   const showVideo = Boolean(videoUrl) && !videoFailed;
   const stageTwoDelay = prefersReducedMotion ? 0 : 0.45;
-  const upcomingActs = MISSION_ACTS.filter((act) => act.id > 1);
+  const firstAct = MISSION_ACTS[0];
 
   return (
     <motion.div
@@ -135,7 +134,6 @@ export default function Briefing({
               {/* Slim Telemetry Readout */}
               <div className="flex flex-wrap items-center gap-2 sm:gap-3 min-h-8 font-mono text-[11px] sm:text-xs bg-slate-950/65 backdrop-blur-md border border-white/10 rounded-full px-3.5 py-1 shadow-lg">
                 <span className="inline-flex items-center gap-1.5 text-rose-300 font-bold tabular-nums">
-                  <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
                   <Cpu className="w-3.5 h-3.5 text-rose-400" />
                   HYDRA 94 °C
                 </span>
@@ -178,24 +176,21 @@ export default function Briefing({
             </div>
           </div>
 
-          {/* Row 2: Narrative Chapter Title + Non-Redundant 3-Act Progression */}
-          <div className="space-y-1">
-            <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 font-mono text-[11px]">
-              <span className="inline-flex items-center gap-1.5 font-bold uppercase tracking-[0.22em] text-cyan-300">
-                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.85)]" />
-                Acte I
+          {/* Row 2: Narrative Chapter Title + Act Metadata */}
+          <div className="space-y-0.5">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[11px] font-bold uppercase tracking-[0.22em] text-cyan-300">
+              <span>{firstAct.label}</span>
+              <span className="text-slate-500" aria-hidden="true">·</span>
+              <span className="text-slate-300/85 font-normal tracking-wider normal-case">
+                Niveaux {firstAct.startLevel} à {firstAct.endLevel}
               </span>
-              {upcomingActs.map((act) => (
-                <span key={act.id} className="inline-flex items-center gap-1.5 text-slate-300/65">
-                  <ChevronRight className="w-3 h-3 text-slate-500 shrink-0" />
-                  <span>
-                    {act.id}. {act.title}
-                  </span>
-                </span>
-              ))}
+              <span className="text-slate-500" aria-hidden="true">·</span>
+              <span className="text-cyan-200/90 font-semibold tracking-wider normal-case">
+                Briefing
+              </span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white drop-shadow-[0_2px_14px_rgba(0,0,0,0.85)]">
-              Urgence Hydrique
+              {firstAct.title}
             </h1>
           </div>
         </motion.header>
@@ -215,9 +210,9 @@ export default function Briefing({
             emotion="neutral"
             message={
               <>
-                Merci d'être là, <strong className="text-cyan-300">{displayAgent}</strong>. Le super-réseau{' '}
-                <strong className="text-rose-300 font-mono">HYDRA</strong> tourne hors de contrôle : ses serveurs assèchent les réserves d'eau potable pour se refroidir, tandis que des fuites et des calculs superflus aggravent la crise. Vous avez{' '}
-                <strong className="text-white">{MISSION_DURATION_MINUTES} minutes</strong> pour infiltrer ses systèmes, stopper le gaspillage et reprendre la main.
+                Merci d'être là, <strong className="text-cyan-300">{displayAgent}</strong>. La surchauffe d'
+                <strong className="text-rose-300 font-mono">HYDRA</strong> s'aggrave : des fuites sur le réseau et des calculs superflus vident déjà les réserves potables. Vous avez{' '}
+                <strong className="text-white">{MISSION_DURATION_MINUTES} minutes</strong> et 3 actes pour couper l'hémorragie et rendre son IA sobre. Notez vos réponses dans votre cahier : chaque erreur coûte une vie !
               </>
             }
           />
@@ -227,7 +222,7 @@ export default function Briefing({
             <div className="inline-flex flex-wrap items-center justify-center md:justify-start gap-x-3 gap-y-1 px-3.5 py-2 rounded-xl bg-slate-950/60 backdrop-blur-md border border-white/10 text-xs font-mono text-slate-200/90 shadow-lg">
               <span className="inline-flex items-center gap-1.5">
                 <Clock className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                <span>Chrono au lancement</span>
+                <span>Objectif {MISSION_DURATION_MINUTES} min</span>
               </span>
               <span className="w-px h-3 bg-white/15" aria-hidden="true" />
               <span className="inline-flex items-center gap-1.5">

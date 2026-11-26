@@ -1,13 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Droplets, Clock, Pause, Play, Plus, Star, Heart, FastForward, Rewind, Menu, X, Volume2, VolumeX, BookOpen, Layers, ChevronDown, ChevronUp, Eye, EyeOff, FileText, Home } from 'lucide-react';
+import { Clock, Pause, Play, Plus, Star, Heart, FastForward, Rewind, Menu, X, Volume2, VolumeX, BookOpen, Layers, ChevronDown, ChevronUp, Eye, EyeOff, FileText, Home } from 'lucide-react';
 import {
   LEVEL_NAMES,
+  MISSION_DURATION_MINUTES,
   MISSION_DURATION_SECONDS,
   HEART_COST_POINTS,
   MISTAKE_SCORE_PENALTY,
-  TIME_BONUS_COST_POINTS,
-  TIME_BONUS_SECONDS,
   TERM_DISCOVERY_POINTS,
   getActForLevel,
 } from '../constants';
@@ -17,9 +16,8 @@ import { EASE_OUT_EXPO, EASE_IN_OUT } from '../utils/motion';
 
 interface HUDProps {
   level: number;
-  timeLeft: number;
+  elapsedSeconds: number;
   lives: number;
-  waterSaved: number;
   score: number;
   isDevMode: boolean;
   devAnswers?: Record<number, string> | null;
@@ -35,7 +33,6 @@ interface HUDProps {
   prevLevelDev: () => void;
   skipLevelDev: () => void;
   buyHeart: () => void;
-  buyTime: () => void;
   onTogglePause: () => void;
   onGoHome: () => void;
   onToggleMute: () => void;
@@ -45,9 +42,9 @@ interface HUDProps {
 }
 
 export default function HUD({
-  level, timeLeft, lives, waterSaved, score, isDevMode, devAnswers, isPaused, isTransitionPending = false, isMuted,
+  level, elapsedSeconds, lives, score, isDevMode, devAnswers, isPaused, isTransitionPending = false, isMuted,
   discoveredCount, totalTerms,
-  setShowGlossary, setLevel, onPreloadLevel, onPreviewInterlude, prevLevelDev, skipLevelDev, buyHeart, buyTime, onTogglePause, onGoHome, onToggleMute, setIsDevMode, onOpenTeacherKit, hideHeader = false
+  setShowGlossary, setLevel, onPreloadLevel, onPreviewInterlude, prevLevelDev, skipLevelDev, buyHeart, onTogglePause, onGoHome, onToggleMute, setIsDevMode, onOpenTeacherKit, hideHeader = false
 }: HUDProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfCollapsed, setIsProfCollapsed] = useState(false);
@@ -94,17 +91,22 @@ export default function HUD({
     return () => window.removeEventListener('glossaryPlusOne', handleGlossaryPlusOne);
   }, []);
 
-  const formatTime = (seconds: number) => {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  const remainingSeconds = MISSION_DURATION_SECONDS - Math.max(0, Math.floor(elapsedSeconds));
+  const isOvertime = remainingSeconds < 0;
+  const formatClock = (seconds: number) => {
+    const abs = Math.abs(seconds);
+    const m = Math.floor(abs / 60);
+    const s = abs % 60;
+    const base = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    return seconds < 0 ? `+${base}` : base;
   };
+  const formattedClock = formatClock(remainingSeconds);
 
   const completedCount = Math.max(0, Math.min(13, level - 1));
   const isInnovationLab = level === 13;
   const currentAct = getActForLevel(level);
 
-  const isActiveMissionHud = level > 0 && level < 14 && timeLeft > 0 && lives > 0;
+  const isActiveMissionHud = level > 0 && level < 14 && lives > 0;
 
   return (
     <>
@@ -238,29 +240,27 @@ export default function HUD({
           )}
 
           {level > 0 && level < 14 && (
-            <div className="hidden md:block relative group/level">
+            <div className="hidden md:flex items-center gap-2.5 relative group/level">
+              <span className="w-px h-3.5 bg-white/15 shrink-0" aria-hidden="true" />
               <div
-                className="flex items-center gap-1.5 h-8 text-xs font-medium font-mono bg-slate-950/60 backdrop-blur-md px-3 rounded-full border border-white/10 transition-colors hover:border-white/20 cursor-help"
+                className="flex items-center h-8 text-xs font-mono cursor-help select-none transition-colors"
                 aria-label={`Niveau ${level} sur 13`}
               >
-                <Layers className="w-3.5 h-3.5 text-slate-400" />
-                {currentAct && (
-                  <span className="text-[10px] text-slate-400 uppercase tracking-wider">{currentAct.label} ·</span>
-                )}
-                <span className="text-slate-100 font-semibold tabular-nums">{level}/13</span>
+                <span className="text-slate-100 font-semibold tabular-nums group-hover/level:text-white transition-colors">{level}</span>
+                <span className="text-slate-500 font-normal tabular-nums">/13</span>
               </div>
-              <div className="absolute top-full left-0 mt-2 opacity-0 invisible translate-y-1 group-hover/level:opacity-100 group-hover/level:visible group-hover/level:translate-y-0 transition-all duration-150 w-max bg-slate-900 text-xs text-slate-200 px-3 py-1.5 rounded border border-slate-700 shadow-xl z-[100] pointer-events-none font-sans not-italic font-normal tracking-normal">
+              <div className="absolute top-full left-2.5 mt-2 opacity-0 invisible translate-y-1 group-hover/level:opacity-100 group-hover/level:visible group-hover/level:translate-y-0 transition-all duration-150 w-max bg-slate-900 text-xs text-slate-200 px-3 py-1.5 rounded border border-slate-700 shadow-xl z-[100] pointer-events-none font-sans not-italic font-normal tracking-normal">
                 <div className="flex flex-col gap-0.5 text-left">
                   {currentAct && (
                     <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-cyan-300">
-                      {currentAct.label} : {currentAct.title}
+                      {currentAct.label} · {currentAct.title}
                     </span>
                   )}
                   <span className="font-semibold text-white">Niveau {level}/13 : {LEVEL_NAMES[level] || 'Laboratoire'}</span>
                   <span className="text-[10px] text-slate-400">{completedCount}/13 complétés</span>
                 </div>
-                <div className="absolute bottom-full left-6 border-4 border-transparent border-b-slate-700"></div>
-                <div className="absolute bottom-[calc(100%-1px)] left-6 border-4 border-transparent border-b-slate-900"></div>
+                <div className="absolute bottom-full left-4 border-4 border-transparent border-b-slate-700"></div>
+                <div className="absolute bottom-[calc(100%-1px)] left-4 border-4 border-transparent border-b-slate-900"></div>
               </div>
             </div>
           )}
@@ -353,23 +353,35 @@ export default function HUD({
                     className={`flex items-center gap-1.5 transition-colors duration-300 cursor-help ${
                       isInnovationLab || isPaused
                         ? 'text-cyan-300'
-                        : timeLeft < 300
+                        : isOvertime
+                        ? 'text-amber-300'
+                        : remainingSeconds < 300
                         ? 'text-rose-400'
                         : 'text-slate-100'
                     }`}
-                    aria-label={isInnovationLab || isPaused ? `Chrono en pause : ${formatTime(timeLeft)}` : `Temps restant : ${formatTime(timeLeft)}`}
+                    aria-label={
+                      isInnovationLab || isPaused
+                        ? `Chrono en pause : ${formattedClock}`
+                        : isOvertime
+                        ? `Prolongation : ${formattedClock}`
+                        : `Temps restant sur l'objectif ${MISSION_DURATION_MINUTES} min : ${formattedClock}`
+                    }
                   >
                     {isInnovationLab || isPaused ? (
                       <Pause className="w-3.5 h-3.5 text-cyan-300" />
                     ) : (
-                      <Clock className={`w-3.5 h-3.5 ${timeLeft < 300 ? 'text-rose-400' : 'text-cyan-300/85'}`} />
+                      <Clock className={`w-3.5 h-3.5 ${isOvertime ? 'text-amber-300' : remainingSeconds < 300 ? 'text-rose-400' : 'text-cyan-300/85'}`} />
                     )}
-                    <span className="font-semibold font-mono text-xs md:text-[13px] tabular-nums">{formatTime(timeLeft)}</span>
-                    {(isInnovationLab || isPaused) && (
+                    <span className="font-semibold font-mono text-xs md:text-[13px] tabular-nums">{formattedClock}</span>
+                    {(isInnovationLab || isPaused) ? (
                       <span className="hidden sm:inline text-[10px] font-mono font-semibold uppercase tracking-wider text-cyan-300/85">
                         Pause
                       </span>
-                    )}
+                    ) : isOvertime ? (
+                      <span className="hidden sm:inline text-[10px] font-mono font-semibold uppercase tracking-wider text-amber-300/85">
+                        Prol.
+                      </span>
+                    ) : null}
                   </div>
                   {/* Timer Tooltip */}
                   <div className="fixed top-16 left-1/2 -translate-x-1/2 md:absolute md:top-full md:left-1/2 md:-translate-x-1/2 md:mt-2 opacity-0 invisible translate-y-1 group-hover/timer:opacity-100 group-hover/timer:visible group-hover/timer:translate-y-0 transition-all duration-150 w-max max-w-[90vw] bg-slate-900 text-xs text-slate-200 px-2.5 py-1.5 rounded border border-slate-700 shadow-xl z-[100] pointer-events-none font-sans not-italic font-normal tracking-normal text-center">
@@ -381,9 +393,13 @@ export default function HUD({
                       <>
                         Chrono en pause :<br />Cliquez sur Reprendre pour continuer la mission
                       </>
+                    ) : isOvertime ? (
+                      <>
+                        Prolongation ({formattedClock}) :<br />La mission continue librement sans blocage
+                      </>
                     ) : (
                       <>
-                        Temps restant :<br />Résolvez les missions avant 00:00
+                        Objectif {MISSION_DURATION_MINUTES} min :<br />Passage en prolongation libre après 00:00
                       </>
                     )}
                     <div className="hidden md:block absolute bottom-full left-1/2 -translate-x-1/2 border-4 border-transparent border-b-slate-700"></div>
@@ -392,62 +408,33 @@ export default function HUD({
                 </div>
                 
                 {!isInnovationLab && (
-                  <>
-                    <div className="relative group/pause flex items-center">
-                      <button
-                        type="button"
-                        onClick={onTogglePause}
-                        disabled={isTransitionPending}
-                        className={`inline-flex items-center justify-center w-6 h-6 rounded-full transition-colors ${
-                          isTransitionPending
-                            ? 'text-slate-600 cursor-not-allowed'
-                            : isPaused
-                            ? 'bg-cyan-400/20 text-cyan-200 hover:bg-cyan-400/30 cursor-pointer'
-                            : 'bg-white/[0.06] text-slate-300 hover:text-white hover:bg-white/[0.14] cursor-pointer'
-                        }`}
-                        aria-label={isPaused ? "Reprendre le chrono" : "Mettre le chrono en pause"}
-                      >
-                        {isPaused ? (
-                          <Play className="w-2.5 h-2.5 fill-current" />
-                        ) : (
-                          <Pause className="w-2.5 h-2.5 fill-current" />
-                        )}
-                      </button>
-                      {/* Tooltip for Pause */}
-                      <div className="fixed top-16 left-1/2 -translate-x-1/2 md:absolute md:top-full md:left-1/2 md:-translate-x-1/2 md:mt-2 opacity-0 invisible translate-y-1 group-hover/pause:opacity-100 group-hover/pause:visible group-hover/pause:translate-y-0 transition-all duration-150 w-max max-w-[90vw] bg-slate-900 text-[10px] md:text-xs text-slate-200 px-2 py-1.5 rounded border border-slate-700 shadow-xl z-[100] pointer-events-none font-sans not-italic font-normal tracking-normal">
-                        <span>{isPaused ? "Reprendre la mission" : "Mettre en pause (point classe)"}</span>
-                        <div className="hidden md:block absolute bottom-full left-1/2 -translate-x-1/2 border-4 border-transparent border-b-slate-700"></div>
-                        <div className="hidden md:block absolute bottom-[calc(100%-1px)] left-1/2 -translate-x-1/2 border-4 border-transparent border-b-slate-900"></div>
-                      </div>
+                  <div className="relative group/pause flex items-center">
+                    <button
+                      type="button"
+                      onClick={onTogglePause}
+                      disabled={isTransitionPending}
+                      className={`inline-flex items-center justify-center w-6 h-6 rounded-full transition-colors ${
+                        isTransitionPending
+                          ? 'text-slate-600 cursor-not-allowed'
+                          : isPaused
+                          ? 'bg-cyan-400/20 text-cyan-200 hover:bg-cyan-400/30 cursor-pointer'
+                          : 'bg-white/[0.06] text-slate-300 hover:text-white hover:bg-white/[0.14] cursor-pointer'
+                      }`}
+                      aria-label={isPaused ? "Reprendre le chrono" : "Mettre le chrono en pause"}
+                    >
+                      {isPaused ? (
+                        <Play className="w-2.5 h-2.5 fill-current" />
+                      ) : (
+                        <Pause className="w-2.5 h-2.5 fill-current" />
+                      )}
+                    </button>
+                    {/* Tooltip for Pause */}
+                    <div className="fixed top-16 left-1/2 -translate-x-1/2 md:absolute md:top-full md:left-1/2 md:-translate-x-1/2 md:mt-2 opacity-0 invisible translate-y-1 group-hover/pause:opacity-100 group-hover/pause:visible group-hover/pause:translate-y-0 transition-all duration-150 w-max max-w-[90vw] bg-slate-900 text-[10px] md:text-xs text-slate-200 px-2 py-1.5 rounded border border-slate-700 shadow-xl z-[100] pointer-events-none font-sans not-italic font-normal tracking-normal">
+                      <span>{isPaused ? "Reprendre la mission" : "Mettre en pause (point classe)"}</span>
+                      <div className="hidden md:block absolute bottom-full left-1/2 -translate-x-1/2 border-4 border-transparent border-b-slate-700"></div>
+                      <div className="hidden md:block absolute bottom-[calc(100%-1px)] left-1/2 -translate-x-1/2 border-4 border-transparent border-b-slate-900"></div>
                     </div>
-
-                    {timeLeft <= MISSION_DURATION_SECONDS - TIME_BONUS_SECONDS && (
-                      <div className="relative group/buytime flex items-center">
-                        <button 
-                          onClick={buyTime}
-                          disabled={score < TIME_BONUS_COST_POINTS}
-                          className={`inline-flex items-center justify-center gap-0.5 h-6 px-1.5 rounded-full transition-colors ${
-                            score >= TIME_BONUS_COST_POINTS
-                              ? 'bg-emerald-400/15 text-emerald-200 border border-emerald-400/35 hover:bg-emerald-400/25 cursor-pointer' 
-                              : 'bg-white/[0.04] text-slate-500 border border-white/[0.08] cursor-not-allowed'
-                          }`}
-                          aria-label="Acheter du temps"
-                        >
-                          <Plus className="w-2.5 h-2.5 stroke-[2.5]" />
-                          <span className="hidden md:inline text-[10px] font-mono font-semibold">{TIME_BONUS_SECONDS / 60}m</span>
-                        </button>
-                        {/* Tooltip for buying time */}
-                        <div className="fixed top-16 left-1/2 -translate-x-1/2 md:absolute md:top-full md:left-1/2 md:-translate-x-1/2 md:mt-2 opacity-0 invisible translate-y-1 group-hover/buytime:opacity-100 group-hover/buytime:visible group-hover/buytime:translate-y-0 transition-all duration-150 w-max max-w-[90vw] bg-slate-900 text-[11px] md:text-xs text-slate-200 px-2 py-1.5 rounded border border-slate-700 shadow-xl z-[100] pointer-events-none font-sans not-italic font-normal tracking-normal">
-                          <div className="flex items-center gap-1.5 justify-center">
-                            <span>Ajouter {TIME_BONUS_SECONDS / 60} min :</span>
-                            <span className={score >= TIME_BONUS_COST_POINTS ? "text-amber-300 font-bold" : "text-rose-400 font-bold"}>{TIME_BONUS_COST_POINTS} pts</span>
-                          </div>
-                          <div className="hidden md:block absolute bottom-full left-1/2 -translate-x-1/2 border-4 border-transparent border-b-slate-700"></div>
-                          <div className="hidden md:block absolute bottom-[calc(100%-1px)] left-1/2 -translate-x-1/2 border-4 border-transparent border-b-slate-900"></div>
-                        </div>
-                      </div>
-                    )}
-                  </>
+                  </div>
                 )}
               </div>
 
@@ -555,44 +542,10 @@ export default function HUD({
           </div>
         )}
 
-        {/* Right: Water Gauge & Utility Actions */}
+        {/* Right: Utility Actions */}
         <div className="flex items-center gap-1.5 lg:gap-2 xl:justify-self-end">
           {level > 0 && level < 14 && (
             <div className="hidden md:flex items-center gap-1.5 lg:gap-2">
-              {/* Water Gauge */}
-              <div className="relative group/water">
-                <motion.div 
-                  key={waterSaved}
-                  initial={{ scale: 1.03 }}
-                  animate={{ scale: 1 }}
-                  className="flex items-center gap-2 bg-slate-950/65 backdrop-blur-md h-8 px-3 rounded-full border border-white/10 cursor-help shadow-lg" 
-                  aria-label={`Eau sauvée : ${waterSaved}%`}
-                >
-                  <Droplets className="w-3.5 h-3.5 text-cyan-300/85 shrink-0" />
-                  <span className="hidden lg:inline text-[10px] font-medium uppercase tracking-wider text-slate-400">
-                    Eau
-                  </span>
-                  <div className="w-14 lg:w-20 h-1.5 bg-white/[0.08] rounded-full overflow-hidden relative">
-                    <motion.div 
-                      className="absolute top-0 left-0 h-full rounded-full bg-gradient-to-r from-cyan-400 to-emerald-400"
-                      initial={{ width: '0%' }}
-                      animate={{ width: `${waterSaved}%` }}
-                      transition={{ duration: 1.2, ease: "easeOut" }}
-                    />
-                  </div>
-                  <span className="font-semibold font-mono text-xs text-slate-100 tabular-nums">{waterSaved}%</span>
-                </motion.div>
-                {/* Tooltip for Water Gauge */}
-                <div className="absolute top-full right-0 mt-2 opacity-0 invisible translate-y-1 group-hover/water:opacity-100 group-hover/water:visible group-hover/water:translate-y-0 transition-all duration-150 w-64 bg-slate-900 text-xs text-slate-200 px-3 py-2 rounded border border-slate-700 shadow-xl z-[100] pointer-events-none font-sans not-italic font-normal tracking-normal">
-                  <div className="flex flex-col gap-1">
-                    <span className="font-bold text-cyan-300">Stabilisation du réseau</span>
-                    <span>Démarre à 0 % (diagnostic initial), progresse jusqu'à 86 % au fil des systèmes repris, puis jusqu'à 100 % avec votre brevet et les défis bonus.</span>
-                  </div>
-                  <div className="absolute bottom-full right-6 border-4 border-transparent border-b-slate-700"></div>
-                  <div className="absolute bottom-[calc(100%-1px)] right-6 border-4 border-transparent border-b-slate-900"></div>
-                </div>
-              </div>
-              
               <div className="relative group">
                 <button 
                   onClick={() => { setShowGlossary(true); }}
@@ -651,7 +604,7 @@ export default function HUD({
           )}
 
           {/* Mute Toggle (Always visible on desktop, and visible on mobile when outside active levels) */}
-          <div className={`relative group/mute ${(level > 0 && level < 14 && timeLeft > 0 && lives > 0) ? 'hidden md:block' : 'block'}`}>
+          <div className={`relative group/mute ${(level > 0 && level < 14 && lives > 0) ? 'hidden md:block' : 'block'}`}>
             <button
               type="button"
               onClick={onToggleMute}
@@ -684,24 +637,6 @@ export default function HUD({
         className="md:hidden"
         innerClassName="mt-3 pt-3 border-t border-white/[0.08] flex flex-col gap-2.5"
       >
-        {/* Water Gauge Mobile */}
-        <div className="bg-slate-950/65 px-3 py-2.5 rounded-xl border border-white/10 w-full overflow-hidden">
-          <div className="flex justify-between items-center mb-1.5">
-            <div className="flex items-center gap-1.5">
-              <Droplets className="w-3.5 h-3.5 text-cyan-300/85" />
-              <span className="text-[10px] font-medium uppercase tracking-wider text-slate-400">Eau Préservée</span>
-            </div>
-            <span className="font-semibold font-mono text-xs text-white tabular-nums">{waterSaved}%</span>
-          </div>
-          <div className="h-1.5 bg-white/[0.08] rounded-full overflow-hidden relative">
-            <motion.div 
-              className="absolute top-0 left-0 h-full rounded-full bg-gradient-to-r from-cyan-400 to-emerald-400"
-              initial={{ width: '15%' }}
-              animate={{ width: `${waterSaved}%` }}
-            />
-          </div>
-        </div>
-
         <div className="flex gap-2">
           <button 
             onClick={() => { setShowGlossary(true); setIsMobileMenuOpen(false); }}
@@ -789,10 +724,10 @@ export default function HUD({
                     initial={{ opacity: 0, y: 8, scale: 0.96 }}
                     animate={{ opacity: 1, y: 0, scale: 1, transition: { duration: 0.22, ease: EASE_OUT_EXPO } }}
                     exit={{ opacity: 0, y: 6, scale: 0.96, transition: { duration: 0.14, ease: EASE_IN_OUT } }}
-                    className="p-2.5 bg-slate-900/95 backdrop-blur border border-indigo-500/40 rounded-xl shadow-[0_0_15px_rgba(99,102,241,0.15)] flex flex-col gap-1.5 w-56 text-center"
+                    className="p-3 bg-slate-900/95 backdrop-blur border border-indigo-500/40 rounded-xl shadow-[0_0_15px_rgba(99,102,241,0.15)] flex flex-col gap-1.5 w-64 text-center"
                   >
-                    <div className="text-[11px] uppercase font-black text-indigo-300 tracking-wider">Réponse Attendue</div>
-                    <div className="text-[11px] font-mono font-bold text-emerald-300 bg-emerald-950/40 py-1.5 px-2 rounded border border-emerald-500/30 whitespace-pre-line leading-normal">
+                    <div className="text-xs uppercase font-black text-indigo-300 tracking-wider">Réponse Attendue</div>
+                    <div className="text-xs font-mono font-bold text-emerald-300 bg-emerald-950/40 py-2 px-2.5 rounded border border-emerald-500/30 whitespace-pre-line leading-normal">
                       {devAnswers[level]}
                     </div>
                   </motion.div>
@@ -800,9 +735,9 @@ export default function HUD({
               </AnimatePresence>
 
               {/* Main Card: Menu Enseignant */}
-              <div className="p-2.5 bg-slate-900/95 backdrop-blur border border-indigo-500/40 rounded-xl shadow-[0_0_20px_rgba(99,102,241,0.2)] flex flex-col gap-2 w-56">
-                <div className="flex justify-between items-center border-b border-indigo-500/20 pb-1">
-                  <span className="text-[11px] uppercase font-black tracking-widest text-indigo-300">MENU ENSEIGNANT</span>
+              <div className="p-3 bg-slate-900/95 backdrop-blur border border-indigo-500/40 rounded-xl shadow-[0_0_20px_rgba(99,102,241,0.2)] flex flex-col gap-2.5 w-64">
+                <div className="flex justify-between items-center border-b border-indigo-500/20 pb-1.5">
+                  <span className="text-xs uppercase font-black tracking-widest text-indigo-300">MENU ENSEIGNANT</span>
                   <button
                     type="button"
                     onClick={() => setIsProfCollapsed(true)}
@@ -810,7 +745,7 @@ export default function HUD({
                     title="Réduire le menu enseignant"
                     aria-label="Réduire le menu enseignant"
                   >
-                    <ChevronDown className="w-3.5 h-3.5" />
+                    <ChevronDown className="w-4 h-4" />
                   </button>
                 </div>
                 <TeacherLevelSelect
@@ -823,7 +758,7 @@ export default function HUD({
                   <button 
                     onClick={prevLevelDev}
                     disabled={level <= 0}
-                    className={`flex items-center justify-center w-8 h-8 rounded-full border transition-colors shrink-0 ${
+                    className={`flex items-center justify-center w-9 h-9 rounded-full border transition-colors shrink-0 ${
                       level <= 0
                         ? 'bg-slate-900/50 text-slate-600 border-slate-800 cursor-not-allowed'
                         : 'bg-indigo-950/60 hover:bg-indigo-900/60 text-indigo-300 border-indigo-500/40'
@@ -831,12 +766,12 @@ export default function HUD({
                     title="Niveau précédent"
                     aria-label="Niveau précédent"
                   >
-                    <Rewind className="w-3.5 h-3.5" />
+                    <Rewind className="w-4 h-4" />
                   </button>
                   <button 
                     onClick={skipLevelDev}
                     disabled={level >= 14}
-                    className={`flex items-center justify-center flex-1 gap-1.5 h-8 rounded-full border text-xs font-bold transition-all ${
+                    className={`flex items-center justify-center flex-1 gap-1.5 h-9 rounded-full border text-xs font-bold transition-all ${
                       level >= 14
                         ? 'bg-slate-900/50 text-slate-600 border-slate-800 cursor-not-allowed'
                         : 'bg-indigo-900/70 hover:bg-indigo-800/70 text-indigo-200 border-indigo-500/50 hover:brightness-110'
@@ -844,7 +779,7 @@ export default function HUD({
                     title="Passer le niveau"
                     aria-label="Passer le niveau"
                   >
-                    <FastForward className="w-3.5 h-3.5" />
+                    <FastForward className="w-4 h-4" />
                     <span>SKIP</span>
                   </button>
                 </div>
@@ -853,14 +788,14 @@ export default function HUD({
                   <button
                     type="button"
                     onClick={() => setShowDevAnswer((prev) => !prev)}
-                    className={`flex items-center justify-center gap-1.5 w-full py-1.5 px-2 rounded-lg border text-[11px] font-bold transition-colors ${
+                    className={`flex items-center justify-center gap-1.5 w-full py-2 px-2.5 rounded-lg border text-xs font-bold transition-colors ${
                       showDevAnswer
                         ? 'bg-emerald-950/60 border-emerald-500/40 text-emerald-300 hover:bg-emerald-900/50'
                         : 'bg-slate-950/70 border-indigo-500/30 text-indigo-300 hover:bg-indigo-950/60'
                     }`}
                     aria-expanded={showDevAnswer}
                   >
-                    {showDevAnswer ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    {showDevAnswer ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     <span>{showDevAnswer ? 'Masquer la réponse' : 'Voir la réponse'}</span>
                   </button>
                 )}
@@ -869,10 +804,10 @@ export default function HUD({
                   <button
                     type="button"
                     onClick={onOpenTeacherKit}
-                    className="flex items-center justify-center gap-1.5 w-full py-1.5 px-2 rounded-lg border border-indigo-500/25 bg-slate-950/50 hover:bg-indigo-950/60 text-slate-300 hover:text-indigo-200 text-[11px] font-semibold transition-colors"
+                    className="flex items-center justify-center gap-1.5 w-full py-2 px-2.5 rounded-lg border border-indigo-500/25 bg-slate-950/50 hover:bg-indigo-950/60 text-slate-300 hover:text-indigo-200 text-xs font-semibold transition-colors"
                     title="Ouvrir la fiche pédagogique (déroulé, programmes, débat)"
                   >
-                    <FileText className="w-3.5 h-3.5 text-indigo-400" />
+                    <FileText className="w-4 h-4 text-indigo-400" />
                     <span>Kit Enseignant</span>
                   </button>
                 )}

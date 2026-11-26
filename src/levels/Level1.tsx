@@ -6,6 +6,7 @@ import TechTerm from '../components/TechTerm';
 import NumberInput from '../components/NumberInput';
 import LevelHeader from '../components/LevelHeader';
 import LevelShell from '../components/LevelShell';
+import MissionWorkspace from '../components/MissionWorkspace';
 import ActionButton from '../components/ActionButton';
 import LevelSuccessCard from '../components/LevelSuccessCard';
 import Collapsible from '../components/Collapsible';
@@ -46,20 +47,11 @@ export default function Level1({ onComplete, onScoreUpdate, onMistake }: { onCom
       
       <LevelHeader level={1} icon={Calculator} />
 
-      <div className="mb-3.5">
+      <div className="mb-3.5 sm:mb-4">
         <NaiaDialogue
-          hydra={{
-            status: 'hostile',
-            message: "Génération HD en continu : 1 500 images/session. Pompage prioritaire de 18 L sur le réseau potable.",
-          }}
           message={
             <>
               Première étape, Agent : avant de brider HYDRA, mesurons précisément sa consommation d'eau. Ce relevé indique le volume pompé pour générer des images haute définition par <TechTerm term="IA" />.
-            </>
-          }
-          objective={
-            <>
-              Calculez combien de <strong className="text-white">millilitres (mL)</strong> d'eau sont consommés pour <strong className="text-white">1 seule image</strong>.
             </>
           }
           reaction={errorMsg ? { message: errorMsg, emotion: 'alert' } : null}
@@ -68,6 +60,17 @@ export default function Level1({ onComplete, onScoreUpdate, onMistake }: { onCom
         />
       </div>
 
+      <MissionWorkspace
+        hydra={{
+          status: 'hostile',
+          message: "Génération HD en continu : 1 500 images/session. Pompage prioritaire de 18 L sur le réseau potable.",
+        }}
+        objective={
+          <>
+            Calculez combien de <strong className="text-white">millilitres (mL)</strong> d'eau sont consommés pour <strong className="text-white">1 seule image</strong>.
+          </>
+        }
+      >
       <div className="space-y-4 text-slate-300">
         <div className="flex flex-col lg:flex-row gap-5 items-stretch">
           {/* Visual Representation */}
@@ -273,6 +276,7 @@ export default function Level1({ onComplete, onScoreUpdate, onMistake }: { onCom
           )}
         </AnimatePresence>
       </div>
+      </MissionWorkspace>
     </LevelShell>
   );
 }

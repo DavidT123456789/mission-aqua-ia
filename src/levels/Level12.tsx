@@ -4,6 +4,7 @@ import { Globe, Droplets, CloudSun, Landmark, Megaphone, Zap, AlertTriangle, Min
 import NaiaDialogue from '../components/NaiaDialogue';
 import LevelHeader from '../components/LevelHeader';
 import LevelShell from '../components/LevelShell';
+import MissionWorkspace from '../components/MissionWorkspace';
 import ActionButton from '../components/ActionButton';
 import LevelSuccessCard from '../components/LevelSuccessCard';
 import { soundManager } from '../utils/soundManager';
@@ -109,33 +110,11 @@ export default function Level12({ onComplete, onScoreUpdate, onMistake }: { onCo
     <LevelShell compact>
       <LevelHeader level={12} icon={Globe} compact />
 
-      <div className="mb-3">
+      <div className="mb-3 sm:mb-3.5">
         <NaiaDialogue
-          hydra={{
-            status: 'synced',
-            label: 'HYDRA // RÉPARTITEUR',
-            message: "Module AQUA-FARM intégré. Répartiteur maître ouvert pour l'arbitrage Eau / Énergie / Utilité.",
-          }}
           message={
             <>
               Tout est prêt pour calibrer le répartiteur maître d'HYDRA ! Mais attention : chaque unité allouée consomme aussi de l'électricité (en <strong className="text-white">MW</strong>) et vous ne pouvez pas couper les services publics des habitants.
-            </>
-          }
-          objective="Équilibrez le répartiteur maître en respectant les 4 seuils :"
-          objectiveChips={
-            <>
-              <span className="px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.09] text-[11px] text-slate-200 font-semibold font-mono tabular-nums">
-                ≤ {WATER_BUDGET_MAX} U
-              </span>
-              <span className="px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.09] text-[11px] text-slate-200 font-semibold font-mono tabular-nums">
-                ≤ {POWER_BUDGET_MAX_MW} MW
-              </span>
-              <span className="px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.09] text-[11px] text-slate-200 font-semibold font-mono tabular-nums">
-                Citoyens 10–15 U
-              </span>
-              <span className="px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.09] text-[11px] text-slate-200 font-semibold font-mono tabular-nums">
-                Climat + Réseaux ≥ 85 U
-              </span>
             </>
           }
           reaction={feedbackError ? { message: feedbackError, emotion: 'alert' } : null}
@@ -144,6 +123,31 @@ export default function Level12({ onComplete, onScoreUpdate, onMistake }: { onCo
         />
       </div>
 
+      <MissionWorkspace
+        compact
+        hydra={{
+          status: 'synced',
+          label: 'HYDRA · RÉPARTITEUR',
+          message: "Module AQUA-FARM intégré. Répartiteur maître ouvert pour l'arbitrage Eau / Énergie / Utilité.",
+        }}
+        objective="Équilibrez le répartiteur maître en respectant les 4 seuils :"
+        objectiveChips={
+          <>
+            <span className="px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.09] text-[11px] text-slate-200 font-semibold font-mono tabular-nums">
+              ≤ {WATER_BUDGET_MAX} U
+            </span>
+            <span className="px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.09] text-[11px] text-slate-200 font-semibold font-mono tabular-nums">
+              ≤ {POWER_BUDGET_MAX_MW} MW
+            </span>
+            <span className="px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.09] text-[11px] text-slate-200 font-semibold font-mono tabular-nums">
+              Citoyens 10–15 U
+            </span>
+            <span className="px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.09] text-[11px] text-slate-200 font-semibold font-mono tabular-nums">
+              Climat + Réseaux ≥ 85 U
+            </span>
+          </>
+        }
+      >
       <div className="space-y-3.5 text-slate-300">
         {/* Double jauge Eau + Puissance Électrique */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -366,6 +370,7 @@ export default function Level12({ onComplete, onScoreUpdate, onMistake }: { onCo
           )}
         </AnimatePresence>
       </div>
+      </MissionWorkspace>
     </LevelShell>
   );
 }

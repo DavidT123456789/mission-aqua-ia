@@ -433,32 +433,6 @@ class SoundManager {
   }
 
   /**
-   * Snappy, energizing chronometer recharge chime when buying extra time (+2 min).
-   */
-  playTimeBoost() {
-    this.markFeedback();
-    if (!this.ensureReady(true)) return;
-
-    const notes = [523.25, 698.46, 880.0, 1046.5]; // C5, F5, A5, C6 (Fmaj -> C bright lift)
-    notes.forEach((freq, i) => {
-      const isLast = i === notes.length - 1;
-      this.scheduleVoice({
-        freq,
-        type: 'triangle',
-        delay: i * 0.055,
-        attack: 0.005,
-        duration: isLast ? 0.3 : 0.11,
-        vol: isLast ? 0.16 : 0.13,
-        filterFreq: 2600,
-        filterEndFreq: 950,
-      });
-      if (isLast) {
-        this.scheduleCrystalNote(freq, i * 0.055, 0.34, 0.14, 0.25);
-      }
-    });
-  }
-
-  /**
    * Shimmering reward chord when unlocking a bonus badge or special access.
    */
   playBadgeUnlock() {
@@ -522,7 +496,7 @@ class SoundManager {
   }
 
   /**
-   * Restrained descending firewall-lock / power-down sound on Game Over (0 lives or 00:00).
+   * Restrained descending firewall-lock / power-down sound on Game Over (0 lives).
    */
   playGameOver() {
     this.markFeedback();

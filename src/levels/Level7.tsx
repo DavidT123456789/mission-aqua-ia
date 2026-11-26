@@ -5,6 +5,7 @@ import NaiaDialogue from '../components/NaiaDialogue';
 import TechTerm from '../components/TechTerm';
 import LevelHeader from '../components/LevelHeader';
 import LevelShell from '../components/LevelShell';
+import MissionWorkspace from '../components/MissionWorkspace';
 import ActionButton from '../components/ActionButton';
 import LevelSuccessCard from '../components/LevelSuccessCard';
 import { soundManager } from '../utils/soundManager';
@@ -126,16 +127,8 @@ export default function Level7({ onComplete, onScoreUpdate, onMistake }: { onCom
     <LevelShell compact>
       <LevelHeader level={7} icon={Wrench} compact />
 
-      <div className="mb-3">
+      <div className="mb-3 sm:mb-3.5">
         <NaiaDialogue
-          hydra={
-            step === 1
-              ? {
-                  status: 'warning',
-                  message: "Erreur matérielle sur nœud local. Commande automatique d'un serveur neuf initiée...",
-                }
-              : null
-          }
           message={
             step === 1 ? (
               <>
@@ -155,15 +148,6 @@ export default function Level7({ onComplete, onScoreUpdate, onMistake }: { onCom
               </>
             )
           }
-          objective={
-            step === 1
-              ? 'Inspectez les 4 journaux système et sélectionnez le composant réellement en panne.'
-              : step === 2
-              ? 'Choisissez l’intervention la plus sobre en eau et en matières premières.'
-              : step === 3
-              ? 'Sélectionnez la filière adaptée pour ce composant électronique hors service.'
-              : undefined
-          }
           reaction={feedback ? { message: feedback, emotion: 'alert' } : null}
           onDismissReaction={clearError}
           emotion={step === 4 ? 'happy' : 'neutral'}
@@ -171,6 +155,26 @@ export default function Level7({ onComplete, onScoreUpdate, onMistake }: { onCom
         />
       </div>
 
+      <MissionWorkspace
+        compact
+        hydra={
+          step === 1
+            ? {
+                status: 'warning',
+                message: "Erreur matérielle sur nœud local. Commande automatique d'un serveur neuf initiée...",
+              }
+            : null
+        }
+        objective={
+          step === 1
+            ? 'Inspectez les 4 journaux système et sélectionnez le composant réellement en panne.'
+            : step === 2
+            ? 'Choisissez l’intervention la plus sobre en eau et en matières premières.'
+            : step === 3
+            ? 'Sélectionnez la filière adaptée pour ce composant électronique hors service.'
+            : undefined
+        }
+      >
       {/* Stepper */}
       <div className="grid grid-cols-3 gap-2 mb-3 text-[11px] font-mono">
         {[
@@ -427,6 +431,7 @@ export default function Level7({ onComplete, onScoreUpdate, onMistake }: { onCom
         )}
         </AnimatePresence>
       </div>
+      </MissionWorkspace>
     </LevelShell>
   );
 }

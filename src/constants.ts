@@ -1,32 +1,21 @@
 export const MISSION_DURATION_MINUTES = 40;
 export const MISSION_DURATION_SECONDS = MISSION_DURATION_MINUTES * 60;
 
+export const MAX_LIVES = 3;
 export const HEART_COST_POINTS = 150;
 export const MISTAKE_SCORE_PENALTY = 30;
-export const FREE_HINT_COST_POINTS = 10;
-export const TIME_BONUS_COST_POINTS = 100;
-export const TIME_BONUS_SECONDS = 180; // +3 minutes
+export const LAB_REOPEN_PENALTY_POINTS = 50;
 export const TERM_DISCOVERY_DELAY_MS = 2500; // 2,5 s de lecture avant validation dans le glossaire
 export const TERM_DISCOVERY_POINTS = 15;
-export const LOCKOUT_TIME_PENALTY_SECONDS = 120; // 2 minutes
-export const LOCKOUT_MIN_TIME_REMAINING_SECONDS = 60; // Plancher 1 min pour éviter un double Game Over immédiat
 export const LOCKOUT_RESTORE_LIVES = 2; // Reprise avec 2 vies sur 3 pour maintenir la tension
-
-// Plancher de temps garanti (en secondes) lors d'une reprise au début d'un acte après Game Over
-export const ACT_CHECKPOINT_MIN_TIME_SECONDS: Record<1 | 2 | 3, number> = {
-  1: MISSION_DURATION_SECONDS,
-  2: 15 * 60,
-  3: 8 * 60,
-};
+export const MID_ACT_TWO_HEAL_LEVEL = 8; // Unique palier intermédiaire (+1 vie) au milieu de l'Acte II (N4–N10)
 
 export interface ActCheckpoint {
   actId: 1 | 2 | 3;
   level: number;
   score: number;
   baseNetworkWater: number;
-  timeLeft: number;
-  extraTimeBought: number;
-  unlockedFreeHints: number[];
+  elapsedSeconds: number;
 }
 
 export interface Evaluation {
@@ -42,26 +31,26 @@ export interface Evaluation {
 }
 
 export const HINTS: Record<number, string | Record<number, string>> = {
-  1: "Astuce de calcul mental : une fois les 18 L convertis en millilitres (18 000 mL), simplifiez par 100 les deux nombres. Diviser 18 000 par 1 500 revient à diviser 180 par 15 !",
+  1: "Commencez par convertir les 18 L en millilitres (le bouton « Aide calcul » peut vous guider), puis simplifiez les deux nombres par 100 pour rendre la division plus facile de tête !",
   2: "Astuce : toutes les vannes ouvertes totalisent 225 L/s. Plutôt que de tout recalculer, cherchez simplement 2 vannes à fermer dont la somme vaut l'excès de 90 L/s (225 − 135 = 90) !",
-  3: "Comparez chaque relevé aux secteurs au repos (~4,3 bar et ~5 L/min) : un nettoyage prévu la nuit tire de l'eau mais maintient la pression (> 4 bar), tandis qu'une vraie rupture fait chuter la pression dans une zone censée être à l'arrêt.",
+  3: "Comparez chaque secteur aux valeurs au repos (~4,3 bar et ~5 L/min) : un usage nocturne prévu augmente le débit sans faire baisser la pression, alors qu'une vraie fuite fait chuter la pression en même temps.",
   4: "Procédez par élimination : la latence ne dépend que de la distance (écartez d'emblée le site > 40 ms). Sur les sites restants, testez les 3 refroidissements pour voir lequel exploite le froid naturel sans évaporer d'eau ni alourdir le PUE.",
-  5: "Méfiez-vous du creux solaire de midi : il ne dure que 2 h, alors que l'entraînement dure 6 h d'affilée ! Placez toute la fenêtre de 6 h dans la longue période éolienne de la nuit, avant le réveil des centrales à gaz à 06h00.",
+  5: "Le seuil de 55 gCO₂/kWh porte sur la moyenne des 6 heures d'affilée : vérifiez sur la courbe quel creux reste suffisamment large sous la ligne pointillée avant la remontée du pic matinal.",
   6: "Calculez l'ordre de grandeur : à 2,5 Wh par requête, le grand LLM (175B) dépasse le plafond de 50 kWh/jour dès qu'un flux excède 20 000 requêtes ! Réservez-le aux tâches rares et complexes, et réutilisez une architecture sobre sur plusieurs flux.",
   7: {
-    1: "Une température élevée mais sous la limite maximale (comme en plein calcul IA) est normale : cherchez dans les journaux une véritable erreur matérielle critique impossible à corriger.",
-    2: "Principe de réparabilité : conservez tous les composants qui fonctionnent encore et limitez l'intervention à la seule pièce réellement défaillante.",
-    3: "Évitez autant l'effet tiroir (garder une pièce HS « au cas où ») que de déplacer la panne en revendant un module défectueux : privilégiez la récupération des métaux critiques.",
+    1: "Une température élevée mais sous la limite maximale (en plein calcul IA) est normale : fiez-vous aux compteurs d'erreurs matérielles dans les journaux plutôt qu'à la chaleur.",
+    2: "Principe de réparabilité : fabriquer ou remplacer un serveur entier mobilise beaucoup plus d'eau virtuelle que de n'intervenir que sur le composant défectueux.",
+    3: "Une pièce hors service ne doit ni dormir dans une armoire ni transmettre la panne à quelqu'un d'autre : cherchez la filière capable d'en récupérer proprement les matières premières.",
   },
   8: {
-    1: "Pour éviter tout gaspillage d'eau et ne pas réchauffer le milieu naturel, écartez les systèmes ouverts (vapeur ou rejet en rivière) et choisissez la boucle fermée qui valorise la chaleur.",
-    2: "Suivez le trajet de la chaleur dans la boucle : l'eau capte d'abord la chaleur près des serveurs, part vers le quartier, la cède aux logements, puis revient refroidie au point de départ.",
+    1: "Comparez le principe et la sortie de chaque option : cherchez un circuit étanche où l'eau ne se perd pas et où la chaleur des serveurs devient utile à l'extérieur.",
+    2: "Partez de la source de chaleur (les serveurs) et alternez toujours entre un échangeur (qui transfère la chaleur) et une conduite (qui transporte l'eau), jusqu'au retour refroidi.",
   },
   9: {
-    1: "Pour passer sous 75 To, écartez les jeux qui n'aident pas à modéliser notre bassin local : données d'un autre continent, format vidéo disproportionné et copie en doublon.",
-    2: "Regardez pourquoi le Quartier Nord n'a que 15 % de besoins visibles : ajouter des calculs ou copier les données d'un autre quartier ne corrige jamais un manque de mesures locales.",
+    1: "Pour passer sous 75 To, passez chaque jeu au crible de 3 questions : concerne-t-il bien notre bassin local ? Est-il déjà couvert par un autre jeu ? Son format est-il vraiment adapté à des calculs ?",
+    2: "Observez l'encadré d'audit du Quartier Nord : demandez-vous si l'angle mort vient d'un manque de puissance de calcul ou d'un déficit de mesures réelles sur ce territoire.",
   },
-  10: "Il y a exactement 4 articles réellement contraignants à retenir. Une vraie règle impose une obligation locale, mesurable et appliquée avant déploiement : méfiez-vous des compensations lointaines, des auto-déclarations sans contrôle et des bilans repoussés.",
+  10: "Il y a exactement 4 articles réellement contraignants à retenir. Une vraie règle impose une obligation locale, vérifiable et appliquée avant déploiement — écartez les promesses floues, symboliques ou sans contrôle.",
   11: "Aidez-vous de l'accordéon « Fonctionnement de l'algorithme » et du bouton « Aide Scratch → Python ». Dans le bloc if, on regroupe les deux cas où l'on coupe l'arrosage (opérateur logique OU) ; dans le else, on calcule le besoin et on arrose au moment le plus frais.",
   12: "Comparez le coût électrique (MW/U) de chaque secteur : la Publicité pèse plus de 3 fois plus lourd que les Réseaux d'eau ! Réduisez d'abord les usages les plus énergivores au strict minimum autorisé, puis répartissez le reste entre Climat et Réseaux.",
 };

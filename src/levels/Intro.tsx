@@ -13,7 +13,7 @@ export default function Intro({ onStart, hasSavedGame, savedGameInfo, onLoadGame
   savedGameInfo?: {
     level: number;
     score: number;
-    timeLeft: number;
+    elapsedSeconds: number;
     nickname?: string;
     isLockedOut?: boolean;
     isActCheckpointOver?: boolean;
@@ -96,9 +96,9 @@ export default function Intro({ onStart, hasSavedGame, savedGameInfo, onLoadGame
                 Escape game · <span className="font-mono text-slate-300">13 niveaux</span> ·{' '}
                 <span
                   className="font-mono text-slate-300"
-                  title="40 min pour les niveaux 1 à 12, puis Innovation Lab en temps libre"
+                  title="Objectif indicatif de 40 min (prolongation libre sans blocage), puis Innovation Lab en temps libre"
                 >
-                  {MISSION_DURATION_MINUTES} min
+                  Objectif {MISSION_DURATION_MINUTES} min
                 </span>
               </p>
             </div>
@@ -110,7 +110,7 @@ export default function Intro({ onStart, hasSavedGame, savedGameInfo, onLoadGame
               message={
                 <>
                   Agent, situation critique. Le réseau central{' '}
-                  <strong className="text-rose-300 font-mono">HYDRA</strong> assèche les réserves d'eau de la ville pour refroidir ses serveurs : infiltrez ses systèmes et coupez la surchauffe avant la pénurie.
+                  <strong className="text-rose-300 font-mono">HYDRA</strong> assèche les réserves d'eau de la ville pour refroidir ses serveurs : infiltrez ses systèmes et coupez la surchauffe avant la pénurie. On compte sur vous !
                 </>
               }
             />

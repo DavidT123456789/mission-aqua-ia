@@ -5,6 +5,7 @@ import NaiaDialogue from '../components/NaiaDialogue';
 import TechTerm from '../components/TechTerm';
 import LevelHeader from '../components/LevelHeader';
 import LevelShell from '../components/LevelShell';
+import MissionWorkspace from '../components/MissionWorkspace';
 import ActionButton from '../components/ActionButton';
 import LevelSuccessCard from '../components/LevelSuccessCard';
 import { soundManager } from '../utils/soundManager';
@@ -158,29 +159,11 @@ export default function Level4({ onComplete, onScoreUpdate, onMistake }: { onCom
     <LevelShell compact wide>
       <LevelHeader level={4} icon={Map} compact />
 
-      <div className="mb-3">
+      <div className="mb-3 sm:mb-3.5">
         <NaiaDialogue
-          hydra={{
-            status: 'hostile',
-            message: "Implantation prioritaire pré-sélectionnée en désert chaud (foncier faible coût, tours évaporatives).",
-          }}
           message={
             <>
               HYDRA construit un nouveau <TechTerm term="Datacenter">datacenter</TechTerm> d'entraînement (<TechTerm term="Latence">latence</TechTerm> depuis l'Europe tolérée jusqu'à 40 ms). Testez les systèmes de <TechTerm term="Refroidissement" /> pour simuler l'eau et le <TechTerm term="PUE" /> des 4 sites.
-            </>
-          }
-          objective="Sélectionnez le site et le refroidissement qui respectent les 3 seuils :"
-          objectiveChips={
-            <>
-              <span className="px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.09] text-[11px] text-slate-200 font-semibold font-mono tabular-nums">
-                Eau &lt; 100 L/MWh
-              </span>
-              <span className="px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.09] text-[11px] text-slate-200 font-semibold font-mono tabular-nums">
-                <TechTerm term="PUE" /> &lt; 1,15
-              </span>
-              <span className="px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.09] text-[11px] text-slate-200 font-semibold font-mono tabular-nums">
-                <TechTerm term="Latence" /> ≤ 40 ms
-              </span>
             </>
           }
           reaction={errorMsg ? { message: errorMsg, emotion: 'alert' } : null}
@@ -189,6 +172,27 @@ export default function Level4({ onComplete, onScoreUpdate, onMistake }: { onCom
         />
       </div>
 
+      <MissionWorkspace
+        compact
+        hydra={{
+          status: 'hostile',
+          message: "Implantation prioritaire pré-sélectionnée en désert chaud (foncier faible coût, tours évaporatives).",
+        }}
+        objective="Sélectionnez le site et le refroidissement qui respectent les 3 seuils :"
+        objectiveChips={
+          <>
+            <span className="px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.09] text-[11px] text-slate-200 font-semibold font-mono tabular-nums">
+              Eau &lt; 100 L/MWh
+            </span>
+            <span className="px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.09] text-[11px] text-slate-200 font-semibold font-mono tabular-nums">
+              <TechTerm term="PUE" /> &lt; 1,15
+            </span>
+            <span className="px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.09] text-[11px] text-slate-200 font-semibold font-mono tabular-nums">
+              <TechTerm term="Latence" /> ≤ 40 ms
+            </span>
+          </>
+        }
+      >
       <div className="space-y-3 text-slate-300">
         {/* Step 1: Cooling System Selection (de-boxed section header above the 3 cards) */}
         <div>
@@ -424,6 +428,7 @@ export default function Level4({ onComplete, onScoreUpdate, onMistake }: { onCom
           )}
         </AnimatePresence>
       </div>
+      </MissionWorkspace>
     </LevelShell>
   );
 }

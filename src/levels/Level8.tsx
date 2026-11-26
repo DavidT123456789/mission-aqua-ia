@@ -5,6 +5,7 @@ import NaiaDialogue from '../components/NaiaDialogue';
 import TechTerm from '../components/TechTerm';
 import LevelHeader from '../components/LevelHeader';
 import LevelShell from '../components/LevelShell';
+import MissionWorkspace from '../components/MissionWorkspace';
 import ActionButton from '../components/ActionButton';
 import LevelSuccessCard from '../components/LevelSuccessCard';
 import Collapsible from '../components/Collapsible';
@@ -136,15 +137,8 @@ export default function Level8({ onComplete, onScoreUpdate, onMistake }: { onCom
         }
       />
 
-      <div className="mb-3">
+      <div className="mb-3.5 sm:mb-4">
         <NaiaDialogue
-          hydra={{
-            status: 'warning',
-            message:
-              phase === 1
-                ? "Dissipation thermique urbaine à 65 °C : rejet direct par évaporation actif en attente de raccordement."
-                : "Raccordement au réseau de chaleur urbain détecté. Validation de l'ordre du circuit fermé requise.",
-          }}
           message={
             phase === 1 ? (
               <>
@@ -156,11 +150,6 @@ export default function Level8({ onComplete, onScoreUpdate, onMistake }: { onCom
               </>
             )
           }
-          objective={
-            phase === 1
-              ? "Choisissez d'abord le bon raccordement de sortie pour supprimer l'évaporation sur place."
-              : 'Ordonnez maintenant les 4 étapes de cette boucle thermique grâce aux flèches.'
-          }
           reaction={errorMsg ? { message: errorMsg, emotion: 'alert' } : null}
           onDismissReaction={clearError}
           emotion={isSuccess ? 'happy' : 'neutral'}
@@ -168,6 +157,20 @@ export default function Level8({ onComplete, onScoreUpdate, onMistake }: { onCom
         />
       </div>
 
+      <MissionWorkspace
+        hydra={{
+          status: 'warning',
+          message:
+            phase === 1
+              ? "Dissipation thermique urbaine à 65 °C : rejet direct par évaporation actif en attente de raccordement."
+              : "Raccordement au réseau de chaleur urbain détecté. Validation de l'ordre du circuit fermé requise.",
+        }}
+        objective={
+          phase === 1
+            ? "Choisissez d'abord le bon raccordement de sortie pour supprimer l'évaporation sur place."
+            : 'Ordonnez maintenant les 4 étapes de cette boucle thermique grâce aux flèches.'
+        }
+      >
       <div className="space-y-4 text-slate-300">
         {/* Step 1: Outlet choice (de-boxed cleanly to reduce nested borders) */}
         <div className={`transition-opacity ${phase === 2 ? 'opacity-85' : ''}`}>
@@ -348,6 +351,7 @@ export default function Level8({ onComplete, onScoreUpdate, onMistake }: { onCom
           )}
         </AnimatePresence>
       </div>
+      </MissionWorkspace>
     </LevelShell>
   );
 }

@@ -4,13 +4,12 @@ import { Trophy, Droplets, RotateCcw, Star, Award, Clock, Download, ShieldCheck,
 import TechTerm from '../components/TechTerm';
 import NaiaDialogue from '../components/NaiaDialogue';
 import BonusMissions, { BonusMissionId } from '../components/BonusMissions';
-import { MISSION_DURATION_SECONDS, type Evaluation } from '../constants';
+import { MISSION_DURATION_MINUTES, MISSION_DURATION_SECONDS, type Evaluation } from '../constants';
 import { FALLBACK_PROTOTYPE_DATA_URI } from '../../shared/fallbackPrototype';
 import { EASE_OUT_EXPO, SPRING_SNAPPY, TAB_PANEL_MOTION } from '../utils/motion';
 
-export default function Outro({ timeLeft, extraTimeBought = 0, score, waterSaved, mistakeCount = 0, onRestart, nickname, evaluation, imageUrl, labWaterMl = null, leaderboard, completedBonus = [], onCompleteBonus }: { 
-  timeLeft: number; 
-  extraTimeBought?: number;
+export default function Outro({ elapsedSeconds, score, waterSaved, mistakeCount = 0, onRestart, nickname, evaluation, imageUrl, labWaterMl = null, leaderboard, completedBonus = [], onCompleteBonus }: { 
+  elapsedSeconds: number; 
   score: number; 
   waterSaved: number;
   mistakeCount?: number;
@@ -81,7 +80,9 @@ export default function Outro({ timeLeft, extraTimeBought = 0, score, waterSaved
     return `${m}m ${s}s`;
   };
 
-  const timeTaken = Math.max(0, MISSION_DURATION_SECONDS + extraTimeBought - timeLeft);
+  const timeTaken = Math.max(0, Math.floor(elapsedSeconds));
+  const withinTargetTime = timeTaken <= MISSION_DURATION_SECONDS;
+  const overtimeSeconds = Math.max(0, timeTaken - MISSION_DURATION_SECONDS);
 
   const authToken = useMemo(() => {
     const today = new Date().toISOString().slice(0, 10);
@@ -96,10 +97,10 @@ export default function Outro({ timeLeft, extraTimeBought = 0, score, waterSaved
   }, [nickname, score, waterSaved, timeTaken]);
 
   const getGrade = () => {
-    if (score >= 2830) return { title: 'COMMANDANT SUPRÊME', icon: <Star className="w-8 h-8 text-yellow-400" />, color: 'text-yellow-400', hex: '#facc15', bg: 'bg-yellow-400/10', border: 'border-yellow-500/50' };
-    if (score >= 2640) return { title: 'EXPERT SYMBIOSE', icon: <Droplets className="w-8 h-8 text-cyan-400" />, color: 'text-cyan-400', hex: '#22d3ee', bg: 'bg-cyan-400/10', border: 'border-cyan-500/50' };
-    if (score >= 2430) return { title: 'AGENT SENIOR', icon: <Award className="w-8 h-8 text-emerald-400" />, color: 'text-emerald-400', hex: '#34d399', bg: 'bg-emerald-400/10', border: 'border-emerald-500/50' };
-    if (score >= 2220) return { title: 'AGENT CONFIRMÉ', icon: <ShieldCheck className="w-8 h-8 text-slate-300" />, color: 'text-slate-300', hex: '#cbd5e1', bg: 'bg-slate-300/10', border: 'border-slate-500/50' };
+    if (score >= 2650) return { title: 'COMMANDANT SUPRÊME', icon: <Star className="w-8 h-8 text-yellow-400" />, color: 'text-yellow-400', hex: '#facc15', bg: 'bg-yellow-400/10', border: 'border-yellow-500/50' };
+    if (score >= 2450) return { title: 'EXPERT SYMBIOSE', icon: <Droplets className="w-8 h-8 text-cyan-400" />, color: 'text-cyan-400', hex: '#22d3ee', bg: 'bg-cyan-400/10', border: 'border-cyan-500/50' };
+    if (score >= 2200) return { title: 'AGENT SENIOR', icon: <Award className="w-8 h-8 text-emerald-400" />, color: 'text-emerald-400', hex: '#34d399', bg: 'bg-emerald-400/10', border: 'border-emerald-500/50' };
+    if (score >= 1950) return { title: 'AGENT CONFIRMÉ', icon: <ShieldCheck className="w-8 h-8 text-slate-300" />, color: 'text-slate-300', hex: '#cbd5e1', bg: 'bg-slate-300/10', border: 'border-slate-500/50' };
     return { title: 'AGENT JUNIOR', icon: <Shield className="w-8 h-8 text-orange-400" />, color: 'text-orange-400', hex: '#fb923c', bg: 'bg-orange-400/10', border: 'border-orange-500/50' };
   };
 
@@ -195,8 +196,14 @@ export default function Outro({ timeLeft, extraTimeBought = 0, score, waterSaved
           OPÉRATION « AQUA IA » · {greetingAgent.toUpperCase()}
         </p>
 
-        {completedBonus.length > 0 && (
+        {(withinTargetTime || completedBonus.length > 0) && (
           <div className="flex flex-wrap justify-center gap-2 mt-2.5">
+            {withinTargetTime && (
+              <span className="inline-flex items-center gap-1 text-[11px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-teal-950/60 border border-teal-400/40 text-teal-200">
+                <Clock className="w-3 h-3 shrink-0" />
+                Objectif {MISSION_DURATION_MINUTES} min tenu
+              </span>
+            )}
             {completedBonus.includes('gpu_cost') && (
               <span className="inline-flex items-center gap-1 text-[11px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-emerald-950/60 border border-emerald-500/40 text-emerald-300">
                 <Star className="w-3 h-3 fill-current shrink-0" />
@@ -216,7 +223,7 @@ export default function Outro({ timeLeft, extraTimeBought = 0, score, waterSaved
       <motion.div variants={itemVariants} className="max-w-2xl mx-auto mb-5 text-left">
         <NaiaDialogue
           hideHintButton
-          message={`Mission accomplie, ${greetingAgent}. Les réserves d'eau potable de la ville remontent déjà : désormais encadrée par la charte municipale et basculée en mode Symbiose, HYDRA protège les réseaux hydriques au lieu de les épuiser.`}
+          message={`Mission accomplie, ${greetingAgent}. Les réserves d'eau potable de la ville remontent déjà : désormais encadrée par la charte municipale et basculée en mode Symbiose, HYDRA protège les réseaux hydriques au lieu de les épuiser. Bravo, la ville vous doit beaucoup !`}
           emotion="happy"
         />
       </motion.div>
@@ -224,9 +231,20 @@ export default function Outro({ timeLeft, extraTimeBought = 0, score, waterSaved
       {/* 4 KPI Summary */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-3 max-w-2xl mx-auto mb-5">
         {[
-          { icon: Clock, label: 'Temps', value: formatTime(timeTaken), color: 'text-emerald-400', bg: 'bg-emerald-950/40', border: 'border-emerald-500/30' },
+          {
+            icon: Clock,
+            label: 'Temps',
+            value: formatTime(timeTaken),
+            sublabel: withinTargetTime
+              ? `Sous les ${MISSION_DURATION_MINUTES} min`
+              : `Prol. +${formatTime(overtimeSeconds)}`,
+            sublabelClass: withinTargetTime ? 'text-emerald-300/80' : 'text-amber-300/80',
+            color: withinTargetTime ? 'text-emerald-400' : 'text-amber-300',
+            bg: withinTargetTime ? 'bg-emerald-950/40' : 'bg-amber-950/30',
+            border: withinTargetTime ? 'border-emerald-500/30' : 'border-amber-500/30',
+          },
           { icon: Star, label: 'Score', value: score, sublabel: mistakeCount === 0 ? 'Sans erreur' : `${mistakeCount} erreur${mistakeCount > 1 ? 's' : ''}`, sublabelClass: 'text-yellow-300/75', color: 'text-yellow-400', bg: 'bg-yellow-950/40', border: 'border-yellow-500/30' },
-          { icon: Droplets, label: 'Eau Sauvée', value: `${waterSaved}%`, sublabel: evaluation?.waterSaved ? `${evaluation.waterSaved} L/an` : undefined, sublabelClass: 'text-cyan-300/75', color: 'text-cyan-400', bg: 'bg-cyan-950/40', border: 'border-cyan-500/30' },
+          { icon: Droplets, label: 'Eau préservée', value: `${waterSaved}%`, sublabel: evaluation?.waterSaved ? `${evaluation.waterSaved} L/an` : undefined, sublabelClass: 'text-cyan-300/75', color: 'text-cyan-400', bg: 'bg-cyan-950/40', border: 'border-cyan-500/30' },
           { icon: Award, label: 'Grade', value: grade.title, color: grade.color, bg: grade.bg, border: grade.border }
         ].map((stat, i) => (
           <motion.div
@@ -503,8 +521,14 @@ export default function Outro({ timeLeft, extraTimeBought = 0, score, waterSaved
                 </h2>
                 <div className="text-3xl font-black mb-1 uppercase tracking-tight relative z-10 text-white drop-shadow-md">{certificateAgentName}</div>
                 <div className={`text-lg font-bold font-mono tracking-widest relative z-10 ${grade.color}`}>{grade.title}</div>
-                {completedBonus.length > 0 && (
+                {(withinTargetTime || completedBonus.length > 0) && (
                   <div className="flex flex-wrap gap-1.5 mt-2 relative z-10">
+                    {withinTargetTime && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-teal-950/70 border border-teal-400/40 text-teal-200">
+                        <Clock className="w-2.5 h-2.5 shrink-0" />
+                        OBJECTIF {MISSION_DURATION_MINUTES} MIN
+                      </span>
+                    )}
                     {completedBonus.includes('gpu_cost') && (
                       <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-950/70 border border-emerald-500/40 text-emerald-300">
                         <Star className="w-2.5 h-2.5 fill-current shrink-0" />
@@ -537,7 +561,7 @@ export default function Outro({ timeLeft, extraTimeBought = 0, score, waterSaved
                   </div>
                   <div className="text-center bg-slate-950/50 p-3 rounded-xl border border-slate-800">
                     <div className="text-lg font-black text-cyan-400 mb-0.5">{waterSaved} %</div>
-                    <div className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Eau Sauvée</div>
+                    <div className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Eau préservée</div>
                   </div>
                 </div>
               </div>

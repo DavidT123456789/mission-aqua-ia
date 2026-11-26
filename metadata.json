@@ -1,5 +1,6 @@
 {
   "name": "Mission Aqua IA",
   "description": "Un escape game éducatif sur l'intelligence artificielle et la consommation d'eau pour les collégiens.",
-  "requestFramePermissions": []
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

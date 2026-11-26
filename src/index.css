@@ -134,6 +134,30 @@
   background: rgba(16, 185, 129, 0.5);
 }
 
+/* Slim Indigo Scrollbar for Teacher Level Select */
+.teacher-select-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(129, 140, 248, 0.4) transparent;
+}
+
+.teacher-select-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.teacher-select-scroll::-webkit-scrollbar-track {
+  background: transparent;
+  margin-block: 8px;
+}
+
+.teacher-select-scroll::-webkit-scrollbar-thumb {
+  background: rgba(129, 140, 248, 0.35);
+  border-radius: 9999px;
+}
+
+.teacher-select-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(129, 140, 248, 0.6);
+}
+
 /* Range sliders: hand cursor on track and thumb */
 input[type="range"]:not(:disabled) {
   cursor: pointer;

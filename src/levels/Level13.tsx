@@ -5,10 +5,11 @@ import NaiaDialogue from '../components/NaiaDialogue';
 import TechTerm from '../components/TechTerm';
 import LevelHeader from '../components/LevelHeader';
 import LevelShell from '../components/LevelShell';
+import MissionWorkspace from '../components/MissionWorkspace';
 import ActionButton from '../components/ActionButton';
 import Collapsible from '../components/Collapsible';
 import { soundManager } from '../utils/soundManager';
-import type { Evaluation } from '../constants';
+import { LAB_REOPEN_PENALTY_POINTS, type Evaluation } from '../constants';
 import { buildSoberBlueprintDataUri } from '../../shared/fallbackPrototype';
 import { EASE_OUT_EXPO, STEP_PANEL_MOTION, TAB_PANEL_MOTION } from '../utils/motion';
 
@@ -384,22 +385,24 @@ export default function Level13({ onComplete, onScoreUpdate, nickname, onFinaliz
 
       <AnimatePresence mode="wait" initial={false}>
       {status === 'calibration' && currentCalib && (
-        <motion.div key="l13-calibration" {...TAB_PANEL_MOTION} className="space-y-3.5">
+        <motion.div key="l13-calibration" {...TAB_PANEL_MOTION} className="space-y-3.5 sm:space-y-4">
           <NaiaDialogue
-            hydra={{
-              status: 'synced',
-              message: "Mode Symbiose activé. Accréditation « Prompt Sobre » requise avant d'ouvrir le générateur.",
-            }}
             message={
               <>
                 Dernière ligne droite ! Avant d'ouvrir la console de l'Innovation Lab (où l'<TechTerm term="IA Générative">IA générative</TechTerm> consomme ~2–3 mL par relance texte et ~12 mL par image prototype), validez ces 2 réflexes pour réussir votre <TechTerm term="Prompt">prompt</TechTerm> du premier coup.
               </>
             }
-            objective="Complétez la calibration « L'Art du Prompt Sobre » pour déverrouiller l'atelier de conception."
             emotion="neutral"
           />
 
-          <div className="bg-slate-950/85 border border-cyan-500/30 rounded-2xl p-4 sm:p-5 font-sans overflow-hidden">
+          <MissionWorkspace
+            hydra={{
+              status: 'synced',
+              message: "Mode Symbiose activé. Accréditation « Prompt Sobre » requise avant d'ouvrir le générateur.",
+            }}
+            objective="Complétez la calibration « L'Art du Prompt Sobre » pour déverrouiller l'atelier de conception."
+          >
+          <div className="font-sans overflow-hidden">
             <AnimatePresence mode="wait" initial={false}>
               <motion.div key={`calib-${calibStep}`} {...STEP_PANEL_MOTION} className="space-y-3.5">
                 <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2.5">
@@ -489,28 +492,33 @@ export default function Level13({ onComplete, onScoreUpdate, nickname, onFinaliz
               </motion.div>
             </AnimatePresence>
           </div>
+          </MissionWorkspace>
         </motion.div>
       )}
 
       {status === 'input' && !isAnalyzing && (
-        <motion.div key="l13-input" {...TAB_PANEL_MOTION} className="space-y-3.5">
+        <motion.div key="l13-input" {...TAB_PANEL_MOTION} className="space-y-3.5 sm:space-y-4">
           <NaiaDialogue
-            hydra={{
-              status: 'synced',
-              message: "Mode Symbiose activé. Noyau ouvert à l'éco-innovation.",
-            }}
             message={
               <>
                 Vous avez repris le contrôle d'HYDRA. Utilisez maintenant l'IA générative de façon ciblée et sobre (~2–3 mL par analyse texte, ~12 mL par prototype 3D) pour déposer votre brevet.
               </>
             }
+            emotion="happy"
+          />
+
+          <MissionWorkspace
+            hydra={{
+              status: 'synced',
+              message: "Mode Symbiose activé. Noyau ouvert à l'éco-innovation.",
+            }}
             objective={
               <>
                 Rédigez un <TechTerm term="Prompt">prompt</TechTerm> précis dès le premier essai en couvrant les 4 piliers ci-dessous.
               </>
             }
-            emotion="happy"
-          />
+            bodyClassName="space-y-3.5"
+          >
 
           {isDevMode && (
             <div className="flex justify-start">
@@ -581,15 +589,13 @@ export default function Level13({ onComplete, onScoreUpdate, nickname, onFinaliz
               <span>ANALYSER MON CONCEPT</span>
             </ActionButton>
           </div>
+          </MissionWorkspace>
         </motion.div>
       )}
 
       {isAnalyzing && (
-        <motion.div
-          key="l13-analyzing"
-          {...TAB_PANEL_MOTION}
-          className="flex flex-col items-center justify-center py-16 space-y-6"
-        >
+        <motion.div key="l13-analyzing" {...TAB_PANEL_MOTION}>
+          <MissionWorkspace bodyClassName="flex flex-col items-center justify-center py-12 space-y-6">
           <div className="relative flex items-center justify-center w-28 h-28">
             <div className="absolute inset-0 bg-emerald-500/20 rounded-full blur-2xl animate-pulse"></div>
             <div className="absolute inset-0 border-t-4 border-b-4 border-emerald-500 rounded-full animate-[spin_2s_linear_infinite]"></div>
@@ -606,6 +612,7 @@ export default function Level13({ onComplete, onScoreUpdate, nickname, onFinaliz
             <p className="text-lg font-bold text-emerald-400 animate-pulse">{loadingStep}</p>
             <p className="text-cyan-400/75 text-xs font-mono tracking-widest uppercase">NAÏA analyse votre proposition…</p>
           </div>
+          </MissionWorkspace>
         </motion.div>
       )}
 
@@ -613,13 +620,15 @@ export default function Level13({ onComplete, onScoreUpdate, nickname, onFinaliz
         <motion.div
           key="l13-draft"
           {...TAB_PANEL_MOTION}
-          className="space-y-4"
+          className="space-y-3.5 sm:space-y-4"
         >
           <NaiaDialogue
             hideHintButton
             message={`Analyse terminée pour « ${evaluation.title} » (${evaluation.score} %). ${evaluation.score >= 80 ? "Excellent concept : niveau Légendaire atteint !" : evaluation.score >= 50 ? "Bon concept : le prototype est débloqué." : "Il manque encore un peu de précision technique pour débloquer le prototype."}`}
             emotion={evaluation.score >= 50 ? 'happy' : 'neutral'}
           />
+
+          <MissionWorkspace bodyClassName="space-y-4">
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className={`bg-slate-950 border-2 ${scoreStyle.border} rounded-2xl p-5 transition-all duration-500 relative`}>
@@ -769,10 +778,11 @@ export default function Level13({ onComplete, onScoreUpdate, nickname, onFinaliz
               </ActionButton>
               <p className="text-[11px] text-center text-slate-400 font-mono flex items-center justify-center gap-1">
                 <AlertTriangle className="w-3 h-3 shrink-0 text-amber-400" />
-                Réouverture facturée -250 pts après validation
+                Réouverture facturée -{LAB_REOPEN_PENALTY_POINTS} pts après validation
               </p>
             </div>
           </div>
+          </MissionWorkspace>
         </motion.div>
       )}
 
@@ -782,8 +792,30 @@ export default function Level13({ onComplete, onScoreUpdate, nickname, onFinaliz
           initial={{ opacity: 0, scale: 0.97, y: 10 }}
           animate={{ opacity: 1, scale: 1, y: 0, transition: { duration: 0.3, ease: EASE_OUT_EXPO } }}
           exit={{ opacity: 0, y: -8, transition: { duration: 0.16 } }}
-          className="space-y-4"
+          className="space-y-3.5 sm:space-y-4"
         >
+          {/* Bilan hydrique assumé du Labo */}
+          <NaiaDialogue
+            hideHintButton
+            emotion={labDraftCount >= 3 ? 'neutral' : 'happy'}
+            message={
+              usedSoberVisual ? (
+                <>
+                  <strong>Bilan hydrique du Labo : {formatWaterMl(labWaterMl)}</strong> ({labDraftCount} analyse{labDraftCount > 1 ? 's' : ''} texte, 0 image IA). Exemplaire : vous avez validé votre brevet avec un schéma local sobre, sans générer d'image inutile, pour une économie projetée de <strong className="text-emerald-300">{evaluation.waterSaved} L/an</strong> !
+                </>
+              ) : labDraftCount >= 3 ? (
+                <>
+                  <strong>Bilan hydrique du Labo : {formatWaterMl(labWaterMl)}</strong> ({labDraftCount} analyses brouillon + {labImageCount} prototype 3D). Vous constatez en direct l'effet des relances successives sur la consommation d'eau : un prompt bien préparé dès le premier essai divise nettement l'empreinte.
+                </>
+              ) : (
+                <>
+                  <strong>Bilan hydrique du Labo : {formatWaterMl(labWaterMl)}</strong> ({labDraftCount} analyse{labDraftCount > 1 ? 's' : ''} texte{labImageCount > 0 ? ` + ${labImageCount} image 3D à 12 mL` : ''}). Utiliser l'IA générative a un coût réel en eau, mais un usage <strong>ciblé et sobre</strong> prend sens lorsqu'il sert une innovation capable d'économiser <strong className="text-emerald-300">{evaluation.waterSaved} L/an</strong>.
+                </>
+              )
+            }
+          />
+
+          <MissionWorkspace bodyClassName="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Patent Card */}
             <div className="bg-slate-950 border-2 border-emerald-500/30 rounded-2xl p-5 relative">
@@ -895,27 +927,6 @@ export default function Level13({ onComplete, onScoreUpdate, nickname, onFinaliz
             </div>
           </div>
 
-          {/* Bilan hydrique assumé du Labo */}
-          <NaiaDialogue
-            hideHintButton
-            emotion={labDraftCount >= 3 ? 'neutral' : 'happy'}
-            message={
-              usedSoberVisual ? (
-                <>
-                  <strong>Bilan hydrique du Labo : {formatWaterMl(labWaterMl)}</strong> ({labDraftCount} analyse{labDraftCount > 1 ? 's' : ''} texte, 0 image IA). Exemplaire : vous avez validé votre brevet avec un schéma local sobre, sans générer d'image inutile, pour une économie projetée de <strong className="text-emerald-300">{evaluation.waterSaved} L/an</strong> !
-                </>
-              ) : labDraftCount >= 3 ? (
-                <>
-                  <strong>Bilan hydrique du Labo : {formatWaterMl(labWaterMl)}</strong> ({labDraftCount} analyses brouillon + {labImageCount} prototype 3D). Vous constatez en direct l'effet des relances successives sur la consommation d'eau : un prompt bien préparé dès le premier essai divise nettement l'empreinte.
-                </>
-              ) : (
-                <>
-                  <strong>Bilan hydrique du Labo : {formatWaterMl(labWaterMl)}</strong> ({labDraftCount} analyse{labDraftCount > 1 ? 's' : ''} texte{labImageCount > 0 ? ` + ${labImageCount} image 3D à 12 mL` : ''}). Utiliser l'IA générative a un coût réel en eau, mais un usage <strong>ciblé et sobre</strong> prend sens lorsqu'il sert une innovation capable d'économiser <strong className="text-emerald-300">{evaluation.waterSaved} L/an</strong>.
-                </>
-              )
-            }
-          />
-
           <div className="flex flex-col sm:flex-row justify-center gap-3">
             <ActionButton
               variant="secondary"
@@ -925,8 +936,8 @@ export default function Level13({ onComplete, onScoreUpdate, nickname, onFinaliz
                 genRequestIdRef.current += 1;
                 genAbortRef.current?.abort();
                 setIsGeneratingImage(false);
-                // Retire le gain du brevet précédent + pénalité de -250 pts (empêche le farm infini)
-                onScoreUpdate(-(awardedLabPoints + 250), 0);
+                // Retire le gain du brevet précédent + pénalité modérée (empêche le farm infini sans sanctionner excessivement une correction)
+                onScoreUpdate(-(awardedLabPoints + LAB_REOPEN_PENALTY_POINTS), 0);
                 onFinalize?.(null, null, null);
                 setAwardedLabPoints(0);
                 setStatus('input');
@@ -935,7 +946,7 @@ export default function Level13({ onComplete, onScoreUpdate, nickname, onFinaliz
               }}
             >
               <RotateCcw className="w-4 h-4" />
-              <span>RÉOUVRIR (-250 PTS)</span>
+              <span>RÉOUVRIR (-{LAB_REOPEN_PENALTY_POINTS} PTS)</span>
             </ActionButton>
             <ActionButton
               variant="primary"
@@ -963,6 +974,7 @@ export default function Level13({ onComplete, onScoreUpdate, nickname, onFinaliz
               )}
             </ActionButton>
           </div>
+          </MissionWorkspace>
         </motion.div>
       )}
       </AnimatePresence>

@@ -30,13 +30,15 @@ export default function TeacherLevelSelect({
   const containerRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
+  const hasInterludePreview = Boolean(onPreviewInterlude);
+
   const options = useMemo<SelectOption[]>(() => {
     const items: SelectOption[] = [
       { value: '0', label: 'Accueil (Intro & Briefing)', kind: 'home', targetLevel: 0 },
     ];
     for (const act of MISSION_ACTS) {
       const group = `${act.label} · ${act.title}`;
-      if ((act.id === 2 || act.id === 3) && onPreviewInterlude) {
+      if ((act.id === 2 || act.id === 3) && hasInterludePreview) {
         items.push({
           value: `interlude-${act.startLevel}`,
           label: `Interlude ${act.label}`,
@@ -57,12 +59,38 @@ export default function TeacherLevelSelect({
     }
     items.push({ value: '14', label: 'Fin (Bilan & Dossier)', kind: 'outro', targetLevel: 14 });
     return items;
-  }, [onPreviewInterlude]);
+  }, [hasInterludePreview]);
 
   const currentOption = useMemo(
     () => options.find((o) => o.value === String(level)) ?? options[0],
     [options, level]
   );
+
+  const scrollOptionIntoList = (index: number, mode: 'center' | 'nearest' = 'nearest') => {
+    const listEl = listRef.current;
+    if (!listEl || index < 0) return;
+    const itemEl = listEl.querySelector<HTMLElement>(`[data-option-index="${index}"]`);
+    if (!itemEl) return;
+    const itemTop = itemEl.offsetTop;
+    const itemHeight = itemEl.offsetHeight;
+    const itemBottom = itemTop + itemHeight;
+    const clientHeight = listEl.clientHeight;
+
+    if (mode === 'center') {
+      const targetScroll = itemTop - clientHeight / 2 + itemHeight / 2;
+      listEl.scrollTop = Math.max(0, targetScroll);
+      return;
+    }
+
+    const viewTop = listEl.scrollTop;
+    const viewBottom = viewTop + clientHeight;
+    const padding = 8;
+    if (itemTop - padding < viewTop) {
+      listEl.scrollTop = Math.max(0, itemTop - padding);
+    } else if (itemBottom + padding > viewBottom) {
+      listEl.scrollTop = itemBottom + padding - clientHeight;
+    }
+  };
 
   // Close on outside click or Escape
   useEffect(() => {
@@ -86,15 +114,15 @@ export default function TeacherLevelSelect({
     };
   }, [isOpen]);
 
-  // Scroll active item into view when opening
+  // Center active item in view when opening or when level actually changes
   useEffect(() => {
     if (!isOpen) return;
     const idx = options.findIndex((o) => o.value === String(level));
     setHighlightedIndex(idx);
-    requestAnimationFrame(() => {
-      const activeEl = listRef.current?.querySelector<HTMLElement>('[data-active="true"]');
-      activeEl?.scrollIntoView({ block: 'nearest' });
+    const frameId = requestAnimationFrame(() => {
+      scrollOptionIntoList(idx, 'center');
     });
+    return () => cancelAnimationFrame(frameId);
   }, [isOpen, level, options]);
 
   const handleChoose = (opt: SelectOption) => {
@@ -118,9 +146,9 @@ export default function TeacherLevelSelect({
       }
       setHighlightedIndex((prev) => {
         const next = e.key === 'ArrowDown' ? prev + 1 : prev - 1;
-        if (next < 0) return options.length - 1;
-        if (next >= options.length) return 0;
-        return next;
+        const wrapped = next < 0 ? options.length - 1 : next >= options.length ? 0 : next;
+        requestAnimationFrame(() => scrollOptionIntoList(wrapped, 'nearest'));
+        return wrapped;
       });
     } else if (e.key === 'Enter' || e.key === ' ') {
       if (isOpen && highlightedIndex >= 0 && highlightedIndex < options.length) {
@@ -143,7 +171,7 @@ export default function TeacherLevelSelect({
         aria-expanded={isOpen}
         aria-label="Sélectionner un acte ou un niveau"
         title="Sauter vers un acte ou un niveau"
-        className={`w-full flex items-center justify-between gap-1.5 bg-indigo-950/65 hover:bg-indigo-900/60 text-indigo-100 text-[11px] font-semibold px-2.5 h-8 rounded-lg border transition-all cursor-pointer ${
+        className={`w-full flex items-center justify-between gap-2 bg-indigo-950/65 hover:bg-indigo-900/60 text-indigo-100 text-xs font-semibold px-3 h-9 rounded-lg border transition-all cursor-pointer ${
           isOpen
             ? 'border-indigo-400 ring-1 ring-indigo-400/50 bg-indigo-900/60'
             : 'border-indigo-500/40'
@@ -151,7 +179,7 @@ export default function TeacherLevelSelect({
       >
         <span className="truncate text-left">{currentOption.label}</span>
         <ChevronDown
-          className={`w-3.5 h-3.5 text-indigo-300 shrink-0 transition-transform duration-200 ease-out ${
+          className={`w-4 h-4 text-indigo-300 shrink-0 transition-transform duration-200 ease-out ${
             isOpen ? 'rotate-180' : ''
           }`}
         />
@@ -176,7 +204,7 @@ export default function TeacherLevelSelect({
               scale: 0.97,
               transition: { duration: 0.13, ease: EASE_IN_OUT },
             }}
-            className="absolute bottom-full right-0 mb-1.5 w-64 max-h-72 overflow-y-auto rounded-xl bg-slate-900/98 backdrop-blur-xl border border-indigo-500/40 shadow-[0_16px_40px_rgba(0,0,0,0.65),0_0_20px_rgba(99,102,241,0.18)] p-1.5 z-[80] origin-bottom-right"
+            className="teacher-select-scroll absolute bottom-full right-0 mb-2 w-72 sm:w-80 max-w-[calc(100vw-1.5rem)] max-h-[min(28rem,62vh)] overflow-y-auto overscroll-contain rounded-xl bg-slate-900/98 backdrop-blur-xl border border-indigo-500/40 shadow-[0_16px_40px_rgba(0,0,0,0.65),0_0_20px_rgba(99,102,241,0.18)] p-2 z-[80] origin-bottom-right"
           >
             {options.map((opt, idx) => {
               const showGroupHeader = opt.group && opt.group !== lastGroup;
@@ -187,7 +215,7 @@ export default function TeacherLevelSelect({
               return (
                 <React.Fragment key={opt.value}>
                   {showGroupHeader && (
-                    <div className="px-2 pt-2 pb-1 text-[9px] font-mono font-bold uppercase tracking-wider text-cyan-300/85 border-t border-white/[0.06] first:border-t-0 mt-1 first:mt-0 select-none">
+                    <div className="px-2.5 pt-2.5 pb-1 text-[10px] font-mono font-bold uppercase tracking-wider text-cyan-300/85 border-t border-white/[0.06] first:border-t-0 mt-1.5 first:mt-0 select-none">
                       {opt.group}
                     </div>
                   )}
@@ -196,6 +224,7 @@ export default function TeacherLevelSelect({
                     role="option"
                     aria-selected={isSelected}
                     data-active={isSelected ? 'true' : undefined}
+                    data-option-index={idx}
                     onMouseEnter={() => {
                       setHighlightedIndex(idx);
                       if (opt.targetLevel && opt.targetLevel >= 1 && opt.targetLevel <= 14) {
@@ -203,7 +232,7 @@ export default function TeacherLevelSelect({
                       }
                     }}
                     onClick={() => handleChoose(opt)}
-                    className={`w-full flex items-center justify-between gap-2 px-2 py-1.5 rounded-lg text-[11px] text-left transition-colors cursor-pointer ${
+                    className={`w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg text-xs text-left transition-colors cursor-pointer ${
                       isSelected
                         ? 'bg-indigo-500/25 text-white font-bold border border-indigo-400/40'
                         : isHighlighted
@@ -213,10 +242,10 @@ export default function TeacherLevelSelect({
                         : 'text-slate-200 hover:bg-slate-800/75'
                     }`}
                   >
-                    <span className="flex items-center gap-1.5 min-w-0">
-                      {opt.kind === 'home' && <Home className="w-3 h-3 text-slate-400 shrink-0" />}
-                      {opt.kind === 'interlude' && <Film className="w-3 h-3 text-emerald-400 shrink-0" />}
-                      {opt.kind === 'outro' && <Flag className="w-3 h-3 text-yellow-400 shrink-0" />}
+                    <span className="flex items-center gap-2 min-w-0">
+                      {opt.kind === 'home' && <Home className="w-3.5 h-3.5 text-slate-400 shrink-0" />}
+                      {opt.kind === 'interlude' && <Film className="w-3.5 h-3.5 text-emerald-400 shrink-0" />}
+                      {opt.kind === 'outro' && <Flag className="w-3.5 h-3.5 text-yellow-400 shrink-0" />}
                       <span className="truncate">{opt.label}</span>
                     </span>
                     {isSelected && <Check className="w-3.5 h-3.5 text-indigo-300 shrink-0" />}

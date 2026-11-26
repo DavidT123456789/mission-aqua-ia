@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from 'react';
 import { motion, AnimatePresence, MotionConfig, useReducedMotion } from 'motion/react';
-import { GraduationCap, BookOpen, X, Lock, Pause, Play, Home, FileText } from 'lucide-react';
+import { GraduationCap, BookOpen, X, Lock, Pause, Play, Home, FileText, Clock } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import HUD from './components/HUD';
 import TransitionScreen from './components/TransitionScreen';
@@ -10,21 +10,22 @@ import { MODAL_BACKDROP_MOTION, MODAL_PANEL_MOTION } from './utils/motion';
 import {
   FACTS,
   LEVEL_NAMES,
+  MISSION_DURATION_MINUTES,
   MISSION_DURATION_SECONDS,
   HEART_COST_POINTS,
   MISTAKE_SCORE_PENALTY,
-  FREE_HINT_COST_POINTS,
-  TIME_BONUS_COST_POINTS,
-  TIME_BONUS_SECONDS,
   TERM_DISCOVERY_POINTS,
-  LOCKOUT_MIN_TIME_REMAINING_SECONDS,
   LOCKOUT_RESTORE_LIVES,
-  LOCKOUT_TIME_PENALTY_SECONDS,
-  ACT_CHECKPOINT_MIN_TIME_SECONDS,
   getActForLevel,
   type ActCheckpoint,
   type Evaluation,
 } from './constants';
+import {
+  getLevelTransitionLifeRecovery,
+  isActCheckpointEntry,
+  resolveActCheckpointResume,
+  type LifeRestoreKind,
+} from './utils/checkpointRules';
 import Intro from './levels/Intro';
 import { TERMS_DICTIONARY } from './components/TechTerm';
 import type { BonusMissionId } from './components/BonusMissions';
@@ -119,7 +120,7 @@ const NETWORK_WATER_BY_LEVEL: Record<number, number> = {
 interface SavedGameInfo {
   level: number;
   score: number;
-  timeLeft: number;
+  elapsedSeconds: number;
   nickname?: string;
   isLockedOut?: boolean;
   isActCheckpointOver?: boolean;
@@ -128,9 +129,26 @@ interface SavedGameInfo {
   actCheckpointScore?: number;
 }
 
+function resolveLegacyElapsedSeconds(raw: {
+  elapsedSeconds?: unknown;
+  timeLeft?: unknown;
+  extraTimeBought?: unknown;
+}): number {
+  if (typeof raw.elapsedSeconds === 'number' && Number.isFinite(raw.elapsedSeconds)) {
+    return Math.max(0, Math.floor(raw.elapsedSeconds));
+  }
+  if (typeof raw.timeLeft === 'number' && Number.isFinite(raw.timeLeft)) {
+    const extra = typeof raw.extraTimeBought === 'number' && Number.isFinite(raw.extraTimeBought)
+      ? Math.max(0, raw.extraTimeBought)
+      : 0;
+    return Math.max(0, Math.floor(MISSION_DURATION_SECONDS + extra - raw.timeLeft));
+  }
+  return 0;
+}
+
 function parseActCheckpoint(raw: unknown): ActCheckpoint | null {
   if (!raw || typeof raw !== 'object') return null;
-  const candidate = raw as Partial<ActCheckpoint>;
+  const candidate = raw as Partial<ActCheckpoint> & { timeLeft?: unknown; extraTimeBought?: unknown };
   if (candidate.actId !== 1 && candidate.actId !== 2 && candidate.actId !== 3) return null;
   if (typeof candidate.level !== 'number' || candidate.level < 1 || candidate.level > 13) return null;
   return {
@@ -141,28 +159,20 @@ function parseActCheckpoint(raw: unknown): ActCheckpoint | null {
       typeof candidate.baseNetworkWater === 'number'
         ? Math.max(0, Math.min(86, candidate.baseNetworkWater))
         : NETWORK_WATER_BY_LEVEL[candidate.level - 1] ?? 0,
-    timeLeft:
-      typeof candidate.timeLeft === 'number'
-        ? Math.max(0, Math.min(MISSION_DURATION_SECONDS, candidate.timeLeft))
-        : ACT_CHECKPOINT_MIN_TIME_SECONDS[candidate.actId],
-    extraTimeBought: typeof candidate.extraTimeBought === 'number' ? Math.max(0, candidate.extraTimeBought) : 0,
-    unlockedFreeHints: Array.isArray(candidate.unlockedFreeHints)
-      ? candidate.unlockedFreeHints.filter((n): n is number => typeof n === 'number')
-      : [1],
+    elapsedSeconds: resolveLegacyElapsedSeconds(candidate),
   };
 }
 
 function buildSavedGameInfo(data: {
   level: number;
   score: number;
-  timeLeft: number;
+  elapsedSeconds: number;
   lives: number;
   secondChanceUsed: boolean;
   nickname?: string;
   actCheckpoint?: ActCheckpoint | null;
 }): SavedGameInfo {
-  const isPermanentFail =
-    data.level < 14 && (data.timeLeft <= 0 || (data.lives <= 0 && data.secondChanceUsed));
+  const isPermanentFail = data.level < 14 && data.lives <= 0 && data.secondChanceUsed;
   const currentAct = getActForLevel(data.level);
   const isActCheckpointOver = Boolean(isPermanentFail && currentAct && currentAct.id > 1);
   const cp =
@@ -173,9 +183,9 @@ function buildSavedGameInfo(data: {
   return {
     level: data.level,
     score: data.score,
-    timeLeft: data.timeLeft,
+    elapsedSeconds: data.elapsedSeconds,
     nickname: data.nickname || '',
-    isLockedOut: data.level < 14 && data.lives <= 0 && !data.secondChanceUsed && data.timeLeft > 0,
+    isLockedOut: data.level < 14 && data.lives <= 0 && !data.secondChanceUsed,
     isActCheckpointOver,
     actCheckpointLabel: isActCheckpointOver ? currentAct?.label : undefined,
     actCheckpointLevel: isActCheckpointOver ? cp?.level ?? currentAct?.startLevel : undefined,
@@ -220,8 +230,8 @@ function saveFinalImageSafely(imgUrl: string | null) {
 export default function App() {
   const prefersReducedMotion = useReducedMotion();
   const [level, setLevel] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(MISSION_DURATION_SECONDS); // 40 minutes
-  const [extraTimeBought, setExtraTimeBought] = useState(0);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [showOvertimeNotice, setShowOvertimeNotice] = useState(false);
   const [isActive, setIsActive] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [score, setScore] = useState(0);
@@ -263,9 +273,8 @@ export default function App() {
     return Math.min(100, Math.max(0, baseNetworkWater + labBonus + missionBonus));
   }, [baseNetworkWater, finalEvaluation, devWaterBonus, completedBonus.length]);
 
-  // Hint State (le niveau 1 est débloqué gratuitement pour éviter un démarrage bloqué à 0 pt)
+  // Hint State (indices méthodologiques toujours gratuits et accessibles dans NAÏA)
   const [showHint, setShowHint] = useState(false);
-  const [unlockedFreeHints, setUnlockedFreeHints] = useState<number[]>([1]);
 
   useEffect(() => {
     setShowHint(false);
@@ -283,15 +292,17 @@ export default function App() {
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [pendingLevel, setPendingLevel] = useState<number | null>(null);
   const [lastPointsGained, setLastPointsGained] = useState(0);
-  const [lastTimeRemaining, setLastTimeRemaining] = useState(0);
-  const [lastLifeRestored, setLastLifeRestored] = useState(false);
+  const [lastElapsedSnapshot, setLastElapsedSnapshot] = useState(0);
+  const [lastLifeRestoreKind, setLastLifeRestoreKind] = useState<LifeRestoreKind>('none');
   const [levelBonusScore, setLevelBonusScore] = useState(0);
   const isTransitionPendingRef = useRef(false);
   const successFlashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const overtimeNoticeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     return () => {
       if (successFlashTimerRef.current) clearTimeout(successFlashTimerRef.current);
+      if (overtimeNoticeTimerRef.current) clearTimeout(overtimeNoticeTimerRef.current);
     };
   }, []);
 
@@ -407,11 +418,10 @@ export default function App() {
       try {
         const parsed = JSON.parse(saved);
         const parsedLives = typeof parsed?.lives === 'number' ? parsed.lives : 3;
-        const parsedTimeLeft = typeof parsed?.timeLeft === 'number' ? parsed.timeLeft : MISSION_DURATION_SECONDS;
+        const parsedElapsedSeconds = resolveLegacyElapsedSeconds(parsed ?? {});
         const parsedSecondChanceUsed = Boolean(parsed?.secondChanceUsed);
         const parsedCheckpoint = parseActCheckpoint(parsed?.actCheckpoint);
-        const isPermanentFail =
-          parsedTimeLeft <= 0 || (parsedLives <= 0 && parsedSecondChanceUsed);
+        const isPermanentFail = parsedLives <= 0 && parsedSecondChanceUsed;
         const hasRecoverableActCheckpoint =
           typeof parsed?.level === 'number' &&
           parsed.level >= 4 &&
@@ -430,7 +440,7 @@ export default function App() {
             buildSavedGameInfo({
               level: parsed.level,
               score: parsed.score ?? 0,
-              timeLeft: parsedTimeLeft,
+              elapsedSeconds: parsedElapsedSeconds,
               lives: parsedLives,
               secondChanceUsed: parsedSecondChanceUsed,
               nickname: parsed.nickname || '',
@@ -460,7 +470,7 @@ export default function App() {
     }
   }, []);
 
-  const timeLeftRef = useRef(timeLeft);
+  const elapsedSecondsRef = useRef(elapsedSeconds);
 
   const progressSnapshotRef = useRef({
     level,
@@ -472,11 +482,9 @@ export default function App() {
     actCheckpoint,
     devWaterBonus,
     lives,
-    timeLeft,
-    extraTimeBought,
+    elapsedSeconds,
     nickname,
     discoveredTerms,
-    unlockedFreeHints,
     finalEvaluation,
     finalLabWaterMl,
     completedBonus,
@@ -484,7 +492,7 @@ export default function App() {
   });
 
   useEffect(() => {
-    timeLeftRef.current = timeLeft;
+    elapsedSecondsRef.current = elapsedSeconds;
     progressSnapshotRef.current = {
       level,
       score,
@@ -495,11 +503,9 @@ export default function App() {
       actCheckpoint,
       devWaterBonus,
       lives,
-      timeLeft,
-      extraTimeBought,
+      elapsedSeconds,
       nickname,
       discoveredTerms,
-      unlockedFreeHints,
       finalEvaluation,
       finalLabWaterMl,
       completedBonus,
@@ -515,11 +521,9 @@ export default function App() {
     actCheckpoint,
     devWaterBonus,
     lives,
-    timeLeft,
-    extraTimeBought,
+    elapsedSeconds,
     nickname,
     discoveredTerms,
-    unlockedFreeHints,
     finalEvaluation,
     finalLabWaterMl,
     completedBonus,
@@ -529,7 +533,7 @@ export default function App() {
   const persistProgress = useCallback(() => {
     const snap = progressSnapshotRef.current;
     if (snap.level <= 0 || snap.level > 14) return false;
-    const snapPermanentFail = snap.timeLeft <= 0 || (snap.lives <= 0 && snap.secondChanceUsed);
+    const snapPermanentFail = snap.lives <= 0 && snap.secondChanceUsed;
     if (snap.level < 4 && snapPermanentFail) {
       localStorage.removeItem('hydrosave_progress');
       saveFinalImageSafely(null);
@@ -543,7 +547,7 @@ export default function App() {
     return true;
   }, []);
 
-  const isPermanentGameOver = timeLeft <= 0 || (lives <= 0 && secondChanceUsed);
+  const isPermanentGameOver = lives <= 0 && secondChanceUsed;
 
   useEffect(() => {
     if (level <= 0 || level > 14) return;
@@ -560,7 +564,7 @@ export default function App() {
         buildSavedGameInfo({
           level,
           score,
-          timeLeft: timeLeftRef.current,
+          elapsedSeconds: elapsedSecondsRef.current,
           lives,
           secondChanceUsed,
           nickname,
@@ -579,10 +583,8 @@ export default function App() {
     devWaterBonus,
     lives,
     isPermanentGameOver,
-    extraTimeBought,
     nickname,
     discoveredTerms,
-    unlockedFreeHints,
     finalEvaluation,
     finalLabWaterMl,
     completedBonus,
@@ -668,7 +670,7 @@ export default function App() {
       isTransitionPendingRef.current = false;
       setMistakeCount(state.mistakeCount ?? 0);
       setLevelAttemptKey((k) => k + 1);
-      setLastLifeRestored(false);
+      setLastLifeRestoreKind('none');
       setDevWaterBonus(Boolean(state.devWaterBonus));
       setNickname(state.nickname || '');
       const loadedTerms = (Array.isArray(state.discoveredTerms) ? state.discoveredTerms : []).filter(
@@ -676,7 +678,6 @@ export default function App() {
       );
       setDiscoveredTerms(loadedTerms);
       discoveredTermsRef.current = loadedTerms;
-      const loadedFreeHints: number[] = Array.isArray(state.unlockedFreeHints) ? state.unlockedFreeHints : [];
       setFinalEvaluation(state.finalEvaluation ?? null);
       setFinalLabWaterMl(typeof state.finalLabWaterMl === 'number' ? state.finalLabWaterMl : null);
       setCompletedBonus(Array.isArray(state.completedBonus) ? state.completedBonus : []);
@@ -691,12 +692,12 @@ export default function App() {
       setIsPaused(false);
 
       const loadedLives = typeof state.lives === 'number' ? Math.max(0, Math.min(3, state.lives)) : 3;
-      const loadedTimeLeft = typeof state.timeLeft === 'number' ? Math.max(0, state.timeLeft) : MISSION_DURATION_SECONDS;
+      const loadedElapsedSeconds = resolveLegacyElapsedSeconds(state);
       const loadedSecondChanceUsed = Boolean(state.secondChanceUsed);
       const loadedCheckpoint = parseActCheckpoint(state.actCheckpoint);
-      const loadedPermanentFail =
-        state.level < 14 && (loadedTimeLeft <= 0 || (loadedLives <= 0 && loadedSecondChanceUsed));
+      const loadedPermanentFail = state.level < 14 && loadedLives <= 0 && loadedSecondChanceUsed;
       const loadedAct = getActForLevel(state.level);
+      setShowOvertimeNotice(false);
 
       // Si la sauvegarde provient d'un Game Over en Acte II ou III, restaurer directement le point de contrôle d'acte
       if (loadedPermanentFail && loadedAct && loadedAct.id > 1) {
@@ -708,28 +709,18 @@ export default function App() {
                 level: loadedAct.startLevel,
                 score: state.score ?? 0,
                 baseNetworkWater: NETWORK_WATER_BY_LEVEL[loadedAct.startLevel - 1] ?? 0,
-                timeLeft: ACT_CHECKPOINT_MIN_TIME_SECONDS[loadedAct.id],
-                extraTimeBought: state.extraTimeBought || 0,
-                unlockedFreeHints: loadedFreeHints.filter((l) => l < loadedAct.startLevel),
+                elapsedSeconds: loadedElapsedSeconds,
               };
-        const restoredTime = Math.min(
-          MISSION_DURATION_SECONDS,
-          Math.max(cp.timeLeft, ACT_CHECKPOINT_MIN_TIME_SECONDS[cp.actId])
-        );
-        const restoredFreeHints = cp.unlockedFreeHints.includes(1)
-          ? cp.unlockedFreeHints
-          : [1, ...cp.unlockedFreeHints];
 
-        setLevel(cp.level);
-        setScore(cp.score);
-        setBaseNetworkWater(cp.baseNetworkWater);
-        setLives(3);
-        setTimeLeft(restoredTime);
-        setExtraTimeBought(cp.extraTimeBought);
-        setSecondChanceUsed(false);
-        setUnlockedFreeHints(restoredFreeHints);
+        const resumed = resolveActCheckpointResume(cp, loadedSecondChanceUsed);
+        setLevel(resumed.level);
+        setScore(resumed.score);
+        setBaseNetworkWater(resumed.baseNetworkWater);
+        setLives(resumed.lives);
+        setElapsedSeconds(resumed.elapsedSeconds);
+        setSecondChanceUsed(resumed.secondChanceUsed);
         setLevelBonusScore(0);
-        setActCheckpoint({ ...cp, timeLeft: restoredTime });
+        setActCheckpoint(cp);
         setIsActive(true);
       } else {
         setLevel(state.level);
@@ -742,10 +733,8 @@ export default function App() {
         setSecondChanceUsed(loadedSecondChanceUsed);
         setActCheckpoint(loadedCheckpoint);
         setLives(loadedLives);
-        setTimeLeft(loadedTimeLeft);
-        setExtraTimeBought(state.extraTimeBought || 0);
-        setUnlockedFreeHints(loadedFreeHints.includes(1) ? loadedFreeHints : [1, ...loadedFreeHints]);
-        setIsActive(state.level < 14 && loadedLives > 0 && loadedTimeLeft > 0);
+        setElapsedSeconds(loadedElapsedSeconds);
+        setIsActive(state.level < 14 && loadedLives > 0);
       }
       soundManager.playStart();
     } catch {
@@ -828,7 +817,7 @@ export default function App() {
   }, []);
 
   const isTransitionPending = pendingLevel !== null || isTransitioning;
-  const isPauseOverlayVisible = isPaused && level > 0 && level < 13 && timeLeft > 0 && lives > 0 && !isTransitionPending;
+  const isPauseOverlayVisible = isPaused && level > 0 && level < 13 && lives > 0 && !isTransitionPending;
 
   useEffect(() => {
     localStorage.removeItem('hydrosave_devmode');
@@ -844,27 +833,29 @@ export default function App() {
     };
   }, [isPauseOverlayVisible]);
 
-  const hasTimeLeft = timeLeft > 0;
   const hasLives = lives > 0;
 
   useEffect(() => {
-    if (!isActive || isPaused || showHomeConfirm || showTeacherKit || isTransitioning || pendingLevel !== null || !hasTimeLeft || !hasLives || level === 13) {
+    if (!isActive || isPaused || showHomeConfirm || showTeacherKit || isTransitioning || pendingLevel !== null || !hasLives || level <= 0 || level >= 13) {
       return;
     }
     const interval = setInterval(() => {
-      if (timeLeftRef.current <= 1) {
-        setTimeLeft(0);
-        setIsActive(false);
-        soundManager.playGameOver();
-      } else {
-        if (timeLeftRef.current === 301) {
-          soundManager.playTimeWarning();
-        }
-        setTimeLeft((time) => (time <= 1 ? 0 : time - 1));
+      const nextElapsed = elapsedSecondsRef.current + 1;
+      if (nextElapsed === MISSION_DURATION_SECONDS - 300) {
+        soundManager.playTimeWarning();
+      } else if (nextElapsed === MISSION_DURATION_SECONDS) {
+        soundManager.playTimeWarning();
+        setShowOvertimeNotice(true);
+        if (overtimeNoticeTimerRef.current) clearTimeout(overtimeNoticeTimerRef.current);
+        overtimeNoticeTimerRef.current = setTimeout(() => {
+          setShowOvertimeNotice(false);
+          overtimeNoticeTimerRef.current = null;
+        }, 9000);
       }
+      setElapsedSeconds(nextElapsed);
     }, 1000);
     return () => clearInterval(interval);
-  }, [isActive, isPaused, showHomeConfirm, showTeacherKit, isTransitioning, pendingLevel, hasTimeLeft, hasLives, level]);
+  }, [isActive, isPaused, showHomeConfirm, showTeacherKit, isTransitioning, pendingLevel, hasLives, level]);
 
   // Close modals on Escape key
   useEffect(() => {
@@ -920,14 +911,13 @@ export default function App() {
     setSecondChanceUsed(false);
     setActCheckpoint(null);
     setLevelAttemptKey((k) => k + 1);
-    setLastLifeRestored(false);
+    setLastLifeRestoreKind('none');
     setDevWaterBonus(false);
     setLives(3);
-    setTimeLeft(MISSION_DURATION_SECONDS);
-    setExtraTimeBought(0);
+    setElapsedSeconds(0);
+    setShowOvertimeNotice(false);
     leaderboardRecordedRef.current = false;
     setLeaderboardRecorded(false);
-    setUnlockedFreeHints([1]);
     setLevelBonusScore(0);
     setFinalEvaluation(null);
     setFinalImageUrl(null);
@@ -937,12 +927,8 @@ export default function App() {
   };
 
   const resumeFromLockout = useCallback(() => {
-    if (level <= 0 || level >= 13 || timeLeft <= 0 || secondChanceUsed) return;
+    if (level <= 0 || level >= 13 || secondChanceUsed) return;
     setSecondChanceUsed(true);
-    setTimeLeft((t) => {
-      if (t <= LOCKOUT_MIN_TIME_REMAINING_SECONDS) return t;
-      return Math.max(LOCKOUT_MIN_TIME_REMAINING_SECONDS, t - LOCKOUT_TIME_PENALTY_SECONDS);
-    });
     setLives(LOCKOUT_RESTORE_LIVES);
     setLevelAttemptKey((k) => k + 1);
     setLevelBonusScore(0);
@@ -950,7 +936,7 @@ export default function App() {
     setIsPaused(false);
     setIsActive(true);
     soundManager.playStart();
-  }, [level, timeLeft, secondChanceUsed]);
+  }, [level, secondChanceUsed]);
 
   const effectiveActCheckpoint = useMemo<ActCheckpoint | null>(() => {
     const currentAct = getActForLevel(level);
@@ -964,43 +950,33 @@ export default function App() {
       level: startLevel,
       score,
       baseNetworkWater: NETWORK_WATER_BY_LEVEL[startLevel - 1] ?? 0,
-      timeLeft: Math.max(timeLeft, ACT_CHECKPOINT_MIN_TIME_SECONDS[currentAct.id]),
-      extraTimeBought,
-      unlockedFreeHints: unlockedFreeHints.filter((l) => l < startLevel),
+      elapsedSeconds,
     };
-  }, [level, actCheckpoint, score, timeLeft, extraTimeBought, unlockedFreeHints]);
+  }, [level, actCheckpoint, score, elapsedSeconds]);
 
   const resumeFromActCheckpoint = useCallback(() => {
     if (!effectiveActCheckpoint) return;
-    const minTime = ACT_CHECKPOINT_MIN_TIME_SECONDS[effectiveActCheckpoint.actId];
-    const restoredTime = Math.min(
-      MISSION_DURATION_SECONDS,
-      Math.max(effectiveActCheckpoint.timeLeft, minTime)
-    );
-    const restoredFreeHints = effectiveActCheckpoint.unlockedFreeHints.includes(1)
-      ? effectiveActCheckpoint.unlockedFreeHints
-      : [1, ...effectiveActCheckpoint.unlockedFreeHints];
 
+    const resumed = resolveActCheckpointResume(effectiveActCheckpoint, secondChanceUsed);
     isTransitionPendingRef.current = false;
     setIsTransitioning(false);
     setPendingLevel(null);
-    setLevel(effectiveActCheckpoint.level);
-    setScore(effectiveActCheckpoint.score);
-    setBaseNetworkWater(effectiveActCheckpoint.baseNetworkWater);
-    setTimeLeft(restoredTime);
-    setExtraTimeBought(effectiveActCheckpoint.extraTimeBought);
-    setLives(3);
-    setSecondChanceUsed(false);
-    setUnlockedFreeHints(restoredFreeHints);
+    setLevel(resumed.level);
+    setScore(resumed.score);
+    setBaseNetworkWater(resumed.baseNetworkWater);
+    setElapsedSeconds(resumed.elapsedSeconds);
+    setShowOvertimeNotice(false);
+    setLives(resumed.lives);
+    setSecondChanceUsed(resumed.secondChanceUsed);
     setLevelBonusScore(0);
-    setLastLifeRestored(false);
+    setLastLifeRestoreKind('none');
     setShowHint(false);
     setIsPaused(false);
     setLevelAttemptKey((k) => k + 1);
-    setActCheckpoint({ ...effectiveActCheckpoint, timeLeft: restoredTime });
+    setActCheckpoint(effectiveActCheckpoint);
     setIsActive(true);
     soundManager.playStart();
-  }, [effectiveActCheckpoint]);
+  }, [effectiveActCheckpoint, secondChanceUsed]);
 
   const nextLevel = () => {
     if (isTransitionPendingRef.current || isTransitioning) return;
@@ -1012,43 +988,37 @@ export default function App() {
       soundManager.playVictory();
       triggerCelebration(140);
       isTransitionPendingRef.current = false;
-      setLastLifeRestored(false);
+      setLastLifeRestoreKind('none');
       setLevel(next);
       return;
     }
 
-    // Life regeneration every 3 levels
-    const willRestoreLife = next % 3 === 0 && lives < 3;
-    setLastLifeRestored(willRestoreLife);
-    if (next % 3 === 0) {
-      setLives(prev => Math.min(3, prev + 1));
+    // Restauration synchronisée : 3/3 aux checkpoints d'acte (N4, N11) et +1 vie unique à mi-Acte II (N8)
+    const { nextLives, restoreKind } = getLevelTransitionLifeRecovery(next, lives);
+    setLastLifeRestoreKind(restoreKind);
+    if (nextLives !== lives) {
+      setLives(nextLives);
     }
 
     setPendingLevel(next);
-    setLastTimeRemaining(timeLeft);
+    setLastElapsedSnapshot(elapsedSeconds);
     setIsTransitioning(true);
   };
 
   const handleTransitionComplete = () => {
     isTransitionPendingRef.current = false;
     setIsTransitioning(false);
-    setLastLifeRestored(false);
+    setLastLifeRestoreKind('none');
     setLevelBonusScore(0);
     if (pendingLevel !== null) {
       const enteredAct = getActForLevel(pendingLevel);
-      if (
-        enteredAct &&
-        (enteredAct.id === 2 || enteredAct.id === 3) &&
-        pendingLevel === enteredAct.startLevel
-      ) {
+      if (enteredAct && isActCheckpointEntry(pendingLevel)) {
         setActCheckpoint({
           actId: enteredAct.id,
           level: pendingLevel,
           score,
           baseNetworkWater,
-          timeLeft: timeLeftRef.current,
-          extraTimeBought,
-          unlockedFreeHints: unlockedFreeHints.filter((l) => l < pendingLevel),
+          elapsedSeconds: elapsedSecondsRef.current,
         });
       }
       setLevel(pendingLevel);
@@ -1085,10 +1055,6 @@ export default function App() {
       }
       return newLives;
     });
-    // Unlock free hint when a mistake is made
-    if (!unlockedFreeHints.includes(level)) {
-      setUnlockedFreeHints(prev => [...prev, level]);
-    }
   };
 
   const handleDevSubmit = async (e: React.FormEvent) => {
@@ -1134,26 +1100,25 @@ export default function App() {
 
   const restoreIfGameOverDev = () => {
     if (lives <= 0) setLives(3);
-    if (timeLeft <= 0) setTimeLeft(MISSION_DURATION_SECONDS);
-  };
-
-  const prevLevelDev = () => {
-    restoreIfGameOverDev();
-    setLevel((l) => Math.max(0, l - 1));
   };
 
   const jumpToLevelDev = (targetLevel: number) => {
     restoreIfGameOverDev();
+    setIsPaused(false);
     if (targetLevel <= 2) {
       setBaseNetworkWater(0);
+      setDevWaterBonus(false);
     } else if (targetLevel >= 13) {
-      setBaseNetworkWater((prev) => Math.max(prev, 86));
+      setBaseNetworkWater(86);
       if (targetLevel === 14 && !finalEvaluation) {
         setDevWaterBonus(true);
+      } else if (targetLevel === 13) {
+        setDevWaterBonus(false);
       }
     } else {
       const targetWater = NETWORK_WATER_BY_LEVEL[targetLevel - 1] ?? 0;
-      setBaseNetworkWater((prev) => Math.max(prev, targetWater));
+      setBaseNetworkWater(targetWater);
+      setDevWaterBonus(false);
     }
     const targetAct = getActForLevel(targetLevel);
     if (!targetAct || targetAct.id === 1) {
@@ -1165,26 +1130,31 @@ export default function App() {
         level: startLevel,
         score,
         baseNetworkWater: NETWORK_WATER_BY_LEVEL[startLevel - 1] ?? 0,
-        timeLeft: Math.max(timeLeftRef.current, ACT_CHECKPOINT_MIN_TIME_SECONDS[targetAct.id]),
-        extraTimeBought,
-        unlockedFreeHints: unlockedFreeHints.filter((l) => l < startLevel),
+        elapsedSeconds: elapsedSecondsRef.current,
       });
     }
     if (targetLevel > 0 && targetLevel < 14) {
       setIsActive(true);
+    } else {
+      setIsActive(false);
     }
     setLevel(targetLevel);
+  };
+
+  const prevLevelDev = () => {
+    jumpToLevelDev(Math.max(0, level - 1));
   };
 
   const previewInterludeDev = (targetLevel: 4 | 11) => {
     restoreIfGameOverDev();
     const targetWater = NETWORK_WATER_BY_LEVEL[targetLevel - 1] ?? 0;
-    setBaseNetworkWater((prev) => Math.max(prev, targetWater));
+    setBaseNetworkWater(targetWater);
+    setDevWaterBonus(false);
     setIsActive(true);
     setIsPaused(false);
     setLastPointsGained(0);
-    setLastTimeRemaining(timeLeftRef.current);
-    setLastLifeRestored(false);
+    setLastElapsedSnapshot(elapsedSecondsRef.current);
+    setLastLifeRestoreKind('none');
     isTransitionPendingRef.current = true;
     setPendingLevel(targetLevel);
     setIsTransitioning(true);
@@ -1193,6 +1163,7 @@ export default function App() {
   const skipLevelDev = () => {
     if (level >= 14) return;
     restoreIfGameOverDev();
+    setIsPaused(false);
     if (level === 0) {
       setIsActive(true);
       setLevel(1);
@@ -1205,17 +1176,6 @@ export default function App() {
     nextLevel();
   };
 
-  const useHint = useCallback(() => {
-    if (unlockedFreeHints.includes(level)) {
-      setShowHint(true);
-    } else if (score >= FREE_HINT_COST_POINTS) {
-      setScore(s => Math.max(0, s - FREE_HINT_COST_POINTS));
-      setUnlockedFreeHints(prev => [...prev, level]);
-      setShowHint(true);
-      soundManager.playHintUnlock();
-    }
-  }, [level, score, unlockedFreeHints]);
-
   const buyHeart = useCallback(() => {
     if (level > 0 && level < 13 && score >= HEART_COST_POINTS && lives > 0 && lives < 3) {
       setScore(s => s - HEART_COST_POINTS);
@@ -1226,17 +1186,17 @@ export default function App() {
 
   const naiaHintContextValue = useMemo(() => ({
     level,
-    score,
-    unlockedFreeHints,
     isHintOpen: showHint,
     setIsHintOpen: setShowHint,
-    useHint
-  }), [level, score, unlockedFreeHints, showHint, useHint]);
+  }), [level, showHint]);
 
-  const formatTime = (seconds: number) => {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  const formatMissionClock = (elapsed: number) => {
+    const remaining = MISSION_DURATION_SECONDS - Math.max(0, Math.floor(elapsed));
+    const abs = Math.abs(remaining);
+    const m = Math.floor(abs / 60);
+    const s = abs % 60;
+    const base = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    return remaining < 0 ? `+${base}` : base;
   };
 
   return (
@@ -1263,9 +1223,8 @@ export default function App() {
       <div inert={isPauseOverlayVisible}>
         <HUD
           level={level}
-          timeLeft={timeLeft}
+          elapsedSeconds={elapsedSeconds}
           lives={lives}
-          waterSaved={waterSaved}
           score={score}
           isDevMode={isDevMode}
           devAnswers={devAnswers}
@@ -1294,17 +1253,9 @@ export default function App() {
           prevLevelDev={prevLevelDev}
           skipLevelDev={skipLevelDev}
           buyHeart={buyHeart}
-          buyTime={() => {
-            if (level !== 13 && score >= TIME_BONUS_COST_POINTS && timeLeft < MISSION_DURATION_SECONDS) {
-              setScore(s => s - TIME_BONUS_COST_POINTS);
-              setTimeLeft(t => t + TIME_BONUS_SECONDS);
-              setExtraTimeBought(e => e + TIME_BONUS_SECONDS);
-              soundManager.playTimeBoost();
-            }
-          }}
           onGoHome={() => {
             if (isTransitionPending) return;
-            if (level > 0 && level < 14 && timeLeft > 0 && lives > 0) {
+            if (level > 0 && level < 14 && lives > 0) {
               setShowHomeConfirm(true);
               return;
             }
@@ -1315,7 +1266,7 @@ export default function App() {
                 buildSavedGameInfo({
                   level,
                   score,
-                  timeLeft: timeLeftRef.current,
+                  elapsedSeconds: elapsedSecondsRef.current,
                   lives,
                   secondChanceUsed,
                   nickname,
@@ -1327,9 +1278,9 @@ export default function App() {
             setPendingLevel(null);
             setIsActive(false);
             setIsPaused(false);
-            if (lives <= 0 || timeLeft <= 0) {
+            setShowOvertimeNotice(false);
+            if (lives <= 0) {
               setLives(3);
-              setTimeLeft(MISSION_DURATION_SECONDS);
             }
             setLevel(0);
           }}
@@ -1337,6 +1288,38 @@ export default function App() {
           hideHeader={level === 0 && isBriefingOpen}
         />
       </div>
+
+      {/* Non-blocking Overtime Banner when crossing the 40-minute target */}
+      <AnimatePresence>
+        {showOvertimeNotice && level > 0 && level < 13 && lives > 0 && !isTransitionPending && (
+          <motion.div
+            initial={{ opacity: 0, y: -14 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            role="status"
+            aria-live="polite"
+            className="fixed top-16 left-1/2 -translate-x-1/2 z-[65] w-[calc(100%-2rem)] max-w-xl"
+          >
+            <div className="flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-slate-900/95 border border-amber-400/40 backdrop-blur-xl shadow-[0_12px_32px_rgba(0,0,0,0.55)] text-xs sm:text-sm text-slate-200">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <Clock className="w-4 h-4 text-amber-300 shrink-0" />
+                <p className="leading-snug">
+                  <strong className="text-amber-300 font-semibold">Objectif {MISSION_DURATION_MINUTES} min dépassé :</strong>{' '}
+                  protocole de secours activé, vous pouvez terminer la mission librement en prolongation.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowOvertimeNotice(false)}
+                aria-label="Fermer la notification"
+                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors shrink-0 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Glossary Modal */}
       <AnimatePresence>
@@ -1563,7 +1546,7 @@ export default function App() {
                         buildSavedGameInfo({
                           level,
                           score,
-                          timeLeft: timeLeftRef.current,
+                          elapsedSeconds: elapsedSecondsRef.current,
                           lives,
                           secondChanceUsed,
                           nickname,
@@ -1575,6 +1558,7 @@ export default function App() {
                     setPendingLevel(null);
                     setIsActive(false);
                     setIsPaused(false);
+                    setShowOvertimeNotice(false);
                     setLevel(0);
                   }}
                   className="flex-1 bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2.5 px-4 rounded-xl text-sm transition-colors"
@@ -1613,7 +1597,7 @@ export default function App() {
                 </p>
               </div>
               <p className="text-slate-300 text-sm leading-relaxed">
-                Le chronomètre est suspendu (<span className="font-mono font-bold text-cyan-300">{formatTime(timeLeft)}</span>). Écoutez les consignes de votre enseignant avant de reprendre la mission.
+                Le chronomètre est suspendu (<span className="font-mono font-bold text-cyan-300">{formatMissionClock(elapsedSeconds)}</span>). Écoutez les consignes de votre enseignant avant de reprendre la mission.
               </p>
               <button
                 type="button"
@@ -1638,8 +1622,8 @@ export default function App() {
             fact={FACTS[pendingLevel]}
             score={score}
             pointsGained={lastPointsGained}
-            timeRemaining={lastTimeRemaining}
-            lifeRestored={lastLifeRestored}
+            elapsedSeconds={lastElapsedSnapshot}
+            lifeRestoreKind={lastLifeRestoreKind}
             isMuted={isMuted}
             onToggleMute={() => setIsMuted(m => !m)}
             skipReadDelay={isDevMode}
@@ -1650,7 +1634,11 @@ export default function App() {
 
       <motion.main 
         inert={isPauseOverlayVisible}
-        className="w-full pt-14 md:pt-16 pb-2 my-auto relative"
+        className={`w-full relative ${
+          level > 0 && level < 14 && lives > 0
+            ? 'flex-1 pt-16 md:pt-[76px] pb-6'
+            : 'pt-14 md:pt-16 pb-2 my-auto'
+        }`}
         animate={isShaking && !prefersReducedMotion ? {
           x: [-5, 5, -3, 3, 0],
           transition: { duration: 0.3 }
@@ -1658,12 +1646,11 @@ export default function App() {
       >
         <Suspense fallback={<LevelLoadingFallback />}>
         <AnimatePresence mode="wait" onExitComplete={() => window.scrollTo(0, 0)}>
-          {isTransitioning ? null : level > 0 && (timeLeft === 0 || lives === 0) && level !== 14 ? (
+          {isTransitioning ? null : level > 0 && lives === 0 && level !== 14 ? (
             <GameOver
               key="gameover"
-              reason={timeLeft === 0 ? 'time' : 'lives'}
               onRetry={startGame}
-              onResumeLevel={timeLeft > 0 && !secondChanceUsed ? resumeFromLockout : undefined}
+              onResumeLevel={!secondChanceUsed ? resumeFromLockout : undefined}
               onResumeAct={effectiveActCheckpoint ? resumeFromActCheckpoint : undefined}
               actCheckpoint={effectiveActCheckpoint}
               onGoHome={() => {
@@ -1673,7 +1660,7 @@ export default function App() {
                     buildSavedGameInfo({
                       level,
                       score,
-                      timeLeft: timeLeftRef.current,
+                      elapsedSeconds: elapsedSecondsRef.current,
                       lives,
                       secondChanceUsed,
                       nickname,
@@ -1683,14 +1670,14 @@ export default function App() {
                 }
                 setIsActive(false);
                 setIsPaused(false);
+                setShowOvertimeNotice(false);
                 setLives(3);
-                setTimeLeft(MISSION_DURATION_SECONDS);
                 setLevel(0);
               }}
               nickname={nickname}
               level={level}
               score={score}
-              timeLeft={timeLeft}
+              elapsedSeconds={elapsedSeconds}
               secondChanceUsed={secondChanceUsed}
             />
           ) : level === 0 ? (
@@ -1749,8 +1736,7 @@ export default function App() {
           ) : level === 14 ? (
             <Outro 
               key="outro" 
-              timeLeft={timeLeft} 
-              extraTimeBought={extraTimeBought}
+              elapsedSeconds={elapsedSeconds} 
               score={score} 
               waterSaved={waterSaved}
               mistakeCount={mistakeCount}

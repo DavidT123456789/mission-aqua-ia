@@ -5,6 +5,7 @@ import NaiaDialogue from '../components/NaiaDialogue';
 import TechTerm from '../components/TechTerm';
 import LevelHeader from '../components/LevelHeader';
 import LevelShell from '../components/LevelShell';
+import MissionWorkspace from '../components/MissionWorkspace';
 import ActionButton from '../components/ActionButton';
 import LevelSuccessCard from '../components/LevelSuccessCard';
 import { soundManager } from '../utils/soundManager';
@@ -132,15 +133,8 @@ export default function Level9({ onComplete, onScoreUpdate, onMistake }: { onCom
         }
       />
 
-      <div className="mb-3">
+      <div className="mb-3.5 sm:mb-4">
         <NaiaDialogue
-          hydra={{
-            status: 'warning',
-            message:
-              phase === 1
-                ? "Indexation automatique de 230 To d'archives brutes en cours pour l'entraînement..."
-                : "Pré-test sécheresse : baisse automatique de pression programmée sur le secteur Quartier Nord.",
-          }}
           message={
             phase === 1 ? (
               <>
@@ -152,15 +146,6 @@ export default function Level9({ onComplete, onScoreUpdate, onMistake }: { onCom
               </>
             )
           }
-          objective={
-            phase === 1
-              ? `Supprimez les jeux superflus ou hors zone pour passer sous ${MAX_STORAGE_TB} To en gardant les données scientifiques locales.`
-              : (
-                <>
-                  Comparez les sources ci-dessous et corrigez ce <TechTerm term="Biais">biais</TechTerm> avant l'entraînement.
-                </>
-              )
-          }
           reaction={errorMsg ? { message: errorMsg, emotion: 'alert' } : null}
           onDismissReaction={clearError}
           emotion={isSuccess ? 'happy' : phase === 2 ? 'alert' : 'neutral'}
@@ -168,6 +153,24 @@ export default function Level9({ onComplete, onScoreUpdate, onMistake }: { onCom
         />
       </div>
 
+      <MissionWorkspace
+        hydra={{
+          status: 'warning',
+          message:
+            phase === 1
+              ? "Indexation automatique de 230 To d'archives brutes en cours pour l'entraînement..."
+              : "Pré-test sécheresse : baisse automatique de pression programmée sur le secteur Quartier Nord.",
+        }}
+        objective={
+          phase === 1
+            ? `Supprimez les jeux superflus ou hors zone pour passer sous ${MAX_STORAGE_TB} To en gardant les données scientifiques locales.`
+            : (
+              <>
+                Comparez les sources ci-dessous et corrigez ce <TechTerm term="Biais">biais</TechTerm> avant l'entraînement.
+              </>
+            )
+        }
+      >
       <div className="space-y-4 text-slate-300">
         <AnimatePresence mode="wait" initial={false}>
         {phase === 1 && (
@@ -339,6 +342,7 @@ export default function Level9({ onComplete, onScoreUpdate, onMistake }: { onCom
           )}
         </AnimatePresence>
       </div>
+      </MissionWorkspace>
     </LevelShell>
   );
 }

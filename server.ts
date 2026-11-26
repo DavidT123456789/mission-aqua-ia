@@ -7,9 +7,9 @@ import express from 'express';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from '@google/genai';
 import path from 'path';
-import { DEV_ANSWERS } from './shared/devAnswers';
-import { FALLBACK_PROTOTYPE_DATA_URI } from './shared/fallbackPrototype';
-import { evaluateStudentIdea, validateIdeaInput } from './shared/evaluateIdea';
+import { DEV_ANSWERS } from './shared/devAnswers.ts';
+import { FALLBACK_PROTOTYPE_DATA_URI } from './shared/fallbackPrototype.ts';
+import { evaluateStudentIdea, validateIdeaInput } from './shared/evaluateIdea.ts';
 
 function timingSafeStringEqual(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
@@ -80,7 +80,14 @@ async function startServer() {
       }
 
       try {
-        const ai = new GoogleGenAI({ apiKey });
+        const ai = new GoogleGenAI({
+          apiKey,
+          httpOptions: {
+            headers: {
+              'User-Agent': 'aistudio-build',
+            },
+          },
+        });
         const imageModel = await ai.models.generateContent({
           model: 'gemini-2.5-flash-image',
           contents: {
@@ -123,7 +130,7 @@ async function startServer() {
   } else {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
-    app.get('*all', (req, res) => {
+    app.get('*', (_req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }
